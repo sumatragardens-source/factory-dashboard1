@@ -3,6 +3,7 @@ import { getBatchCosts } from '$lib/data/repositories/costingRepo';
 import { getDeviationsByBatch } from '$lib/data/repositories/deviationRepo';
 import { getLabResultsByBatch } from '$lib/data/repositories/labResultRepo';
 import { getApprovalsByBatch } from '$lib/data/repositories/approvalRepo';
+import { getMachineEventsByBatch } from '$lib/data/repositories/machineRepo';
 import { getStage1Record, getStage2Record, getStage3Record, getStage4Record } from '$lib/data/repositories/stageRepo';
 import { calculateTotalBatchCost, calculateCostPerKg } from '$lib/calculations/costing';
 import { error } from '@sveltejs/kit';
@@ -18,6 +19,7 @@ export const load: PageServerLoad = ({ params }) => {
 	const deviations = getDeviationsByBatch(batch.id);
 	const labResults = getLabResultsByBatch(batch.id);
 	const approvals = getApprovalsByBatch(batch.id);
+	const machineEvents = getMachineEventsByBatch(batch.id);
 
 	const stage4 = getStage4Record(batch.id);
 	const costPerKg = stage4?.final_product_weight_kg
@@ -33,6 +35,7 @@ export const load: PageServerLoad = ({ params }) => {
 		deviations,
 		labResults,
 		approvals,
+		machineEvents,
 		stage1: getStage1Record(batch.id) ?? null,
 		stage2: getStage2Record(batch.id) ?? null,
 		stage3: getStage3Record(batch.id) ?? null,

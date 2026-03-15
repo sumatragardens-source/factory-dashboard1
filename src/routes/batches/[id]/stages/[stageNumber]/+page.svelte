@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getStageName, STAGE_KEYS } from '$lib/constants/stageNames';
+	import { calculateRecoveryRate, calculateSolventLoss } from '$lib/calculations/solvent';
 
 	let { data } = $props();
 
@@ -48,7 +49,7 @@
 				<div class="flex items-center gap-2 text-xs font-medium text-slate-500 ml-4">
 					<a href="/batches/{data.batch.id}" class="hover:text-primary">Batch {data.batch.batch_number}</a>
 					<span class="material-symbols-outlined text-xs">chevron_right</span>
-					<span class="text-slate-900">Stage {data.stageNumber}</span>
+					<span class="text-slate-900">{getStageName(data.stageNumber)}</span>
 				</div>
 			</div>
 			<div class="flex gap-3">
@@ -70,7 +71,7 @@
 								<span class="material-symbols-outlined text-lg">fingerprint</span>
 								Batch Identification
 							</h3>
-							<div class="grid grid-cols-2 gap-6">
+							<div class="grid grid-cols-3 gap-6">
 								<div class="space-y-1">
 									<label class="text-[10px] font-bold uppercase text-slate-500">Batch Number</label>
 									<input class="w-full bg-primary/5 border-none rounded-lg text-sm font-bold focus:ring-primary" readonly type="text" value={data.batch.batch_number} />
@@ -78,6 +79,27 @@
 								<div class="space-y-1">
 									<label class="text-[10px] font-bold uppercase text-slate-500">Supplier</label>
 									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.batch.supplier ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Leaf Batch ID</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.batch.leaf_batch_id ?? ''} placeholder="e.g. LB-2026-001" />
+								</div>
+							</div>
+						</section>
+
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">calendar_today</span>
+								Processing Dates
+							</h3>
+							<div class="grid grid-cols-2 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Receipt Date</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="date" value={data.stage1?.receipt_date ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Processing Date</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="date" value={data.stage1?.processing_date ?? ''} />
 								</div>
 							</div>
 						</section>
@@ -121,6 +143,14 @@
 									<label class="text-[10px] font-bold uppercase text-slate-500">Run Duration (min)</label>
 									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage1?.run_duration_min ?? ''} />
 								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Screen Mesh (mm)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" step="0.1" value={data.stage1?.screen_mesh_mm ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Feed Rate Setting</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.stage1?.feed_rate_setting ?? ''} />
+								</div>
 							</div>
 						</section>
 
@@ -141,8 +171,42 @@
 							</div>
 						</section>
 
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">person</span>
+								Operator
+							</h3>
+							<div class="grid grid-cols-2 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Operator Name</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.stage1?.operator_name ?? ''} />
+								</div>
+							</div>
+						</section>
+
 					{:else if data.stageNumber === 2}
 						<!-- Stage 2: Ethanol Extraction -->
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">input</span>
+								Input
+							</h3>
+							<div class="grid grid-cols-3 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Dry Mass (kg)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage2?.dry_mass_kg ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Ethanol Grade</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.stage2?.ethanol_grade ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Ethanol Volume (L)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage2?.ethanol_volume_l ?? ''} />
+								</div>
+							</div>
+						</section>
+
 						{#if data.stage2}
 							<div class="grid grid-cols-5 gap-4">
 								<div class="bg-white border border-slate-200 p-3 rounded">
@@ -221,6 +285,31 @@
 
 						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
 							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">filter_alt</span>
+								Filtration
+							</h3>
+							<div class="grid grid-cols-3 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Settle Time (min)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage2?.settle_time_min ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Filter Micron</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage2?.filter_micron ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Filter Pressure (psi)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage2?.filter_pressure_psi ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">DE Added (kg)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" step="0.01" value={data.stage2?.de_added ?? ''} />
+								</div>
+							</div>
+						</section>
+
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
 								<span class="material-symbols-outlined text-lg">settings</span>
 								Rotovap Stage
 							</h3>
@@ -236,8 +325,51 @@
 							</div>
 						</section>
 
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">inventory_2</span>
+								Extract Output
+							</h3>
+							<div class="grid grid-cols-2 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Extract Weight (kg)</label>
+									<input class="w-full bg-primary/10 border-primary/30 border-2 rounded-lg text-sm font-black focus:ring-primary" type="number" value={data.stage2?.extract_weight_kg ?? ''} />
+								</div>
+							</div>
+						</section>
+
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">person</span>
+								Operator
+							</h3>
+							<div class="grid grid-cols-2 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Operator Name</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.stage2?.operator_name ?? ''} />
+								</div>
+							</div>
+						</section>
+
 					{:else if data.stageNumber === 3}
 						<!-- Stage 3: Acid/Base Extraction and Partitioning -->
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">input</span>
+								Input
+							</h3>
+							<div class="grid grid-cols-2 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Feed Weight (kg)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage3?.feed_weight_kg ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Water Volume (L)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage3?.water_volume_l ?? ''} />
+								</div>
+							</div>
+						</section>
+
 						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
 							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
 								<span class="material-symbols-outlined text-lg">science</span>
@@ -257,6 +389,12 @@
 									<p class="text-lg font-black">{data.stage3?.actual_ph_acid ?? '—'}</p>
 								</div>
 							</div>
+							<div class="grid grid-cols-2 gap-6 mt-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Acid Volume (L)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage3?.acid_volume_l ?? ''} />
+								</div>
+							</div>
 						</section>
 
 						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
@@ -268,6 +406,10 @@
 								<div class="space-y-1">
 									<label class="text-[10px] font-bold uppercase text-slate-500">Base Type</label>
 									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.stage3?.base_type ?? 'NaOH'} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Base Weight (kg)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage3?.base_weight_kg ?? ''} />
 								</div>
 								<div class="space-y-1">
 									<label class="text-[10px] font-bold uppercase text-slate-500">Target pH</label>
@@ -294,6 +436,14 @@
 									<label class="text-[10px] font-bold uppercase text-slate-500">Number of Washes</label>
 									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage3?.num_washes ?? ''} />
 								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Aqueous Phase Volume (L)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage3?.aqueous_phase_volume_l ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Organic Phase Volume (L)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage3?.organic_phase_volume_l ?? ''} />
+								</div>
 							</div>
 						</section>
 
@@ -314,8 +464,34 @@
 							</div>
 						</section>
 
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">person</span>
+								Operator
+							</h3>
+							<div class="grid grid-cols-2 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Operator Name</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.stage3?.operator_name ?? ''} />
+								</div>
+							</div>
+						</section>
+
 					{:else if data.stageNumber === 4}
 						<!-- Stage 4: Back Extraction, Precipitation, Drying, and Final Product -->
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">input</span>
+								Input
+							</h3>
+							<div class="grid grid-cols-2 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Feed Weight (kg)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage4?.feed_weight_kg ?? ''} />
+								</div>
+							</div>
+						</section>
+
 						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
 							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
 								<span class="material-symbols-outlined text-lg">science</span>
@@ -333,6 +509,48 @@
 								<div class="space-y-1">
 									<label class="text-[10px] font-bold uppercase text-slate-500">Temp (°C)</label>
 									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage4?.back_extraction_temp_c ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Time (min)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" value={data.stage4?.back_extraction_time_min ?? ''} />
+								</div>
+							</div>
+						</section>
+
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">eco</span>
+								Limonene Accounting
+							</h3>
+							<div class="grid grid-cols-2 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Limonene Retained in Product (kg)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" step="0.001" value={data.stage4?.limonene_retained_product_kg ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Limonene Process Loss (kg)</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" step="0.001" value={data.stage4?.limonene_process_loss_kg ?? ''} />
+								</div>
+							</div>
+						</section>
+
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">filter_drama</span>
+								Precipitation
+							</h3>
+							<div class="grid grid-cols-3 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Method</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.stage4?.precipitation_method ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Precipitation pH</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="number" step="0.1" value={data.stage4?.precipitation_ph ?? ''} />
+								</div>
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Precipitate Weight (kg)</label>
+									<input class="w-full bg-primary/10 border-primary/30 border-2 rounded-lg text-sm font-black focus:ring-primary" type="number" value={data.stage4?.precipitate_weight_kg ?? ''} />
 								</div>
 							</div>
 						</section>
@@ -371,6 +589,19 @@
 								<div class="space-y-1">
 									<label class="text-[10px] font-bold uppercase text-slate-500">Product Appearance</label>
 									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.stage4?.product_appearance ?? ''} />
+								</div>
+							</div>
+						</section>
+
+						<section class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
+							<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+								<span class="material-symbols-outlined text-lg">person</span>
+								Operator
+							</h3>
+							<div class="grid grid-cols-2 gap-6">
+								<div class="space-y-1">
+									<label class="text-[10px] font-bold uppercase text-slate-500">Operator Name</label>
+									<input class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" type="text" value={data.stage4?.operator_name ?? ''} />
 								</div>
 							</div>
 						</section>
@@ -418,6 +649,50 @@
 											<div class="bg-primary h-full rounded-full" style="width: {data.stage1.powder_yield_pct}%"></div>
 										</div>
 									</div>
+									<!-- Mass Balance Error Indicator -->
+									{#if true}
+										{@const mbe = data.stage1.mass_balance_error_pct ?? 0}
+										<div class="pt-4 border-t border-white/10">
+											<div class="flex justify-between mb-2">
+												<span class="text-[10px] uppercase font-bold text-white/60">Mass Balance Error</span>
+												<span class="text-[10px] font-bold {mbe <= 2 ? 'text-primary' : 'text-amber-400'}">{mbe}%</span>
+											</div>
+											<div class="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+												<div class="{mbe <= 2 ? 'bg-primary' : 'bg-amber-400'} h-full rounded-full" style="width: {Math.min(mbe * 20, 100)}%"></div>
+											</div>
+											<p class="text-[9px] {mbe <= 2 ? 'text-primary' : 'text-amber-400'} mt-1">{mbe <= 2 ? 'Within tolerance' : 'Above 2% threshold'}</p>
+										</div>
+									{/if}
+								</div>
+							</div>
+
+						{:else if data.stageNumber === 2 && data.stage2}
+							<div class="bg-slate-900 text-white p-8 rounded-xl border border-primary/40 shadow-xl relative overflow-hidden">
+								<div class="absolute -right-10 -top-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl"></div>
+								<h3 class="text-xs font-black uppercase tracking-widest text-primary mb-8">Extraction Metrics</h3>
+								<div class="space-y-6 relative z-10">
+									<div class="flex justify-between items-end border-b border-white/10 pb-4">
+										<div>
+											<p class="text-[10px] uppercase text-white/40 font-bold">Solvent Recovery Rate</p>
+											<p class="text-2xl font-black">{calculateRecoveryRate(data.stage2.ethanol_volume_l ?? 0, data.stage2.recovered_ethanol_l ?? 0)} <span class="text-xs font-normal text-white/40">%</span></p>
+										</div>
+										<span class="material-symbols-outlined text-primary mb-1">restart_alt</span>
+									</div>
+									<div class="flex justify-between items-end border-b border-white/10 pb-4">
+										<div>
+											<p class="text-[10px] uppercase text-white/40 font-bold">Solvent Loss</p>
+											<p class="text-2xl font-black">{calculateSolventLoss(data.stage2.ethanol_volume_l ?? 0, data.stage2.recovered_ethanol_l ?? 0)} <span class="text-xs font-normal text-white/40">L</span></p>
+										</div>
+										<span class="material-symbols-outlined text-amber-400 mb-1">water_drop</span>
+									</div>
+									{#if data.stage2.extract_weight_kg && data.stage2.dry_mass_kg}
+										<div class="flex justify-between items-end bg-primary/10 -mx-4 px-4 py-4 rounded-lg">
+											<div>
+												<p class="text-[10px] uppercase text-primary font-black">Stage Yield</p>
+												<p class="text-3xl font-black text-primary">{((data.stage2.extract_weight_kg / data.stage2.dry_mass_kg) * 100).toFixed(1)} <span class="text-sm font-normal">%</span></p>
+											</div>
+										</div>
+									{/if}
 								</div>
 							</div>
 
@@ -469,6 +744,32 @@
 									</div>
 								</div>
 							</div>
+							{#if data.stage3.feed_weight_kg && data.stage3.alkaloid_precipitate_kg}
+								<div class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm mt-4">
+									<h4 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Partition Transfer Efficiency</h4>
+									<div class="text-center">
+										<p class="text-3xl font-black text-primary">{((data.stage3.alkaloid_precipitate_kg / data.stage3.feed_weight_kg) * 100).toFixed(1)}%</p>
+										<p class="text-[10px] text-slate-400 mt-1">Precipitate / Feed Weight</p>
+									</div>
+								</div>
+							{/if}
+							{#if data.unitRates}
+								{@const hclRate = data.unitRates.find((r: any) => r.item_name === 'HCl')?.rate_per_unit ?? 0}
+								{@const naohRate = data.unitRates.find((r: any) => r.item_name === 'NaOH')?.rate_per_unit ?? 0}
+								{@const limRate = data.unitRates.find((r: any) => r.item_name === 'Limonene')?.rate_per_unit ?? 0}
+								{@const waterRate = data.unitRates.find((r: any) => r.item_name === 'DI Water')?.rate_per_unit ?? 0}
+								{@const reagentCost = (data.stage3.acid_volume_l ?? 0) * hclRate + (data.stage3.base_weight_kg ?? 0) * naohRate + (data.stage3.limonene_volume_l ?? 0) * limRate + (data.stage3.water_volume_l ?? 0) * waterRate}
+								<div class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm mt-4">
+									<h4 class="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Reagent Cost Summary</h4>
+									<div class="space-y-2 text-xs">
+										<div class="flex justify-between"><span class="text-slate-500">HCl</span><span class="font-bold">${((data.stage3.acid_volume_l ?? 0) * hclRate).toFixed(2)}</span></div>
+										<div class="flex justify-between"><span class="text-slate-500">NaOH</span><span class="font-bold">${((data.stage3.base_weight_kg ?? 0) * naohRate).toFixed(2)}</span></div>
+										<div class="flex justify-between"><span class="text-slate-500">Limonene</span><span class="font-bold">${((data.stage3.limonene_volume_l ?? 0) * limRate).toFixed(2)}</span></div>
+										<div class="flex justify-between"><span class="text-slate-500">DI Water</span><span class="font-bold">${((data.stage3.water_volume_l ?? 0) * waterRate).toFixed(2)}</span></div>
+										<div class="flex justify-between border-t border-slate-200 pt-2 mt-2"><span class="font-bold text-slate-700">Total</span><span class="font-black text-primary">${reagentCost.toFixed(2)}</span></div>
+									</div>
+								</div>
+							{/if}
 
 						{:else if data.stageNumber === 4 && data.stage4}
 							<div class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm">
@@ -488,6 +789,34 @@
 									</div>
 								</div>
 							</div>
+							{#if data.stage4.precipitate_weight_kg && data.stage4.final_product_weight_kg}
+								<div class="bg-white p-6 rounded-xl border border-primary/10 shadow-sm mt-4">
+									<h4 class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">Detailed Metrics</h4>
+									<div class="space-y-3">
+										{#if data.stage4.limonene_retained_product_kg != null && data.stage4.limonene_process_loss_kg != null}
+											{@const limRecovery = data.stage4.feed_weight_kg ? ((data.stage4.feed_weight_kg - data.stage4.limonene_retained_product_kg - data.stage4.limonene_process_loss_kg) / data.stage4.feed_weight_kg * 100) : 0}
+											<div class="flex justify-between items-center text-xs">
+												<span class="text-slate-500">Limonene Recovery</span>
+												<span class="font-bold">{limRecovery.toFixed(1)}%</span>
+											</div>
+										{/if}
+										<div class="flex justify-between items-center text-xs">
+											<span class="text-slate-500">Precipitation Yield</span>
+											<span class="font-bold">{data.stage4.stage_yield_pct ?? '—'}%</span>
+										</div>
+										<div class="flex justify-between items-center text-xs">
+											<span class="text-slate-500">Drying Loss</span>
+											<span class="font-bold">{((data.stage4.precipitate_weight_kg - data.stage4.final_product_weight_kg) * 1000).toFixed(0)} g</span>
+										</div>
+										{#if data.totalCost && data.stage4.final_product_weight_kg}
+											<div class="flex justify-between items-center text-xs border-t border-slate-200 pt-2 mt-2">
+												<span class="text-slate-700 font-bold">Cost per kg</span>
+												<span class="font-black text-primary">${(data.totalCost / data.stage4.final_product_weight_kg).toFixed(2)}</span>
+											</div>
+										{/if}
+									</div>
+								</div>
+							{/if}
 
 						{:else}
 							<div class="bg-slate-100 p-8 rounded-xl text-center">

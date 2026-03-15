@@ -9,7 +9,9 @@ import {
 	getAllMachineStatuses,
 	getAverageEthanolRecovery,
 	getOpenDeviationCount,
-	getBatchCountByStatus
+	getBatchCountByStatus,
+	getSolventTotals,
+	getLatestCompletedBatchNumber
 } from '$lib/data/repositories/dashboardRepo';
 import { getLowStockMaterials } from '$lib/data/repositories/materialRepo';
 import { getBatchCosts } from '$lib/data/repositories/costingRepo';
@@ -40,6 +42,8 @@ export const load: PageServerLoad = () => {
 		openDeviationCount: getOpenDeviationCount(),
 		statusCounts: getBatchCountByStatus(),
 		lowStockMaterials: getLowStockMaterials(),
+		solventTotals: getSolventTotals(),
+		latestCompletedBatch: getLatestCompletedBatchNumber(),
 		totalCost,
 		costBreakdown,
 		hplcResult

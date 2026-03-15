@@ -4,22 +4,22 @@ export function seedData(db: Database.Database): void {
 	// --- Machines (must be inserted before stage records that reference them) ---
 	db.exec(`
 		INSERT INTO machines (code, name, machine_type, location, status, stage_relevance) VALUES
-			('GRN-01', 'Grinder Unit 1', 'Grinder', 'Processing Room A', 'Running', 'Stage 1'),
-			('RXT-01', 'Reactor Unit 1', 'Reactor', 'Extraction Room', 'Running', 'Stage 2'),
-			('SEP-01', 'Separation Vessel 1', 'Separation Vessel', 'Extraction Room', 'Idle', 'Stage 3'),
-			('RTV-01', 'Rotovap Unit 1', 'Rotovap', 'Extraction Room', 'Maintenance', 'Stage 2'),
-			('DRY-01', 'Drying Cabinet 1', 'Drying Cabinet', 'Drying Room', 'Running', 'Stage 4');
+			('GRN-01', 'Grinder Unit 1', 'Grinder', 'Processing Room A', 'Running', 'Raw Leaf to Powder'),
+			('RXT-01', 'Reactor Unit 1', 'Reactor', 'Extraction Room', 'Running', 'Ethanol Extraction'),
+			('SEP-01', 'Separation Vessel 1', 'Separation Vessel', 'Extraction Room', 'Idle', 'Acid/Base Extraction'),
+			('RTV-01', 'Rotovap Unit 1', 'Rotovap', 'Extraction Room', 'Maintenance', 'Ethanol Extraction'),
+			('DRY-01', 'Drying Cabinet 1', 'Drying Cabinet', 'Drying Room', 'Running', 'Final Product');
 	`);
 
 	// --- Materials ---
 	db.exec(`
 		INSERT INTO materials (code, name, unit, on_hand_qty, reorder_threshold, stage_relevance) VALUES
-			('MAT-LEAF', 'Dried Leaf', 'kg', 45.0, 50, 'Stage 1'),
-			('MAT-ETOH', 'Ethanol 96%', 'L', 180.0, 100, 'Stage 2'),
-			('MAT-H2O', 'DI Water', 'L', 480.0, 200, 'Stage 3'),
-			('MAT-HCL', 'HCl', 'L', 8.5, 10, 'Stage 3'),
-			('MAT-NAOH', 'NaOH', 'kg', 38.0, 40, 'Stage 3'),
-			('MAT-LIM', 'Limonene', 'L', 25.0, 20, 'Stage 3,4');
+			('MAT-LEAF', 'Dried Leaf', 'kg', 45.0, 50, 'Raw Leaf to Powder'),
+			('MAT-ETOH', 'Ethanol 96%', 'L', 180.0, 100, 'Ethanol Extraction'),
+			('MAT-H2O', 'DI Water', 'L', 480.0, 200, 'Acid/Base Extraction'),
+			('MAT-HCL', 'HCl', 'L', 8.5, 10, 'Acid/Base Extraction'),
+			('MAT-NAOH', 'NaOH', 'kg', 38.0, 40, 'Acid/Base Extraction'),
+			('MAT-LIM', 'Limonene', 'L', 25.0, 20, 'Acid/Base, Final Product');
 	`);
 
 	// --- Batches ---
@@ -161,11 +161,11 @@ export function seedData(db: Database.Database): void {
 
 	// --- Lab Results ---
 	db.exec(`
-		INSERT INTO lab_results (batch_id, test_type, test_date, lab_reference, status, mitragynine_pct, hydroxy_mitragynine_pct, paynantheine_pct, speciogynine_pct, speciociliatine_pct, non_alkaloids_pct, tlc_spots_observed, tlc_rf_values, hplc_purity_pct, performed_by, reviewed_by, notes) VALUES
-			(1, 'HPLC', '2026-02-11', 'LAB-HPLC-001', 'Completed', 66.2, 1.8, 8.5, 6.2, 4.1, 13.2, NULL, NULL, 86.8, 'Lab Tech A', 'Dr. Chen', 'High mitragynine content, meets premium grade spec'),
-			(1, 'TLC', '2026-02-11', 'LAB-TLC-001', 'Completed', NULL, NULL, NULL, NULL, NULL, NULL, 5, '0.15, 0.28, 0.42, 0.58, 0.72', NULL, 'Lab Tech A', 'Dr. Chen', '5 distinct spots observed, clean separation'),
-			(2, 'HPLC', '2026-02-19', 'LAB-HPLC-002', 'Completed', 62.5, 2.1, 9.0, 7.1, 5.0, 14.3, NULL, NULL, 85.7, 'Lab Tech A', 'Dr. Chen', 'Good alkaloid profile for Red Borneo'),
-			(6, 'TLC', '2026-03-11', 'LAB-TLC-003', 'Pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Awaiting TLC analysis');
+		INSERT INTO lab_results (batch_id, test_type, test_date, lab_reference, status, mitragynine_pct, hydroxy_mitragynine_pct, paynantheine_pct, speciogynine_pct, speciociliatine_pct, non_alkaloids_pct, tlc_spots_observed, tlc_rf_values, hplc_purity_pct, performed_by, reviewed_by, notes, created_at, updated_at) VALUES
+			(1, 'HPLC', '2026-02-11', 'LAB-HPLC-001', 'Completed', 66.2, 1.8, 8.5, 6.2, 4.1, 13.2, NULL, NULL, 86.8, 'Lab Tech A', 'Dr. Chen', 'High mitragynine content, meets premium grade spec', '2026-02-11 09:00:00', '2026-02-13 10:00:00'),
+			(1, 'TLC', '2026-02-11', 'LAB-TLC-001', 'Completed', NULL, NULL, NULL, NULL, NULL, NULL, 5, '0.15, 0.28, 0.42, 0.58, 0.72', NULL, 'Lab Tech A', 'Dr. Chen', '5 distinct spots observed, clean separation', '2026-02-11 10:00:00', '2026-02-13 11:00:00'),
+			(2, 'HPLC', '2026-02-19', 'LAB-HPLC-002', 'Completed', 62.5, 2.1, 9.0, 7.1, 5.0, 14.3, NULL, NULL, 85.7, 'Lab Tech A', 'Dr. Chen', 'Good alkaloid profile for Red Borneo', '2026-02-19 09:00:00', '2026-02-21 14:00:00'),
+			(6, 'TLC', '2026-03-11', 'LAB-TLC-003', 'Pending', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Awaiting TLC analysis', '2026-03-11 08:00:00', '2026-03-11 08:00:00');
 	`);
 
 	// --- Approvals ---

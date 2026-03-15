@@ -6,6 +6,11 @@
 
 	const stageIcons = ['check', 'sync', 'science', 'package_2'];
 	const progress = $derived((data.stages.filter((s: any) => s.status === 'Finalized').length / 4) * 100);
+	const activityEvents = $derived([
+		...data.deviations.map((d: any) => ({ type: 'deviation', icon: 'warning', desc: `${d.deviation_type}: ${d.parameter} (${d.severity})`, ts: d.created_at })),
+		...data.approvals.map((a: any) => ({ type: 'approval', icon: 'verified', desc: `${a.approval_type.replace(/_/g, ' ')} — ${a.status}`, ts: a.requested_at })),
+		...data.machineEvents.map((m: any) => ({ type: 'machine', icon: 'precision_manufacturing', desc: `${m.machine_name}: ${m.previous_status} → ${m.new_status}`, ts: m.created_at }))
+	].sort((a: any, b: any) => new Date(b.ts).getTime() - new Date(a.ts).getTime()));
 </script>
 
 <div class="flex flex-col h-full overflow-hidden">
@@ -62,7 +67,7 @@
 						{:else if isCurrent}
 							<span class="material-symbols-outlined text-lg font-bold">sync</span>
 						{:else}
-							<span class="text-xs font-bold">{stage.stage_number}</span>
+							<span class="material-symbols-outlined text-sm">lock</span>
 						{/if}
 					</div>
 					<p class="text-[11px] font-bold uppercase tracking-wider {isFinalized ? 'text-primary' : isCurrent ? 'text-primary' : 'text-slate-500'}">
@@ -80,8 +85,9 @@
 	<div class="flex items-center bg-white px-8 border-b border-slate-200 shrink-0 overflow-x-auto no-scrollbar">
 		<button class="px-6 py-4 text-sm {activeTab === 'overview' ? 'font-bold text-primary border-b-2 border-primary' : 'font-medium text-slate-500 hover:text-slate-700'} whitespace-nowrap" onclick={() => activeTab = 'overview'}>Overview</button>
 		<button class="px-6 py-4 text-sm {activeTab === 'stages' ? 'font-bold text-primary border-b-2 border-primary' : 'font-medium text-slate-500 hover:text-slate-700'} whitespace-nowrap" onclick={() => activeTab = 'stages'}>Stage Data</button>
-		<button class="px-6 py-4 text-sm {activeTab === 'costs' ? 'font-bold text-primary border-b-2 border-primary' : 'font-medium text-slate-500 hover:text-slate-700'} whitespace-nowrap" onclick={() => activeTab = 'costs'}>Cost Build-up</button>
+		<button class="px-6 py-4 text-sm {activeTab === 'solvent' ? 'font-bold text-primary border-b-2 border-primary' : 'font-medium text-slate-500 hover:text-slate-700'} whitespace-nowrap" onclick={() => activeTab = 'solvent'}>Solvent Economics</button>
 		<button class="px-6 py-4 text-sm {activeTab === 'lab' ? 'font-bold text-primary border-b-2 border-primary' : 'font-medium text-slate-500 hover:text-slate-700'} whitespace-nowrap" onclick={() => activeTab = 'lab'}>Lab Results</button>
+		<button class="px-6 py-4 text-sm {activeTab === 'export' ? 'font-bold text-primary border-b-2 border-primary' : 'font-medium text-slate-500 hover:text-slate-700'} whitespace-nowrap" onclick={() => activeTab = 'export'}>Export</button>
 	</div>
 
 	<!-- Main Content -->
@@ -151,8 +157,8 @@
 					<div class="bg-white rounded-xl shadow-sm border border-primary/10 flex flex-col">
 						<div class="p-6 border-b border-primary/5 flex justify-between items-center">
 							<div>
-								<h3 class="text-xl font-bold text-slate-900">Active Stage: {getStageName(data.batch.current_stage)}</h3>
-								<p class="text-sm text-slate-500">Stage {data.batch.current_stage} of 4</p>
+								<h3 class="text-xl font-bold text-slate-900">{data.batch.status === 'Completed' ? 'All Stages Complete' : `Active Stage: ${getStageName(data.batch.current_stage)}`}</h3>
+								<p class="text-sm text-slate-500">{data.stages.filter((s: any) => s.status === 'Finalized').length} of 4 stages complete</p>
 							</div>
 							<div class="bg-primary/10 px-3 py-1 rounded-full text-primary font-bold text-xs uppercase tracking-widest">
 								{data.batch.status}
@@ -177,7 +183,7 @@
 								{@const nextStage = data.batch.current_stage < 4 ? data.batch.current_stage + 1 : null}
 								<a href="/batches/{data.batch.id}/stages/{data.batch.current_stage}"
 									class="w-full bg-primary text-white font-black py-4 rounded-lg shadow-xl shadow-primary/30 hover:shadow-primary/40 transition-all flex items-center justify-center gap-2 mb-3">
-									<span>Enter Stage {data.batch.current_stage}: {getStageName(data.batch.current_stage)}</span>
+									<span>Enter {getStageName(data.batch.current_stage)}</span>
 									<span class="material-symbols-outlined">arrow_forward</span>
 								</a>
 							{/if}
@@ -226,7 +232,7 @@
 						</div>
 					{/if}
 
-					<!-- Activity Log -->
+					<!-- Stage Progress -->
 					<div class="bg-white rounded-xl shadow-sm border border-primary/5 flex flex-col overflow-hidden">
 						<div class="p-4 border-b border-slate-100 flex items-center justify-between">
 							<h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Stage Progress</h4>
@@ -247,6 +253,26 @@
 							{/each}
 						</div>
 					</div>
+
+					<!-- Activity Log -->
+					{#if activityEvents.length > 0}
+						<div class="bg-white rounded-xl shadow-sm border border-primary/5 flex flex-col overflow-hidden">
+							<div class="p-4 border-b border-slate-100">
+								<h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Activity Log</h4>
+							</div>
+							<div class="p-4 flex flex-col gap-3 max-h-48 overflow-y-auto">
+								{#each activityEvents as event}
+									<div class="flex gap-3">
+										<span class="material-symbols-outlined text-sm text-slate-400 mt-0.5 shrink-0">{event.icon}</span>
+										<div>
+											<p class="text-[11px] font-bold text-slate-800 leading-tight">{event.desc}</p>
+											<p class="text-[10px] text-slate-400 mt-0.5">{new Date(event.ts).toLocaleDateString()} {new Date(event.ts).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</p>
+										</div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 
@@ -276,9 +302,75 @@
 				{/each}
 			</div>
 
-		{:else if activeTab === 'costs'}
-			{#if data.costs.length > 0}
+		{:else if activeTab === 'solvent'}
+			<div class="grid grid-cols-2 gap-6">
+				<!-- Ethanol Balance -->
 				<div class="bg-white rounded-xl border border-slate-200 p-6">
+					<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
+						<span class="material-symbols-outlined">water_drop</span>
+						Ethanol Balance
+					</h3>
+					{#if data.stage2}
+						<div class="space-y-4">
+							<div class="flex justify-between items-center py-2 border-b border-slate-100">
+								<span class="text-xs text-slate-500">Volume Issued</span>
+								<span class="text-sm font-bold font-mono">{data.stage2.ethanol_volume_l} L</span>
+							</div>
+							<div class="flex justify-between items-center py-2 border-b border-slate-100">
+								<span class="text-xs text-slate-500">Volume Recovered</span>
+								<span class="text-sm font-bold font-mono text-primary">{data.stage2.recovered_ethanol_l} L</span>
+							</div>
+							<div class="flex justify-between items-center py-2 border-b border-slate-100">
+								<span class="text-xs text-slate-500">Volume Lost</span>
+								<span class="text-sm font-bold font-mono text-red-600">{data.stage2.ethanol_loss_l} L</span>
+							</div>
+							<div class="flex justify-between items-center py-2 bg-primary/5 px-3 rounded-lg">
+								<span class="text-xs font-bold text-slate-700">Recovery Rate</span>
+								<span class="text-lg font-black text-primary">{data.stage2.recovery_rate_pct}%</span>
+							</div>
+						</div>
+					{:else}
+						<p class="text-sm text-slate-400">No ethanol data recorded yet.</p>
+					{/if}
+				</div>
+
+				<!-- Limonene Balance -->
+				<div class="bg-white rounded-xl border border-slate-200 p-6">
+					<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
+						<span class="material-symbols-outlined">eco</span>
+						Limonene Balance
+					</h3>
+					{#if data.stage3}
+						<div class="space-y-4">
+							<div class="flex justify-between items-center py-2 border-b border-slate-100">
+								<span class="text-xs text-slate-500">Volume Issued</span>
+								<span class="text-sm font-bold font-mono">{data.stage3.limonene_volume_l} L</span>
+							</div>
+							<div class="flex justify-between items-center py-2 border-b border-slate-100">
+								<span class="text-xs text-slate-500">Volume Recovered</span>
+								<span class="text-sm font-bold font-mono text-primary">{data.stage3.limonene_recovered_l} L</span>
+							</div>
+							<div class="flex justify-between items-center py-2 border-b border-slate-100">
+								<span class="text-xs text-slate-500">Volume Lost</span>
+								<span class="text-sm font-bold font-mono text-red-600">{data.stage3.limonene_loss_l} L</span>
+							</div>
+							{#if true}
+								{@const limRecovery = data.stage3.limonene_volume_l ? ((data.stage3.limonene_recovered_l ?? 0) / data.stage3.limonene_volume_l * 100) : 0}
+								<div class="flex justify-between items-center py-2 bg-primary/5 px-3 rounded-lg">
+									<span class="text-xs font-bold text-slate-700">Recovery Rate</span>
+									<span class="text-lg font-black text-primary">{limRecovery.toFixed(1)}%</span>
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<p class="text-sm text-slate-400">No limonene data recorded yet.</p>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Cost Build-up Table -->
+			{#if data.costs.length > 0}
+				<div class="bg-white rounded-xl border border-slate-200 p-6 mt-6">
 					<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
 						<span class="material-symbols-outlined">payments</span>
 						Stage-by-Stage Cost Accumulation
@@ -313,10 +405,6 @@
 							</tr>
 						</tfoot>
 					</table>
-				</div>
-			{:else}
-				<div class="bg-white rounded-xl border border-slate-200 p-8 text-center">
-					<p class="text-slate-400">No cost data recorded for this batch yet.</p>
 				</div>
 			{/if}
 
@@ -365,6 +453,16 @@
 					<p class="text-slate-400">No lab results recorded for this batch.</p>
 				</div>
 			{/if}
+		{:else if activeTab === 'export'}
+			<div class="bg-white rounded-xl border border-slate-200 p-8 text-center">
+				<span class="material-symbols-outlined text-5xl text-slate-300 mb-4">picture_as_pdf</span>
+				<h3 class="text-lg font-bold text-slate-900 mb-2">Export Batch Report</h3>
+				<p class="text-sm text-slate-500 mb-6">Generate a comprehensive PDF report for this batch including all stage data, lab results, and cost breakdown.</p>
+				<button class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm flex items-center gap-2 mx-auto hover:brightness-105 transition-all">
+					<span class="material-symbols-outlined">picture_as_pdf</span>
+					Generate PDF
+				</button>
+			</div>
 		{/if}
 	</div>
 </div>

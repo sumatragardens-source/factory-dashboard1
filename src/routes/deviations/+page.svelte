@@ -99,7 +99,7 @@
 					<tr class="border-b border-slate-100 hover:bg-slate-50/50">
 						<td class="px-6 py-3">
 							<p class="text-sm font-bold text-slate-900">{dev.batch_number}</p>
-							<p class="text-[10px] text-slate-500">Stage {dev.stage_number}: {getStageName(dev.stage_number)}</p>
+							<p class="text-[10px] text-slate-500">{getStageName(dev.stage_number)}</p>
 						</td>
 						<td class="px-6 py-3">
 							<p class="text-sm text-slate-900">{dev.deviation_type}</p>
@@ -137,7 +137,7 @@
 				<div class="space-y-4">
 					{#each data.deviations.filter((d: any) => d.root_cause) as dev}
 						<div class="border-l-2 border-primary pl-3">
-							<p class="text-xs font-bold text-slate-900">{dev.batch_number} · Stage {dev.stage_number}</p>
+							<p class="text-xs font-bold text-slate-900">{dev.batch_number} · {getStageName(dev.stage_number)}</p>
 							<p class="text-xs text-slate-600 mt-1">{dev.root_cause}</p>
 						</div>
 					{/each}

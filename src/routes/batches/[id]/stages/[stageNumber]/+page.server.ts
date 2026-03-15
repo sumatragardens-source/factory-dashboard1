@@ -1,5 +1,7 @@
 import { getBatchById, getBatchStages } from '$lib/data/repositories/batchRepo';
 import { getStage1Record, getStage2Record, getStage3Record, getStage4Record } from '$lib/data/repositories/stageRepo';
+import { getAllUnitRates, getBatchCosts } from '$lib/data/repositories/costingRepo';
+import { calculateTotalBatchCost } from '$lib/calculations/costing';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -19,5 +21,9 @@ export const load: PageServerLoad = ({ params }) => {
 		stage4: getStage4Record(batch.id) ?? null
 	};
 
-	return { batch, stageNumber, stages, ...stageRecords };
+	const unitRates = getAllUnitRates();
+	const costs = getBatchCosts(batch.id);
+	const totalCost = calculateTotalBatchCost(costs);
+
+	return { batch, stageNumber, stages, ...stageRecords, unitRates, costs, totalCost };
 };

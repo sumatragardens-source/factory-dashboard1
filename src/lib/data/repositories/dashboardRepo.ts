@@ -86,6 +86,39 @@ export function getOpenDeviationCount(): number {
 	return row.count;
 }
 
+export function getSolventTotals(): {
+	ethanol_issued: number;
+	ethanol_recovered: number;
+	ethanol_lost: number;
+	limonene_issued: number;
+	limonene_recovered: number;
+	limonene_lost: number;
+} {
+	const db = getDb();
+	const ethanol = db
+		.prepare(`SELECT COALESCE(SUM(ethanol_volume_l), 0) as issued, COALESCE(SUM(recovered_ethanol_l), 0) as recovered, COALESCE(SUM(ethanol_loss_l), 0) as lost FROM stage2_records`)
+		.get() as { issued: number; recovered: number; lost: number };
+	const limonene = db
+		.prepare(`SELECT COALESCE(SUM(limonene_volume_l), 0) as issued, COALESCE(SUM(limonene_recovered_l), 0) as recovered, COALESCE(SUM(limonene_loss_l), 0) as lost FROM stage3_records`)
+		.get() as { issued: number; recovered: number; lost: number };
+	return {
+		ethanol_issued: ethanol.issued,
+		ethanol_recovered: ethanol.recovered,
+		ethanol_lost: ethanol.lost,
+		limonene_issued: limonene.issued,
+		limonene_recovered: limonene.recovered,
+		limonene_lost: limonene.lost
+	};
+}
+
+export function getLatestCompletedBatchNumber(): string | null {
+	const db = getDb();
+	const row = db
+		.prepare("SELECT batch_number FROM batches WHERE status = 'Completed' ORDER BY completed_at DESC LIMIT 1")
+		.get() as { batch_number: string } | undefined;
+	return row?.batch_number ?? null;
+}
+
 export function getBatchCountByStatus(): Record<string, number> {
 	const db = getDb();
 	const rows = db

@@ -5,7 +5,9 @@
 	let { data } = $props();
 
 	let statusFilter = $state('All');
+	let showNewForm = $state(false);
 	const statuses = ['All', 'Draft', 'In Progress', 'Pending Review', 'Completed', 'Rejected'];
+	const strainOptions = ['Green Sumatra Premium', 'Red Borneo Select', 'White Maeng Da'];
 
 	const filteredBatches = $derived(
 		statusFilter === 'All' ? data.batches : data.batches.filter((b: any) => b.status === statusFilter)
@@ -37,11 +39,50 @@
 			<h1 class="text-2xl font-black text-slate-900">Batch Queue</h1>
 			<p class="text-sm text-slate-500">Manage and track all extraction batches</p>
 		</div>
-		<a href="/batches?action=new" class="bg-primary text-slate-900 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 hover:brightness-105 transition-all">
-			<span class="material-symbols-outlined text-sm">add_box</span>
-			New Batch
-		</a>
+		<button onclick={() => showNewForm = !showNewForm} class="bg-primary text-slate-900 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 hover:brightness-105 transition-all">
+			<span class="material-symbols-outlined text-sm">{showNewForm ? 'close' : 'add_box'}</span>
+			{showNewForm ? 'Cancel' : 'New Batch'}
+		</button>
 	</div>
+
+	<!-- New Batch Form -->
+	{#if showNewForm}
+		<form method="POST" action="?/create" class="bg-white border border-primary/20 rounded p-6 mb-6">
+			<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
+				<span class="material-symbols-outlined text-lg">add_box</span>
+				Create New Batch
+			</h3>
+			<div class="grid grid-cols-4 gap-4">
+				<div class="space-y-1">
+					<label class="text-[10px] font-bold uppercase text-slate-500">Strain</label>
+					<select name="strain" required class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary">
+						<option value="">Select strain...</option>
+						{#each strainOptions as strain}
+							<option value={strain}>{strain}</option>
+						{/each}
+					</select>
+				</div>
+				<div class="space-y-1">
+					<label class="text-[10px] font-bold uppercase text-slate-500">Supplier</label>
+					<input name="supplier" type="text" required placeholder="e.g. Sumatra Direct" class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" />
+				</div>
+				<div class="space-y-1">
+					<label class="text-[10px] font-bold uppercase text-slate-500">Leaf Input (kg)</label>
+					<input name="leaf_input_kg" type="number" step="0.1" min="0.1" required class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" />
+				</div>
+				<div class="space-y-1">
+					<label class="text-[10px] font-bold uppercase text-slate-500">Operator</label>
+					<input name="operator_name" type="text" required placeholder="e.g. Ahmad R." class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" />
+				</div>
+			</div>
+			<div class="mt-4 flex justify-end">
+				<button type="submit" class="bg-primary text-slate-900 px-6 py-2 rounded font-bold text-xs uppercase tracking-widest hover:brightness-105 transition-all flex items-center gap-2">
+					<span class="material-symbols-outlined text-sm">check</span>
+					Create Batch
+				</button>
+			</div>
+		</form>
+	{/if}
 
 	<!-- Status Filters -->
 	<div class="flex gap-2 mb-4">

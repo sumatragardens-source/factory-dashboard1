@@ -4,6 +4,10 @@
 
 	let { data }: { data: PageData } = $props();
 
+	function resolveStageRelevance(text: string): string {
+		return text.replace(/Stage (\d)/g, (_, n) => getStageName(Number(n)));
+	}
+
 	const totalBatches = Object.values(data.statusCounts).reduce((a, b) => a + b, 0);
 	const activeBatchCount = (data.statusCounts['In Progress'] || 0) + (data.statusCounts['Pending Review'] || 0);
 </script>
@@ -38,6 +42,34 @@
 				<p class="text-2xl font-black text-slate-900">{data.openDeviationCount} <span class="text-xs font-normal text-slate-400">issues</span></p>
 			</div>
 			<span class="material-symbols-outlined text-amber-500 opacity-50">warning</span>
+		</div>
+	</div>
+
+	<!-- Solvent Balance Summary -->
+	<div class="col-span-12 grid grid-cols-6 gap-4">
+		<div class="bg-white border border-slate-200 p-3 rounded">
+			<p class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Ethanol Issued</p>
+			<p class="text-lg font-black text-slate-900">{data.solventTotals.ethanol_issued.toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span></p>
+		</div>
+		<div class="bg-white border border-slate-200 p-3 rounded">
+			<p class="text-[10px] uppercase tracking-wider text-primary font-bold">Ethanol Recovered</p>
+			<p class="text-lg font-black text-primary">{data.solventTotals.ethanol_recovered.toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span></p>
+		</div>
+		<div class="bg-white border border-slate-200 p-3 rounded">
+			<p class="text-[10px] uppercase tracking-wider text-red-500 font-bold">Ethanol Lost</p>
+			<p class="text-lg font-black text-red-600">{data.solventTotals.ethanol_lost.toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span></p>
+		</div>
+		<div class="bg-white border border-slate-200 p-3 rounded">
+			<p class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Limonene Issued</p>
+			<p class="text-lg font-black text-slate-900">{data.solventTotals.limonene_issued.toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span></p>
+		</div>
+		<div class="bg-white border border-slate-200 p-3 rounded">
+			<p class="text-[10px] uppercase tracking-wider text-primary font-bold">Limonene Recovered</p>
+			<p class="text-lg font-black text-primary">{data.solventTotals.limonene_recovered.toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span></p>
+		</div>
+		<div class="bg-white border border-slate-200 p-3 rounded">
+			<p class="text-[10px] uppercase tracking-wider text-red-500 font-bold">Limonene Lost</p>
+			<p class="text-lg font-black text-red-600">{data.solventTotals.limonene_lost.toFixed(1)} <span class="text-xs font-normal text-slate-400">L</span></p>
 		</div>
 	</div>
 
@@ -80,7 +112,7 @@
 				<div class="p-3 {isHighSeverity ? 'bg-red-50 border-l-4 border-l-red-500' : dev.severity === 'Medium' ? 'bg-amber-50 border-l-4 border-l-amber-500' : ''}">
 					<p class="text-[10px] font-bold {isHighSeverity ? 'text-red-700' : dev.severity === 'Medium' ? 'text-amber-700' : 'text-slate-700'} uppercase">{dev.deviation_type}: {dev.parameter}</p>
 					<p class="text-[10px] text-slate-600 mt-1">{dev.description}</p>
-					<p class="text-[9px] text-slate-400 mt-2 font-mono">{new Date(dev.created_at).toLocaleDateString()} · Stage {dev.stage_number}</p>
+					<p class="text-[9px] text-slate-400 mt-2 font-mono">{new Date(dev.created_at).toLocaleDateString()} · {getStageName(dev.stage_number)}</p>
 				</div>
 			{/each}
 
@@ -144,7 +176,7 @@
 						<span class="material-symbols-outlined text-sm text-slate-400">precision_manufacturing</span>
 						<div>
 							<p class="text-xs font-bold text-slate-900">{machine.name}</p>
-							<p class="text-[10px] text-slate-400">{machine.code} · {machine.stage_relevance}</p>
+							<p class="text-[10px] text-slate-400">{machine.code} · {resolveStageRelevance(machine.stage_relevance ?? '')}</p>
 						</div>
 					</div>
 					<div class="flex items-center gap-2">
@@ -158,7 +190,7 @@
 
 	<!-- Cost Summary -->
 	<div class="col-span-5 bg-white border border-slate-200 p-4 rounded">
-		<h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Alkaloid Composition (SG-2026-001)</h3>
+		<h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Alkaloid Composition ({data.latestCompletedBatch ?? 'N/A'})</h3>
 		{#if data.hplcResult}
 			<div class="grid grid-cols-2 gap-4">
 				<div class="flex flex-col items-center">
@@ -211,7 +243,7 @@
 
 	<!-- Cost Distribution -->
 	<div class="col-span-4 bg-white border border-slate-200 p-4 rounded">
-		<h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Cost Distribution (SG-2026-001)</h3>
+		<h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Cost Distribution ({data.latestCompletedBatch ?? 'N/A'})</h3>
 		<div class="flex gap-4">
 			<div class="relative w-28 h-28 mx-auto flex-shrink-0">
 				<svg class="w-full h-full" viewBox="0 0 36 36">
