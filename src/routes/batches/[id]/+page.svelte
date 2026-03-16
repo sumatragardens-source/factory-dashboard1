@@ -4,8 +4,8 @@
 	let { data } = $props();
 	let activeTab = $state('overview');
 
-	const stageIcons = ['check', 'sync', 'science', 'package_2'];
-	const progress = $derived((data.stages.filter((s: any) => s.status === 'Finalized').length / 4) * 100);
+	const stageIcons = ['eco', 'science', 'filter_alt', 'local_fire_department', 'sync_alt', 'swap_horiz', 'water_drop', 'air'];
+	const progress = $derived((data.stages.filter((s: any) => s.status === 'Finalized').length / 8) * 100);
 	const activityEvents = $derived([
 		...data.deviations.map((d: any) => ({ type: 'deviation', icon: 'warning', desc: `${d.deviation_type}: ${d.parameter} (${d.severity})`, ts: d.created_at })),
 		...data.approvals.map((a: any) => ({ type: 'approval', icon: 'verified', desc: `${a.approval_type.replace(/_/g, ' ')} — ${a.status}`, ts: a.requested_at })),
@@ -51,8 +51,8 @@
 		</div>
 
 		<!-- Stage Workflow Tracker -->
-		<div class="grid grid-cols-4 gap-4 relative">
-			<div class="absolute top-4 left-0 right-0 h-0.5 bg-border-card -z-10 mx-10"></div>
+		<div class="grid grid-cols-8 gap-2 relative">
+			<div class="absolute top-4 left-0 right-0 h-0.5 bg-border-card -z-10 mx-6"></div>
 			{#each data.stages as stage, i}
 				{@const isCurrent = stage.stage_number === data.batch.current_stage}
 				{@const isFinalized = stage.status === 'Finalized'}
@@ -70,10 +70,10 @@
 							<span class="material-symbols-outlined text-sm">lock</span>
 						{/if}
 					</div>
-					<p class="text-[11px] font-bold uppercase tracking-wider {isFinalized ? 'text-primary' : isCurrent ? 'text-primary' : 'text-text-muted'}">
-						{isFinalized ? 'Completed' : isCurrent ? 'Active' : 'Pending'}
+					<p class="text-[9px] font-bold uppercase tracking-wider {isFinalized ? 'text-primary' : isCurrent ? 'text-primary' : 'text-text-muted'}">
+						{isFinalized ? 'Done' : isCurrent ? 'Active' : 'Pending'}
 					</p>
-					<p class="text-sm font-bold mt-1 {isCurrent ? 'text-text-primary' : isFinalized ? 'text-text-secondary' : 'text-text-muted'}">
+					<p class="text-[10px] font-bold mt-1 leading-tight {isCurrent ? 'text-text-primary' : isFinalized ? 'text-text-secondary' : 'text-text-muted'}">
 						{getStageName(stage.stage_number)}
 					</p>
 				</div>
@@ -158,7 +158,7 @@
 						<div class="p-6 border-b border-primary/5 flex justify-between items-center">
 							<div>
 								<h3 class="text-xl font-bold text-text-primary">{data.batch.status === 'Completed' ? 'All Stages Complete' : `Active Stage: ${getStageName(data.batch.current_stage)}`}</h3>
-								<p class="text-sm text-text-muted">{data.stages.filter((s: any) => s.status === 'Finalized').length} of 4 stages complete</p>
+								<p class="text-sm text-text-muted">{data.stages.filter((s: any) => s.status === 'Finalized').length} of 8 stages complete</p>
 							</div>
 							<div class="bg-primary/10 px-3 py-1 rounded-full text-primary font-bold text-xs uppercase tracking-widest">
 								{data.batch.status}
@@ -180,7 +180,7 @@
 
 							<!-- Next Action -->
 							{#if data.batch.status === 'In Progress'}
-								{@const nextStage = data.batch.current_stage < 4 ? data.batch.current_stage + 1 : null}
+								{@const nextStage = data.batch.current_stage < 8 ? data.batch.current_stage + 1 : null}
 								<a href="/batches/{data.batch.id}/stages/{data.batch.current_stage}"
 									class="w-full bg-primary text-white font-black py-4 rounded-lg shadow-xl shadow-primary/30 hover:shadow-primary/40 transition-all flex items-center justify-center gap-2 mb-3">
 									<span>Enter {getStageName(data.batch.current_stage)}</span>

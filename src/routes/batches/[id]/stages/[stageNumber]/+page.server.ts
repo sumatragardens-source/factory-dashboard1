@@ -12,6 +12,11 @@ import { validateStage1Save, validateStage1Finalize } from '$lib/validation/stag
 import { validateStage2Save, validateStage2Finalize } from '$lib/validation/stage2';
 import { validateStage3Save, validateStage3Finalize } from '$lib/validation/stage3';
 import { validateStage4Save, validateStage4Finalize } from '$lib/validation/stage4';
+import { validateStage5Save, validateStage5Finalize } from '$lib/validation/stage5';
+import { validateStage6Save, validateStage6Finalize } from '$lib/validation/stage6';
+import { validateStage7Save, validateStage7Finalize } from '$lib/validation/stage7';
+import { validateStage8Save, validateStage8Finalize } from '$lib/validation/stage8';
+import { TOTAL_STAGES, stageToRecordTable } from '$lib/constants/stageNames';
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -20,7 +25,7 @@ export const load: PageServerLoad = ({ params }) => {
 	if (!batch) error(404, 'Batch not found');
 
 	const stageNumber = Number(params.stageNumber);
-	if (stageNumber < 1 || stageNumber > 4) error(404, 'Invalid stage number');
+	if (stageNumber < 1 || stageNumber > TOTAL_STAGES) error(404, 'Invalid stage number');
 
 	const stages = getBatchStages(batch.id);
 
@@ -36,8 +41,9 @@ export const load: PageServerLoad = ({ params }) => {
 	const totalCost = calculateTotalBatchCost(costs);
 	const machines = getAllMachineStatuses();
 
-	const stage2Reactors = stageNumber === 2 ? getStage2Reactors(batch.id) : [];
-	const stage2RotovapDays = stageNumber === 2 ? getStage2RotovapDays(batch.id) : [];
+	const recordTable = stageToRecordTable(stageNumber);
+	const stage2Reactors = recordTable === 2 ? getStage2Reactors(batch.id) : [];
+	const stage2RotovapDays = recordTable === 2 ? getStage2RotovapDays(batch.id) : [];
 
 	return { batch, stageNumber, stages, ...stageRecords, unitRates, costs, totalCost, machines, stage2Reactors, stage2RotovapDays };
 };
@@ -109,12 +115,17 @@ function getValidateFns(stageNumber: number) {
 		case 2: return { save: validateStage2Save, finalize: validateStage2Finalize };
 		case 3: return { save: validateStage3Save, finalize: validateStage3Finalize };
 		case 4: return { save: validateStage4Save, finalize: validateStage4Finalize };
+		case 5: return { save: validateStage5Save, finalize: validateStage5Finalize };
+		case 6: return { save: validateStage6Save, finalize: validateStage6Finalize };
+		case 7: return { save: validateStage7Save, finalize: validateStage7Finalize };
+		case 8: return { save: validateStage8Save, finalize: validateStage8Finalize };
 		default: throw new Error('Invalid stage');
 	}
 }
 
 function upsertForStage(stageNumber: number, batchId: number, data: Record<string, unknown>, formData: FormData) {
-	switch (stageNumber) {
+	const table = stageToRecordTable(stageNumber);
+	switch (table) {
 		case 1: upsertStage1Record(batchId, data); break;
 		case 2:
 			upsertStage2Record(batchId, data);

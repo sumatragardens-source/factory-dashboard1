@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { getStageName, STAGE_KEYS } from '$lib/constants/stageNames';
+	import { getStageName, STAGE_KEYS, stageToRecordTable } from '$lib/constants/stageNames';
 	import { enhance } from '$app/forms';
 	import { calculateDilution, calculateSolventRatio, calculateRecoveryPerHour } from '$lib/calculations/dilution';
 
 	let { data, form } = $props();
 
-	const stageIcons = ['energy_savings_leaf', 'biotech', 'science', 'package_2'];
+	const stageIcons = ['eco', 'science', 'filter_alt', 'local_fire_department', 'sync_alt', 'swap_horiz', 'water_drop', 'air'];
+	const recordTable = stageToRecordTable(data.stageNumber);
 
 	// Stage 2 reactive state
 	let s2Grade = $state(data.stage2?.ethanol_stock_grade_pct ?? 96);
@@ -256,7 +257,7 @@
 								</div>
 							</section>
 
-						{:else if data.stageNumber === 2}
+						{:else if recordTable === 2}
 							<!-- Stage 2: Ethanol Extraction (New Schema) -->
 
 							<!-- Ethanol Dilution Calculator -->
@@ -545,7 +546,7 @@
 								</div>
 							</section>
 
-						{:else if data.stageNumber === 3}
+						{:else if recordTable === 3}
 							<!-- Stage 3: Acid/Base Extraction and Partitioning -->
 							<section class={sectionClass}>
 								<h3 class={headingClass}>
@@ -681,7 +682,7 @@
 								</div>
 							</section>
 
-						{:else if data.stageNumber === 4}
+						{:else if recordTable === 4}
 							<!-- Stage 4: Back Extraction, Precipitation, Drying, and Final Product -->
 							<section class={sectionClass}>
 								<h3 class={headingClass}>
@@ -866,7 +867,7 @@
 									</div>
 								</div>
 
-							{:else if data.stageNumber === 2 && data.stage2}
+							{:else if recordTable === 2 && data.stage2}
 								<div class="bg-bg-card text-text-primary p-8 rounded-xl border border-primary/40 shadow-xl relative overflow-hidden">
 									<div class="absolute -right-10 -top-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl"></div>
 									<h3 class="text-xs font-black uppercase tracking-widest text-primary mb-8">Extraction Metrics</h3>
@@ -894,7 +895,7 @@
 									</div>
 								</div>
 
-							{:else if data.stageNumber === 3 && data.stage3}
+							{:else if recordTable === 3 && data.stage3}
 								<div class="bg-bg-card p-6 rounded-xl border border-border-card shadow-sm">
 									<h4 class="text-xs font-black uppercase tracking-widest text-text-muted mb-4">pH Progression</h4>
 									<div class="flex items-center justify-between">
@@ -936,7 +937,7 @@
 									</div>
 								{/if}
 
-							{:else if data.stageNumber === 4 && data.stage4}
+							{:else if recordTable === 4 && data.stage4}
 								<div class="bg-bg-card p-6 rounded-xl border border-border-card shadow-sm">
 									<h4 class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-4">Batch Summary</h4>
 									<div class="space-y-4">

@@ -158,7 +158,7 @@ export function getStage3Performance(filter: TimeFilter): Stage3Performance {
 			AVG(CASE WHEN s3.limonene_volume_l > 0 THEN (s3.limonene_recovered_l / s3.limonene_volume_l * 100) END) as avg_lim_recovery,
 			AVG((julianday(bs.finalized_at) - julianday(bs.started_at)) * 24) as avg_cycle
 		FROM stage3_records s3
-		JOIN batch_stages bs ON bs.batch_id = s3.batch_id AND bs.stage_number = 3
+		JOIN batch_stages bs ON bs.batch_id = s3.batch_id AND bs.stage_number = 5
 		WHERE bs.status = 'Finalized' ${dateClause}
 	`).get() as any;
 
@@ -166,7 +166,7 @@ export function getStage3Performance(filter: TimeFilter): Stage3Performance {
 		SELECT b.batch_number, b.id as batch_id, s3.alkaloid_precipitate_kg, s3.feed_weight_kg,
 			s3.limonene_volume_l, s3.limonene_recovered_l, bs.finalized_at
 		FROM stage3_records s3
-		JOIN batch_stages bs ON bs.batch_id = s3.batch_id AND bs.stage_number = 3
+		JOIN batch_stages bs ON bs.batch_id = s3.batch_id AND bs.stage_number = 5
 		JOIN batches b ON b.id = s3.batch_id
 		WHERE bs.status = 'Finalized' ${dateClause}
 		ORDER BY bs.finalized_at DESC
@@ -206,7 +206,7 @@ export function getStage4Performance(filter: TimeFilter): Stage4Performance {
 			COALESCE(SUM(s4.final_product_weight_kg), 0) as total_product,
 			AVG((julianday(bs.finalized_at) - julianday(bs.started_at)) * 24) as avg_cycle
 		FROM stage4_records s4
-		JOIN batch_stages bs ON bs.batch_id = s4.batch_id AND bs.stage_number = 4
+		JOIN batch_stages bs ON bs.batch_id = s4.batch_id AND bs.stage_number = 8
 		WHERE bs.status = 'Finalized' ${dateClause}
 	`).get() as any;
 
@@ -214,7 +214,7 @@ export function getStage4Performance(filter: TimeFilter): Stage4Performance {
 		SELECT b.batch_number, b.id as batch_id, s4.final_product_weight_kg,
 			s4.cumulative_yield_pct, bs.finalized_at
 		FROM stage4_records s4
-		JOIN batch_stages bs ON bs.batch_id = s4.batch_id AND bs.stage_number = 4
+		JOIN batch_stages bs ON bs.batch_id = s4.batch_id AND bs.stage_number = 8
 		JOIN batches b ON b.id = s4.batch_id
 		WHERE bs.status = 'Finalized' ${dateClause}
 		ORDER BY bs.finalized_at DESC

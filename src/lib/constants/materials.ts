@@ -11,42 +11,42 @@ export const MATERIALS: MaterialDefinition[] = [
 		code: 'MAT-LEAF',
 		name: 'Dried Leaf',
 		unit: 'kg',
-		reorderThreshold: 50,
+		reorderThreshold: 200,
 		stageRelevance: 'Raw Leaf to Powder'
 	},
 	{
 		code: 'MAT-ETOH',
 		name: 'Ethanol 96%',
 		unit: 'L',
-		reorderThreshold: 100,
+		reorderThreshold: 800,
 		stageRelevance: 'Ethanol Extraction'
 	},
 	{
 		code: 'MAT-H2O',
 		name: 'DI Water',
 		unit: 'L',
-		reorderThreshold: 200,
+		reorderThreshold: 2000,
 		stageRelevance: 'Acid/Base Extraction and Partitioning'
 	},
 	{
 		code: 'MAT-HCL',
 		name: 'HCl',
 		unit: 'L',
-		reorderThreshold: 10,
+		reorderThreshold: 40,
 		stageRelevance: 'Acid/Base Extraction and Partitioning'
 	},
 	{
 		code: 'MAT-NAOH',
 		name: 'NaOH',
 		unit: 'kg',
-		reorderThreshold: 40,
+		reorderThreshold: 150,
 		stageRelevance: 'Acid/Base Extraction and Partitioning'
 	},
 	{
 		code: 'MAT-LIM',
 		name: 'Limonene',
 		unit: 'L',
-		reorderThreshold: 20,
+		reorderThreshold: 80,
 		stageRelevance: 'Acid/Base Extraction and Partitioning, Back Extraction, Precipitation, Drying, and Final Product'
 	}
 ];

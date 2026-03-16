@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getStageName } from '$lib/constants/stageNames';
+	import { getStageName, stageToRecordTable } from '$lib/constants/stageNames';
 	let { data } = $props();
 	const filterOptions = [
 		{ value: 'all', label: 'All Time' },
@@ -8,6 +8,7 @@
 		{ value: '1week', label: '1 Week' },
 		{ value: 'today', label: 'Today' }
 	];
+	const table = stageToRecordTable(data.stageNumber);
 </script>
 
 <div class="min-h-screen bg-bg-page p-6">
@@ -42,7 +43,7 @@
 
 	<!-- KPI Cards -->
 	<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-		{#if data.stageNumber === 1}
+		{#if table === 1}
 			<div class="bg-bg-card border border-border-card rounded-lg p-4">
 				<p class="text-text-muted text-xs uppercase tracking-wide mb-1">Avg Powder Yield</p>
 				<p class="text-2xl font-semibold text-text-primary">{data.performance.avgPowderYieldPct}%</p>
@@ -63,7 +64,7 @@
 				<p class="text-text-muted text-xs uppercase tracking-wide mb-1">Avg Cycle Time</p>
 				<p class="text-2xl font-semibold text-text-primary">{data.performance.avgCycleTimeHours} hrs</p>
 			</div>
-		{:else if data.stageNumber === 2}
+		{:else if table === 2}
 			<div class="bg-bg-card border border-border-card rounded-lg p-4">
 				<p class="text-text-muted text-xs uppercase tracking-wide mb-1">Avg Recovery Rate</p>
 				<p class="text-2xl font-semibold text-text-primary">{data.performance.avgRecoveryRatePct}%</p>
@@ -88,7 +89,7 @@
 				<p class="text-text-muted text-xs uppercase tracking-wide mb-1">Avg Cycle Time</p>
 				<p class="text-2xl font-semibold text-text-primary">{data.performance.avgCycleTimeHours} hrs</p>
 			</div>
-		{:else if data.stageNumber === 3}
+		{:else if table === 3}
 			<div class="bg-bg-card border border-border-card rounded-lg p-4">
 				<p class="text-text-muted text-xs uppercase tracking-wide mb-1">Avg Partition Yield</p>
 				<p class="text-2xl font-semibold text-text-primary">{data.performance.avgPartitionYieldPct}%</p>
@@ -101,7 +102,7 @@
 				<p class="text-text-muted text-xs uppercase tracking-wide mb-1">Avg Cycle Time</p>
 				<p class="text-2xl font-semibold text-text-primary">{data.performance.avgCycleTimeHours} hrs</p>
 			</div>
-		{:else if data.stageNumber === 4}
+		{:else if table === 4}
 			<div class="bg-bg-card border border-border-card rounded-lg p-4">
 				<p class="text-text-muted text-xs uppercase tracking-wide mb-1">Avg Cumulative Yield</p>
 				<p class="text-2xl font-semibold text-text-primary">{data.performance.avgCumulativeYieldPct}%</p>
@@ -123,7 +124,7 @@
 			<h2 class="text-lg font-medium text-text-primary">Finalized Batches</h2>
 		</div>
 		<div class="overflow-x-auto">
-			{#if data.stageNumber === 1}
+			{#if table === 1}
 				<table class="w-full text-sm">
 					<thead>
 						<tr class="border-b border-border-subtle">
@@ -148,7 +149,7 @@
 						{/each}
 					</tbody>
 				</table>
-			{:else if data.stageNumber === 2}
+			{:else if table === 2}
 				<table class="w-full text-sm">
 					<thead>
 						<tr class="border-b border-border-subtle">
@@ -173,7 +174,7 @@
 						{/each}
 					</tbody>
 				</table>
-			{:else if data.stageNumber === 3}
+			{:else if table === 3}
 				<table class="w-full text-sm">
 					<thead>
 						<tr class="border-b border-border-subtle">
@@ -200,7 +201,7 @@
 						{/each}
 					</tbody>
 				</table>
-			{:else if data.stageNumber === 4}
+			{:else if table === 4}
 				<table class="w-full text-sm">
 					<thead>
 						<tr class="border-b border-border-subtle">

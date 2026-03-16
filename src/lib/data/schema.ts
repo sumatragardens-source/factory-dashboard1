@@ -6,7 +6,7 @@ export function createSchema(db: Database.Database): void {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			batch_number TEXT NOT NULL UNIQUE,
 			status TEXT NOT NULL CHECK(status IN ('Draft','In Progress','Pending Review','Completed','Rejected')),
-			current_stage INTEGER NOT NULL DEFAULT 1 CHECK(current_stage BETWEEN 1 AND 4),
+			current_stage INTEGER NOT NULL DEFAULT 1 CHECK(current_stage BETWEEN 1 AND 8),
 			leaf_batch_id TEXT,
 			supplier TEXT,
 			strain TEXT,
@@ -22,7 +22,7 @@ export function createSchema(db: Database.Database): void {
 		CREATE TABLE IF NOT EXISTS batch_stages (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			batch_id INTEGER NOT NULL REFERENCES batches(id),
-			stage_number INTEGER NOT NULL CHECK(stage_number BETWEEN 1 AND 4),
+			stage_number INTEGER NOT NULL CHECK(stage_number BETWEEN 1 AND 8),
 			status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending','In Progress','Finalized')),
 			started_at TEXT,
 			finalized_at TEXT,

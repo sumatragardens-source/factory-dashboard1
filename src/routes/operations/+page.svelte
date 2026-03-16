@@ -4,53 +4,64 @@
 
 	let { data }: { data: PageData } = $props();
 
-	function resolveStageRelevance(text: string): string {
-		return text.replace(/Stage (\d)/g, (_, n) => getStageName(Number(n)));
+	const pm = data.pipeline;
+	const TOTAL_INTAKE_KG = 1000;
+
+	// Fill percentage: lots finalized × 100kg / 1000kg
+	function stageFill(stageNumber: number): number {
+		return Math.min(100, ((pm.stageCounts[stageNumber] ?? 0) * 100) / TOTAL_INTAKE_KG * 100);
 	}
 
-	const YIELD_TARGET_KG = 50;
-	const yieldPct = Math.min(100, (data.totalFinalProduct / YIELD_TARGET_KG) * 100);
-	const avgKgPerBatch = data.throughput.batchCount > 0
-		? (data.throughput.total / data.throughput.batchCount).toFixed(1)
-		: '0.0';
+	// KPI: Throughput — lots that have finalized stage 1
+	const lotsProcessed = pm.stageCounts[1] ?? 0;
 
-	const maxCompletedThrough = Math.max(...data.stagePipeline.map(s => s.completedThroughCount), 1);
+	// KPI: Final Yield
+	const yieldPct = Math.min(100, data.totalFinalYield.pct);
+	const remainingYieldKg = (data.totalFinalYield.targetKg - data.totalFinalYield.producedKg).toFixed(1);
 
-	// Alkaloid donut data
-	const hplc = data.latestHplcResult;
-	const alkaloidSegments = hplc ? [
-		{ label: 'Mitragynine', pct: hplc.mitragynine_pct ?? 0, color: '#10b981' },
-		{ label: '7-OHM', pct: hplc.hydroxy_mitragynine_pct ?? 0, color: '#34d399' },
-		{ label: 'Paynantheine', pct: hplc.paynantheine_pct ?? 0, color: '#475569' },
-		{ label: 'Speciogynine', pct: hplc.speciogynine_pct ?? 0, color: '#94a3b8' },
-		{ label: 'Speciociliatine', pct: hplc.speciociliatine_pct ?? 0, color: '#cbd5e1' },
-		{ label: 'Non-alkaloids', pct: hplc.non_alkaloids_pct ?? 0, color: '#64748b' }
-	].filter(s => s.pct > 0) : [];
+	// Intake bar
+	const processedKg = (pm.stageCounts[1] ?? 0) * 100;
+	const intakePct = (processedKg / TOTAL_INTAKE_KG) * 100;
+	const remainingKg = TOTAL_INTAKE_KG - processedKg;
 
-	function donutPath(startPct: number, sizePct: number): string {
-		const r = 15.5;
-		const cx = 18, cy = 18;
-		const startAngle = (startPct / 100) * 360 - 90;
-		const endAngle = ((startPct + sizePct) / 100) * 360 - 90;
-		const startRad = (startAngle * Math.PI) / 180;
-		const endRad = (endAngle * Math.PI) / 180;
-		const x1 = cx + r * Math.cos(startRad);
-		const y1 = cy + r * Math.sin(startRad);
-		const x2 = cx + r * Math.cos(endRad);
-		const y2 = cy + r * Math.sin(endRad);
-		const largeArc = sizePct > 50 ? 1 : 0;
-		return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
-	}
+	// Filtration & distillation rates
+	const filtrationLossL = Number((pm.ethanol70TotalL - pm.filtrationOutputL).toFixed(1));
+	const filtrationPct = pm.ethanol70TotalL > 0 ? (pm.filtrationOutputL / pm.ethanol70TotalL * 100).toFixed(1) : '0';
+	const distillationPct = pm.filtrationOutputL > 0 ? (pm.ethanolRecoveredL / pm.filtrationOutputL * 100).toFixed(1) : '0';
 
-	function stageStatusColor(stages: { stage_number: number; status: string }[], stageNum: number): string {
-		const stage = stages.find(s => s.stage_number === stageNum);
-		if (!stage) return 'bg-bg-input text-text-muted';
-		if (stage.status === 'Finalized') return 'bg-primary/15 text-primary';
-		if (stage.status === 'In Progress') return 'bg-blue-900/30 text-blue-400';
+	// Pipeline steps (7 visual steps)
+	const pipelineSteps = [
+		{ icon: 'grain', label: 'Powder', href: '/stages/1', fillPct: stageFill(1) },
+		{ icon: 'science', label: 'EtOH', href: '/stages/2', fillPct: stageFill(2) },
+		{ icon: 'filter_alt', label: 'Filtration', href: '/stages/3', fillPct: stageFill(3) },
+		{ icon: 'local_fire_department', label: 'Distillation', href: '/stages/4', fillPct: stageFill(4) },
+		{ icon: '+/−', label: 'A/B', href: '/stages/5', fillPct: stageFill(5), customIcon: true },
+		{ icon: '✦', label: 'Precipitation', href: '/stages/7', fillPct: stageFill(7), customIcon: true },
+		{ icon: 'diamond', label: 'Final Yield', href: '/stages/8', fillPct: stageFill(8) }
+	];
+
+	// Solvent recovery rates (bottom cards)
+	const ethRecoveryRate = data.solventTotals.ethanol_issued > 0 ? (data.solventTotals.ethanol_recovered / data.solventTotals.ethanol_issued * 100) : 0;
+	const limRecoveryRate = data.solventTotals.limonene_issued > 0 ? (data.solventTotals.limonene_recovered / data.solventTotals.limonene_issued * 100) : 0;
+
+	// Lot progress table columns (7 visual columns mapping to 8 DB stages)
+	const TABLE_COLUMNS = [
+		{ label: 'Powder', dbStages: [1] },
+		{ label: '# Ext.', dbStages: [2] },
+		{ label: 'EtOH (L)', dbStages: [2] },
+		{ label: 'Filt.', dbStages: [3] },
+		{ label: 'Dist.', dbStages: [4] },
+		{ label: 'A/B', dbStages: [5] },
+		{ label: 'Prec.', dbStages: [6, 7] },
+		{ label: 'Final Yield', dbStages: [8] }
+	] as const;
+
+	function columnStatusColor(stages: { stage_number: number; status: string }[], dbStages: readonly number[]): string {
+		const matched = dbStages.map(n => stages.find(s => s.stage_number === n));
+		if (matched.every(s => s?.status === 'Finalized')) return 'bg-primary/15 text-primary';
+		if (matched.some(s => s?.status === 'In Progress' || s?.status === 'Finalized')) return 'bg-blue-900/30 text-blue-400';
 		return 'bg-bg-input text-text-muted';
 	}
-
-	const STAGE_SHORT_NAMES = ['Powder', 'Extraction', 'Partitioning', 'Final Product'] as const;
 
 	function nextAction(batch: { status: string; current_stage: number; stages: { stage_number: number; status: string }[] }): string {
 		if (batch.status === 'Pending Review') return 'Review';
@@ -59,220 +70,265 @@
 		return 'Record';
 	}
 
-	// Machine status counts
-	const machineRunning = data.machines.filter(m => m.status === 'Running').length;
-	const machineIdle = data.machines.filter(m => m.status === 'Idle').length;
-	const machineMaint = data.machines.filter(m => m.status === 'Maintenance').length;
-	const machineOffline = data.machines.filter(m => m.status === 'Offline').length;
-
-	// Solvent recovery rates
-	const ethRecoveryRate = data.solventTotals.ethanol_issued > 0 ? (data.solventTotals.ethanol_recovered / data.solventTotals.ethanol_issued * 100) : 0;
-	const limRecoveryRate = data.solventTotals.limonene_issued > 0 ? (data.solventTotals.limonene_recovered / data.solventTotals.limonene_issued * 100) : 0;
+	const stageBreakdown = [1, 2, 3, 4, 5, 6, 7, 8].map(n => ({
+		stage: n,
+		count: data.activeBatchProgress.filter(b => b.current_stage === n).length
+	})).filter(s => s.count > 0);
 </script>
 
 <div class="flex-1 p-4 grid grid-cols-12 gap-4 overflow-auto content-start">
-	<!-- Row 1: Hero KPI Cards -->
-	<div class="col-span-12 grid grid-cols-4 gap-4">
-		<!-- Batch Throughput -->
-		<div class="bg-bg-card border border-border-card p-3 rounded flex items-center justify-between">
-			<div>
-				<p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Batch Throughput</p>
-				<p class="text-2xl font-black text-text-primary">{data.throughput.total} <span class="text-xs font-normal text-text-muted">kg</span></p>
-				<p class="text-[10px] text-text-muted">{data.throughput.batchCount} batches · {avgKgPerBatch} kg/batch avg</p>
-			</div>
-			<span class="material-symbols-outlined text-primary opacity-50">eco</span>
-		</div>
-
-		<!-- Yield Progress -->
+	<!-- Row 1: 3 KPI Cards -->
+	<div class="col-span-12 grid grid-cols-3 gap-4">
+		<!-- Total Throughput -->
 		<div class="bg-bg-card border border-border-card p-3 rounded">
-			<p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Yield Progress</p>
-			<p class="text-2xl font-black text-text-primary">{data.totalFinalProduct.toFixed(2)} <span class="text-xs font-normal text-text-muted">kg</span></p>
+			<p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Total Throughput</p>
+			<p class="text-2xl font-black text-text-primary">{processedKg.toLocaleString()} <span class="text-xs font-normal text-text-muted">kg processed</span></p>
+			<p class="text-[10px] text-text-muted">{lotsProcessed} lots · {intakePct.toFixed(1)}% of raw material</p>
+		</div>
+
+		<!-- Completed Lots -->
+		<div class="bg-bg-card border border-border-card p-3 rounded">
+			<p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Completed Lots</p>
+			<p class="text-2xl font-black text-text-primary">{lotsProcessed}</p>
+			<p class="text-[10px] text-text-muted">
+				{#each stageBreakdown as sb, i}
+					S{sb.stage}: {sb.count}{i < stageBreakdown.length - 1 ? ' · ' : ''}
+				{/each}
+			</p>
+		</div>
+
+		<!-- Final Yield Progress -->
+		<div class="bg-bg-card border border-border-card p-3 rounded">
+			<p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Final Yield Progress</p>
+			<p class="text-2xl font-black text-text-primary">{data.totalFinalYield.producedKg} <span class="text-xs font-normal text-text-muted">/ {data.totalFinalYield.targetKg} kg</span></p>
 			<div class="mt-1.5 h-1.5 w-full bg-border-card rounded-full overflow-hidden">
-				<div class="h-full bg-primary rounded-full transition-all" style="width: {yieldPct.toFixed(1)}%"></div>
+				<div class="h-full bg-primary rounded-full transition-all" style="width: {yieldPct}%"></div>
 			</div>
-			<p class="text-[10px] text-text-muted mt-1">{yieldPct.toFixed(1)}% of {YIELD_TARGET_KG} kg · {(YIELD_TARGET_KG - data.totalFinalProduct).toFixed(2)} kg remaining</p>
-		</div>
-
-		<!-- Active Batches -->
-		<div class="bg-bg-card border border-border-card p-3 rounded flex items-center justify-between">
-			<div>
-				<p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Active Batches</p>
-				<p class="text-2xl font-black text-text-primary">{data.activeBatchProgress.length}</p>
-				<p class="text-[10px] text-text-muted">in progress</p>
-			</div>
-			<span class="material-symbols-outlined text-blue-400 opacity-50">pending_actions</span>
-		</div>
-
-		<!-- Pending Actions -->
-		<div class="bg-bg-card border border-border-card p-3 rounded flex items-center justify-between {data.pendingActionsCount > 0 ? 'border-l-4 border-l-amber-500' : ''}">
-			<div>
-				<p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Pending Actions</p>
-				<p class="text-2xl font-black text-text-primary">{data.pendingActionsCount}</p>
-				<p class="text-[10px] text-text-muted">deviations · approvals · stalled · stock</p>
-			</div>
-			<span class="material-symbols-outlined {data.pendingActionsCount > 0 ? 'text-amber-500' : 'text-text-muted'} opacity-50">notification_important</span>
+			<p class="text-[10px] text-text-muted mt-1">{yieldPct.toFixed(1)}% · {remainingYieldKg} kg remaining</p>
 		</div>
 	</div>
 
-	<!-- Row 2: Active Process Pipeline -->
+	<!-- Row 2: Process Pipeline -->
 	<div class="col-span-12 bg-bg-card border border-border-card p-6 rounded-xl shadow-sm">
 		<h2 class="text-lg font-bold mb-6 flex items-center gap-2">
 			<span class="material-symbols-outlined">hub</span>
 			Active Process Pipeline
+			<span class="text-xs font-normal text-text-muted ml-2">Processing {TOTAL_INTAKE_KG.toLocaleString()} kg raw material</span>
 		</h2>
-		<div class="relative flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-4 px-4">
-			<!-- Connecting Line -->
-			<div class="absolute top-1/2 left-0 w-full h-0.5 bg-border-card -translate-y-1/2 hidden lg:block"></div>
-			{#each data.stagePipeline as stage, i}
-				{@const isActive = stage.activeCount > 0}
-				{@const icons = ['grain', 'science', 'filter_alt', 'inventory_2']}
-				<a href="/stages/{stage.stageNumber}" class="relative z-10 flex flex-col items-center text-center">
-					<div class="h-14 w-14 rounded-full {isActive ? 'bg-primary/20 text-primary border-2 border-primary' : 'bg-bg-input text-text-muted border-2 border-border-card'} flex items-center justify-center mb-3">
-						<span class="material-symbols-outlined">{icons[i]}</span>
+		<div class="relative flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-2 px-4">
+			{#each pipelineSteps as step, i}
+				<div class="group relative flex flex-col items-center text-center">
+					<a href={step.href} class="flex flex-col items-center">
+						<div class="h-12 w-12 rounded-full bg-primary/20 text-primary border-2 border-primary flex items-center justify-center">
+							{#if step.icon === '✦'}
+								<span class="text-[10px] leading-tight tracking-[2px]">✦✦✦<br>✦✦</span>
+							{:else if step.customIcon}
+								<span class="text-[16px] font-black leading-none">{step.icon}</span>
+							{:else}
+								<span class="material-symbols-outlined text-[20px]">{step.icon}</span>
+							{/if}
+						</div>
+						<p class="text-[11px] font-semibold whitespace-nowrap mt-2">{step.label}</p>
+					</a>
+					<!-- Tooltip -->
+					<div class="absolute top-full mt-1 z-20 bg-bg-card border border-border-card rounded-lg shadow-lg p-3 w-52 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 {i === 0 ? 'left-0' : i === pipelineSteps.length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}">
+						<p class="text-[10px] font-bold text-primary">{step.fillPct.toFixed(0)}% complete</p>
+						<p class="text-[10px] text-text-muted mb-2">{(100 - step.fillPct).toFixed(0)}% remaining</p>
+						<div class="border-t border-border-subtle pt-2 space-y-1.5">
+							{#if i === 0}
+								<!-- Powder -->
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Processed</span>
+									<span class="text-[10px] font-bold text-text-primary">{processedKg.toLocaleString()} kg</span>
+								</div>
+							{:else if i === 1}
+								<!-- EtOH 70% -->
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Extractions</span>
+									<span class="text-[10px] font-bold text-text-primary">{pm.lotsExtracted} / {pm.ethanolStockUsedL.toLocaleString()}L</span>
+								</div>
+							{:else if i === 2}
+								<!-- Filtration -->
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Recovered</span>
+									<span class="text-[10px] font-bold text-text-primary">{pm.filtrationOutputL.toLocaleString()} L</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Lost</span>
+									<span class="text-[10px] font-bold text-red-500">{filtrationLossL} L</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Recovery</span>
+									<span class="text-[10px] font-bold text-text-primary">{filtrationPct}%</span>
+								</div>
+							{:else if i === 3}
+								<!-- Distillation -->
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Recovered</span>
+									<span class="text-[10px] font-bold text-text-primary">{pm.ethanolRecoveredL.toLocaleString()} L</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Lost</span>
+									<span class="text-[10px] font-bold text-red-500">{pm.ethanolLostL} L</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Recovery</span>
+									<span class="text-[10px] font-bold text-text-primary">{distillationPct}%</span>
+								</div>
+							{:else if i === 4}
+								<!-- A/B -->
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Recovered</span>
+									<span class="text-[10px] font-bold text-text-primary">{pm.limoneneRecoveredL} L</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Lost</span>
+									<span class="text-[10px] font-bold text-red-500">{pm.limoneneLostL} L</span>
+								</div>
+							{:else if i === 5}
+								<!-- Back Ext & Ppt -->
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Wet weight</span>
+									<span class="text-[10px] font-bold text-text-primary">{pm.precipitateKg} kg</span>
+								</div>
+							{:else if i === 6}
+								<!-- Final Yield -->
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Dried extract</span>
+									<span class="text-[10px] font-bold text-text-primary">{pm.finalProductKg} kg</span>
+								</div>
+							{/if}
+						</div>
 					</div>
-					<p class="font-semibold text-sm">{getStageName(stage.stageNumber)}</p>
-					<p class="text-xs text-text-muted">{stage.activeCount} Active</p>
-					<span class="mt-2 px-2 py-0.5 rounded {isActive ? 'bg-primary/10 text-primary' : 'bg-bg-input text-text-muted'} text-[10px] font-bold uppercase tracking-wider">
-						{isActive ? 'In Progress' : 'Idle'}
-					</span>
-				</a>
-				{#if i < data.stagePipeline.length - 1}
-					<div class="lg:hidden text-text-muted">
-						<span class="material-symbols-outlined">expand_more</span>
-					</div>
-				{/if}
+				</div>
 			{/each}
 		</div>
 	</div>
 
-	<!-- Row 3: Active Batch Progress -->
+	<!-- Row 3: Lot Progress -->
 	<div class="col-span-12 bg-bg-card border border-border-card p-4 rounded">
-		<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-3">Active Batch Progress</h3>
-		{#if data.activeBatchProgress.length === 0}
-			<p class="text-xs text-text-muted">No active batches</p>
-		{:else}
-			<!-- Header -->
-			<div class="grid grid-cols-12 gap-2 text-[9px] font-bold text-text-muted uppercase tracking-wider pb-2 border-b border-border-subtle">
-				<div class="col-span-2">Batch</div>
-				<div class="col-span-5 grid grid-cols-4 gap-1 text-center">
-					{#each STAGE_SHORT_NAMES as name}
-						<div>{name}</div>
-					{/each}
-				</div>
-				<div class="col-span-2 text-center">Progress</div>
-				<div class="col-span-2">Current Stage</div>
-				<div class="col-span-1 text-center">Action</div>
+		<!-- Intake summary bar -->
+		<div class="flex items-center gap-4 mb-4 pb-3 border-b border-border-subtle">
+			<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted whitespace-nowrap">Total Intake: {TOTAL_INTAKE_KG.toLocaleString()} kg</h3>
+			<div class="flex-1 h-2 bg-border-card rounded-full overflow-hidden">
+				<div class="h-full bg-primary rounded-full transition-all" style="width: {intakePct}%"></div>
 			</div>
-			{#each data.activeBatchProgress as batch}
-				{@const completedStages = batch.stages.filter(s => s.status === 'Finalized').length}
-				{@const stageOutputs = [batch.powder_weight_kg, batch.extract_weight_kg, batch.alkaloid_precipitate_kg, batch.final_product_weight_kg]}
-				<a href="/batches/{batch.id}" class="grid grid-cols-12 gap-2 items-center py-2 border-b border-border-subtle hover:bg-bg-card-hover transition-colors rounded">
-					<div class="col-span-2">
-						<p class="text-xs font-bold text-text-primary">{batch.batch_number}</p>
-						<p class="text-[10px] text-text-muted">{batch.operator_name ?? '—'}</p>
-					</div>
-					<div class="col-span-5 grid grid-cols-4 gap-1">
-						{#each [1, 2, 3, 4] as stageNum, si}
-							<div class="text-center rounded py-1 px-0.5 text-[10px] font-mono font-bold {stageStatusColor(batch.stages, stageNum)}">
-								{stageOutputs[si] != null ? stageOutputs[si]?.toFixed(2) + ' kg' : '—'}
+			<p class="text-[10px] text-text-muted whitespace-nowrap">{processedKg.toLocaleString()} kg processed / {remainingKg.toLocaleString()} kg remaining</p>
+		</div>
+
+		<!-- Lot progress table -->
+		{#if data.activeBatchProgress.length === 0}
+			<p class="text-xs text-text-muted">No active lots</p>
+		{:else}
+			<div class="overflow-x-auto">
+				<!-- Header -->
+				<div style="display: grid; grid-template-columns: 120px repeat(8, 1fr) 80px 120px 55px;" class="text-[8px] font-bold text-text-muted uppercase tracking-wider pb-2 border-b border-border-subtle gap-1 min-w-[850px]">
+					<div>Lot</div>
+					{#each TABLE_COLUMNS as col}
+						<div class="text-center">{col.label}</div>
+					{/each}
+					<div class="text-center">Progress</div>
+					<div>Stage</div>
+					<div class="text-center">Action</div>
+				</div>
+				{#each data.activeBatchProgress as batch}
+					{@const completedStages = batch.stages.filter(s => s.status === 'Finalized').length}
+					<a href="/batches/{batch.id}" style="display: grid; grid-template-columns: 120px repeat(8, 1fr) 80px 120px 55px;" class="items-center py-2 border-b border-border-subtle hover:bg-bg-card-hover transition-colors rounded gap-1 min-w-[850px]">
+						<!-- Lot ID + Operator -->
+						<div>
+							<p class="text-xs font-bold text-text-primary">{batch.batch_number}</p>
+							<p class="text-[10px] text-text-muted">{batch.operator_name ?? '—'}</p>
+						</div>
+						<!-- 8 Stage cells -->
+						{#each TABLE_COLUMNS as col, ci}
+							{@const colStatus = columnStatusColor(batch.stages, col.dbStages)}
+							{@const isFinalized = colStatus.includes('primary')}
+							{@const isInProgress = colStatus.includes('blue')}
+							<div class="group/cell relative text-center rounded py-1 px-0.5 text-[9px] font-bold {colStatus}">
+								{#if ci === 0}
+									{batch.powder_weight_kg != null ? batch.powder_weight_kg.toFixed(1) : '—'}
+								{:else if ci === 1}
+									{batch.reactor_count || '—'}
+								{:else if ci === 2}
+									{batch.ethanol_stock_used_l != null ? batch.ethanol_stock_used_l.toFixed(0) : '—'}
+								{:else if ci === 7}
+									{batch.final_product_weight_kg != null ? batch.final_product_weight_kg.toFixed(1) : '—'}
+								{:else if isFinalized}
+									✓
+								{:else if isInProgress}
+									...
+								{:else}
+									—
+								{/if}
+								<!-- Hover tooltip for middle columns -->
+								{#if ci >= 3 && ci <= 6 && (isFinalized || isInProgress)}
+									<div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-30 bg-bg-card border border-border-card rounded-lg shadow-lg p-2.5 w-44 text-left opacity-0 pointer-events-none group-hover/cell:opacity-100 transition-opacity duration-150">
+										{#if ci === 3}
+											<p class="text-[9px] font-bold text-text-primary mb-1.5">Filtration</p>
+											<div class="space-y-1">
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Bag Filter</span><span class="text-[9px] font-bold text-text-primary">{batch.bag_filter_output_l?.toFixed(0) ?? '—'} L</span></div>
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Centrifuge</span><span class="text-[9px] font-bold text-text-primary">{batch.centrifuge_output_l?.toFixed(0) ?? '—'} L</span></div>
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Screw Press</span><span class="text-[9px] font-bold text-text-primary">{batch.screw_press_output_l?.toFixed(0) ?? '—'} L</span></div>
+												<div class="flex justify-between border-t border-border-subtle pt-1"><span class="text-[9px] text-text-muted">Total Recovered</span><span class="text-[9px] font-bold text-text-primary">{batch.total_ethanol_70_to_rotovap_l?.toFixed(0) ?? '—'} L</span></div>
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Total Lost</span><span class="text-[9px] font-bold text-red-500">{((batch.ethanol_70_volume_l ?? 0) - (batch.total_ethanol_70_to_rotovap_l ?? 0)).toFixed(0)} L</span></div>
+											</div>
+										{:else if ci === 4}
+											<p class="text-[9px] font-bold text-text-primary mb-1.5">Distillation</p>
+											<div class="space-y-1">
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Processed</span><span class="text-[9px] font-bold text-text-primary">{batch.total_ethanol_70_to_rotovap_l?.toFixed(0) ?? '—'} L</span></div>
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">EtOH Recovered</span><span class="text-[9px] font-bold text-text-primary">{batch.total_ethanol_recovered_l?.toFixed(0) ?? '—'} L</span></div>
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">EtOH Lost</span><span class="text-[9px] font-bold text-red-500">{batch.total_ethanol_loss_l?.toFixed(0) ?? '0'} L</span></div>
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Water Recovered</span><span class="text-[9px] font-bold text-text-primary">{batch.water_mother_liquid_l?.toFixed(0) ?? '—'} L</span></div>
+											</div>
+										{:else if ci === 5}
+											<p class="text-[9px] font-bold text-text-primary mb-1.5">Acid/Base Extraction</p>
+											<div class="space-y-1">
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Avg pH</span><span class="text-[9px] font-bold text-text-primary">{batch.actual_ph_acid?.toFixed(1) ?? '—'} / {batch.actual_ph_base?.toFixed(1) ?? '—'}</span></div>
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">D-Limo Used</span><span class="text-[9px] font-bold text-text-primary">{batch.limonene_volume_l?.toFixed(1) ?? '—'} L</span></div>
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">D-Limo Recovered</span><span class="text-[9px] font-bold text-text-primary">{batch.limonene_recovered_l?.toFixed(1) ?? '—'} L</span></div>
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">D-Limo Lost</span><span class="text-[9px] font-bold text-red-500">{batch.limonene_loss_l?.toFixed(1) ?? '0'} L</span></div>
+											</div>
+										{:else if ci === 6}
+											<p class="text-[9px] font-bold text-text-primary mb-1.5">Precipitation</p>
+											<div class="space-y-1">
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Wet Weight</span><span class="text-[9px] font-bold text-text-primary">{batch.precipitate_weight_kg?.toFixed(1) ?? '—'} kg</span></div>
+											</div>
+										{/if}
+									</div>
+								{/if}
 							</div>
 						{/each}
-					</div>
-					<div class="col-span-2 px-2">
-						<div class="h-1.5 w-full bg-border-card rounded-full overflow-hidden">
-							<div class="h-full bg-primary rounded-full" style="width: {(completedStages / 4 * 100)}%"></div>
+						<!-- Progress bar -->
+						<div class="px-1">
+							<div class="h-1.5 w-full bg-border-card rounded-full overflow-hidden">
+								<div class="h-full bg-primary rounded-full" style="width: {(completedStages / 8 * 100)}%"></div>
+							</div>
+							<p class="text-[9px] text-text-muted text-center mt-0.5">{completedStages}/8</p>
 						</div>
-						<p class="text-[9px] text-text-muted text-center mt-0.5">{completedStages}/4</p>
-					</div>
-					<div class="col-span-2">
-						<p class="text-[10px] font-bold text-text-secondary">{getStageName(batch.current_stage)}</p>
-					</div>
-					<div class="col-span-1 text-center">
-						<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded {nextAction(batch) === 'Review' ? 'bg-amber-900/30 text-amber-400' : 'bg-blue-900/30 text-blue-400'}">{nextAction(batch)}</span>
-					</div>
-				</a>
-			{/each}
+						<!-- Current stage -->
+						<div>
+							<p class="text-[10px] font-bold text-text-secondary">
+								{#if batch.final_product_weight_kg != null}
+									Complete
+								{:else if batch.precipitate_weight_kg != null}
+									Drying
+								{:else}
+									{getStageName(batch.current_stage)}
+								{/if}
+							</p>
+						</div>
+						<!-- Next action -->
+						<div class="text-center">
+							<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded {nextAction(batch) === 'Review' ? 'bg-amber-900/30 text-amber-400' : 'bg-blue-900/30 text-blue-400'}">{nextAction(batch)}</span>
+						</div>
+					</a>
+				{/each}
+			</div>
 		{/if}
 	</div>
 
-	<!-- Row 4: Support Cards (2 columns - deviations removed) -->
+	<!-- Row 4: Analytics (2-col) -->
 	<div class="col-span-12 grid grid-cols-2 gap-4">
-		<!-- Machine Operations -->
-		<div class="bg-bg-card border border-border-card p-4 rounded">
-			<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">Machine Operations</h3>
-			<p class="text-[10px] text-text-muted mb-2">{machineRunning} running · {machineIdle} idle · {machineMaint} maintenance · {machineOffline} offline</p>
-			<div class="space-y-1.5 max-h-40 overflow-y-auto">
-				{#each data.machines as machine}
-					{@const dotColor = machine.status === 'Running' ? 'bg-primary' : machine.status === 'Idle' ? 'bg-text-muted' : machine.status === 'Maintenance' ? 'bg-amber-500' : 'bg-red-500'}
-					<div class="flex items-center gap-2">
-						<span class="w-1.5 h-1.5 rounded-full {dotColor} flex-shrink-0"></span>
-						<span class="text-[10px] text-text-secondary font-medium truncate">{machine.name}</span>
-						<span class="text-[9px] text-text-muted ml-auto flex-shrink-0">{resolveStageRelevance(machine.stage_relevance ?? '')}</span>
-					</div>
-				{/each}
-			</div>
-		</div>
-
-		<!-- Pending Lab Samples -->
-		<div class="bg-bg-card border border-border-card p-4 rounded">
-			<div class="flex items-center gap-2 mb-2">
-				<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted">Pending Lab Samples</h3>
-				{#if data.pendingLabResults.length > 0}
-					<span class="text-[9px] font-bold bg-amber-900/30 text-amber-400 px-1.5 py-0.5 rounded">{data.pendingLabResults.length}</span>
-				{/if}
-			</div>
-			{#if data.pendingLabResults.length === 0}
-				<p class="text-[10px] text-text-muted">No pending samples</p>
-			{:else}
-				<div class="space-y-2 max-h-40 overflow-y-auto">
-					{#each data.pendingLabResults as lr}
-						<div class="flex items-center justify-between">
-							<div>
-								<p class="text-[10px] font-bold text-text-secondary">{lr.batch_number}</p>
-								<p class="text-[9px] text-text-muted">{lr.test_type} · {lr.status}</p>
-							</div>
-							<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded {lr.status === 'Pending' ? 'bg-bg-input text-text-muted' : 'bg-blue-900/30 text-blue-400'}">{lr.status}</span>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</div>
-	</div>
-
-	<!-- Row 5: Analytics Support -->
-	<div class="col-span-12 grid grid-cols-3 gap-4">
-		<!-- Alkaloid Composition -->
-		<div class="bg-bg-card border border-border-card p-4 rounded">
-			<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-3">Alkaloid Composition {data.latestCompletedBatch ? `(${data.latestCompletedBatch})` : ''}</h3>
-			{#if hplc && alkaloidSegments.length > 0}
-				<div class="flex items-center gap-3">
-					<div class="relative w-24 h-24 flex-shrink-0">
-						<svg class="w-full h-full" viewBox="0 0 36 36">
-							{#each alkaloidSegments as seg, i}
-								{@const offset = alkaloidSegments.slice(0, i).reduce((sum, s) => sum + s.pct, 0)}
-								<path d={donutPath(offset, seg.pct)} fill="none" stroke={seg.color} stroke-width="4" stroke-linecap="round" />
-							{/each}
-						</svg>
-						<div class="absolute inset-0 flex items-center justify-center flex-col">
-							<span class="text-xs font-black text-text-primary">{hplc.hplc_purity_pct ?? '—'}%</span>
-							<span class="text-[7px] uppercase font-bold text-text-muted">Purity</span>
-						</div>
-					</div>
-					<div class="grid grid-cols-1 gap-0.5">
-						{#each alkaloidSegments as seg}
-							<div class="flex items-center gap-1.5 text-[9px] text-text-secondary">
-								<span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {seg.color}"></span>
-								<span class="font-medium">{seg.label}</span>
-								<span class="font-bold ml-auto">{seg.pct}%</span>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{:else}
-				<p class="text-[10px] text-text-muted">No HPLC data available</p>
-			{/if}
-		</div>
-
 		<!-- Solvent Summary -->
 		<div class="bg-bg-card border border-border-card p-4 rounded">
 			<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-3">Solvent Summary</h3>
@@ -328,7 +384,7 @@
 			{#if data.costSnapshot}
 				<div class="space-y-3">
 					<div>
-						<p class="text-[10px] text-text-muted">Latest Completed Batch</p>
+						<p class="text-[10px] text-text-muted">Latest Completed Lot</p>
 						<p class="text-xs font-bold text-text-primary">{data.costSnapshot.batch_number}</p>
 					</div>
 					<div class="grid grid-cols-3 gap-2 text-center">
@@ -347,7 +403,7 @@
 					</div>
 				</div>
 			{:else}
-				<p class="text-[10px] text-text-muted">No completed batch data</p>
+				<p class="text-[10px] text-text-muted">No completed lot data</p>
 			{/if}
 		</div>
 	</div>
