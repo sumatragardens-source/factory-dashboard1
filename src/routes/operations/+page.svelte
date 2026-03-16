@@ -19,8 +19,8 @@
 	// Alkaloid donut data
 	const hplc = data.latestHplcResult;
 	const alkaloidSegments = hplc ? [
-		{ label: 'Mitragynine', pct: hplc.mitragynine_pct ?? 0, color: '#93bf8d' },
-		{ label: '7-OHM', pct: hplc.hydroxy_mitragynine_pct ?? 0, color: '#6b9f64' },
+		{ label: 'Mitragynine', pct: hplc.mitragynine_pct ?? 0, color: '#1152d4' },
+		{ label: '7-OHM', pct: hplc.hydroxy_mitragynine_pct ?? 0, color: '#3b82f6' },
 		{ label: 'Paynantheine', pct: hplc.paynantheine_pct ?? 0, color: '#475569' },
 		{ label: 'Speciogynine', pct: hplc.speciogynine_pct ?? 0, color: '#94a3b8' },
 		{ label: 'Speciociliatine', pct: hplc.speciociliatine_pct ?? 0, color: '#cbd5e1' },
@@ -114,26 +114,32 @@
 		</div>
 	</div>
 
-	<!-- Row 2: Active Batch Pipeline -->
-	<div class="col-span-12 bg-bg-card border border-border-card p-4 rounded">
-		<div class="flex items-center justify-between mb-2">
-			<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted">Active Batch Pipeline Status</h3>
-			<span class="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded font-bold">{data.activeBatchProgress.length} Batches Active</span>
-		</div>
-		<div class="flex items-center justify-between gap-2">
+	<!-- Row 2: Active Process Pipeline -->
+	<div class="col-span-12 bg-bg-card border border-border-card p-6 rounded-xl shadow-sm">
+		<h2 class="text-lg font-bold mb-6 flex items-center gap-2">
+			<span class="material-symbols-outlined">hub</span>
+			Active Process Pipeline
+		</h2>
+		<div class="relative flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-4 px-4">
+			<!-- Connecting Line -->
+			<div class="absolute top-1/2 left-0 w-full h-0.5 bg-border-card -translate-y-1/2 hidden lg:block"></div>
 			{#each data.stagePipeline as stage, i}
-				<a href="/stages/{stage.stageNumber}" class="flex-1 group">
-					<div class="h-1.5 w-full bg-border-card rounded-full mb-2 relative overflow-hidden">
-						<div class="absolute top-0 left-0 h-full bg-primary rounded-full" style="width: {(stage.completedThroughCount / maxCompletedThrough * 100).toFixed(0)}%"></div>
+				{@const isActive = stage.activeCount > 0}
+				{@const icons = ['grain', 'science', 'filter_alt', 'inventory_2']}
+				<a href="/stages/{stage.stageNumber}" class="relative z-10 flex flex-col items-center text-center">
+					<div class="h-14 w-14 rounded-full {isActive ? 'bg-primary/20 text-primary border-2 border-primary' : 'bg-bg-input text-text-muted border-2 border-border-card'} flex items-center justify-center mb-3">
+						<span class="material-symbols-outlined">{icons[i]}</span>
 					</div>
-					<p class="text-[9px] font-bold text-text-primary uppercase" style="font-size: 8px; line-height: 1.1;">{getStageName(stage.stageNumber)}</p>
-					<div class="flex items-center justify-between mt-1">
-						<span class="text-[10px] text-text-secondary">{stage.activeCount} Active</span>
-						<span class="text-[10px] font-mono font-bold {stage.activeCount > 0 && data.avgCycleTime[stage.stageNumber] ? 'text-primary' : 'text-text-muted'}">{data.avgCycleTime[stage.stageNumber] ? `${data.avgCycleTime[stage.stageNumber]}h avg` : '—'}</span>
-					</div>
+					<p class="font-semibold text-sm">{getStageName(stage.stageNumber)}</p>
+					<p class="text-xs text-text-muted">{stage.activeCount} Active</p>
+					<span class="mt-2 px-2 py-0.5 rounded {isActive ? 'bg-primary/10 text-primary' : 'bg-bg-input text-text-muted'} text-[10px] font-bold uppercase tracking-wider">
+						{isActive ? 'In Progress' : 'Idle'}
+					</span>
 				</a>
 				{#if i < data.stagePipeline.length - 1}
-					<span class="material-symbols-outlined text-text-muted">chevron_right</span>
+					<div class="lg:hidden text-text-muted">
+						<span class="material-symbols-outlined">expand_more</span>
+					</div>
 				{/if}
 			{/each}
 		</div>

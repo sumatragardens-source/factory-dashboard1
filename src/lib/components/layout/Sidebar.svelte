@@ -43,7 +43,7 @@
 	<div class="p-4 border-t border-border-card">
 		<a
 			href="/batches?action=new"
-			class="w-full bg-primary text-slate-900 font-bold py-2 rounded text-xs tracking-widest hover:brightness-105 transition-all flex items-center justify-center gap-2 uppercase"
+			class="w-full bg-primary text-white font-bold py-2 rounded text-xs tracking-widest hover:brightness-105 transition-all flex items-center justify-center gap-2 uppercase"
 		>
 			<span class="material-symbols-outlined text-sm">add_box</span>
 			New Batch

@@ -20,7 +20,7 @@
 			/>
 		</div>
 
-		<a href="/batches" class="bg-primary text-slate-900 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-tighter flex items-center gap-2">
+		<a href="/batches" class="bg-primary text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-tighter flex items-center gap-2">
 			<span class="material-symbols-outlined text-sm">add_box</span>
 			Create New Batch
 		</a>
