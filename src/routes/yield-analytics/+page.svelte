@@ -67,8 +67,8 @@
 								transform="rotate(-90 80 80)"
 							/>
 						{/each}
-						<text x="80" y="75" text-anchor="middle" class="text-2xl font-black" fill="#0f172a">{purity}%</text>
-						<text x="80" y="92" text-anchor="middle" class="text-[10px] uppercase" fill="#93bf8d">PURITY</text>
+						<text x="80" y="75" text-anchor="middle" class="text-2xl font-black" fill="#3b4252">{purity}%</text>
+						<text x="80" y="92" text-anchor="middle" class="text-[10px] uppercase" fill="#a3be8c">PURITY</text>
 					</svg>
 				</div>
 

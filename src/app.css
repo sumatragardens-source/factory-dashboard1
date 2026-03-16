@@ -1,19 +1,23 @@
 @import 'tailwindcss';
 
 @theme {
-	--color-primary: #10b981;
-	--color-primary-dark: #059669;
-	--color-bg-light: #f6f6f8;
-	--color-bg-dark: #101622;
-	--color-bg-page: #101622;
-	--color-bg-card: #0f172a;
-	--color-bg-card-hover: #1e293b;
-	--color-bg-input: #1e293b;
-	--color-border-card: #2d3a4f;
-	--color-border-subtle: #253245;
-	--color-text-primary: #f1f5f9;
-	--color-text-secondary: #94a3b8;
-	--color-text-muted: #7a8ba3;
+	/* Nord Aurora green */
+	--color-primary: #a3be8c;
+	--color-primary-dark: #8faa7a;
+	/* Nord Polar Night backgrounds */
+	--color-bg-light: #e5e9f0;
+	--color-bg-dark: #2e3440;
+	--color-bg-page: #2e3440;
+	--color-bg-card: #3b4252;
+	--color-bg-card-hover: #434c5e;
+	--color-bg-input: #434c5e;
+	/* Nord Polar Night borders */
+	--color-border-card: #4c566a;
+	--color-border-subtle: #434c5e;
+	/* Nord Snow Storm text */
+	--color-text-primary: #eceff4;
+	--color-text-secondary: #d8dee9;
+	--color-text-muted: #7b88a1;
 	--font-family-display: 'Inter', sans-serif;
 }
 
