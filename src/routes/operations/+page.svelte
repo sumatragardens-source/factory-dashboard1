@@ -30,13 +30,16 @@
 	const distillationPct = pm.filtrationOutputL > 0 ? (pm.ethanolRecoveredL / pm.filtrationOutputL * 100).toFixed(1) : '0';
 
 	// Pipeline: 5 main icons connected by lines with 4 notch circles between them
+	const RING_SIZE = 76;
+	const RING_R = 34;
+	const RING_CIRC = 2 * Math.PI * RING_R;
 	const mainSteps = [
-		{ icon: 'eco', label: 'Raw Material', href: '/stages/1', fillPct: stageFill(1) },
-		{ icon: 'science', label: 'EtOH', href: '/stages/2', fillPct: stageFill(2) },
-		{ icon: 'local_fire_department', label: 'Distillation', href: '/stages/4', fillPct: stageFill(4) },
-		{ icon: '✦', label: 'Precipitation', href: '/stages/7', fillPct: stageFill(7), customIcon: true },
-		{ icon: 'diamond', label: 'Final Yield', href: '/stages/8', fillPct: stageFill(8) }
-	];
+		{ icon: 'fa-leaf', label: 'Raw Material', href: '/stages/1', fillPct: stageFill(1) },
+		{ icon: 'fa-flask-vial', label: 'EtOH', href: '/stages/2', fillPct: stageFill(2) },
+		{ icon: 'fa-fire', label: 'Distillation', href: '/stages/4', fillPct: stageFill(4) },
+		{ icon: 'fa-snowflake', label: 'Precipitation', href: '/stages/7', fillPct: stageFill(7), cluster: true },
+		{ icon: 'fa-gem', label: 'Final Yield', href: '/stages/8', fillPct: stageFill(8) }
+	].map(s => ({ ...s, ringFilled: (s.fillPct / 100) * RING_CIRC }));
 	const notchSteps = [
 		{ label: 'Powder', stage: 1 },
 		{ label: 'Filtration', stage: 3 },
@@ -112,9 +115,9 @@
 	</div>
 
 	<!-- Row 2: Process Pipeline -->
-	<div class="col-span-12 relative overflow-hidden rounded-2xl border border-border-card" style="background: linear-gradient(135deg, #242933 0%, #2e3440 40%, #2a3140 100%);">
+	<div class="col-span-12 relative overflow-visible rounded-2xl border border-border-card z-20" style="background: linear-gradient(135deg, #242933 0%, #2e3440 40%, #2a3140 100%);">
 		<!-- Subtle grid pattern overlay -->
-		<div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 24px 24px;"></div>
+		<div class="absolute inset-0 opacity-[0.03] rounded-2xl overflow-hidden" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 24px 24px;"></div>
 		<div class="relative p-8">
 			<div class="flex items-center justify-between mb-8">
 				<div class="flex items-center gap-3">
@@ -143,25 +146,33 @@
 					<!-- Main stage node -->
 					<div class="flex-none group relative flex flex-col items-center text-center z-10">
 						<a href={step.href} class="flex flex-col items-center transition-transform duration-200 hover:scale-105">
-							<div class="relative">
-								<!-- Outer glow ring -->
-								<div class="absolute -inset-1 rounded-full bg-primary/10 blur-sm"></div>
+							<div class="relative h-[72px] w-[72px]">
 								<!-- Icon circle -->
-								<div class="relative h-[72px] w-[72px] rounded-full bg-gradient-to-br from-primary/25 to-primary/10 border-2 border-primary/80 flex items-center justify-center backdrop-blur-sm shadow-lg shadow-primary/10">
-									{#if step.icon === '✦'}
-										<span class="text-primary text-[14px] leading-tight tracking-[2px]">✦✦✦<br>✦✦</span>
-									{:else if step.customIcon}
-										<span class="text-primary text-[22px] font-black leading-none">{step.icon}</span>
+								<div class="absolute inset-0 rounded-full bg-bg-card flex items-center justify-center shadow-lg shadow-black/20">
+									{#if step.cluster}
+										<div class="relative w-[30px] h-[28px]">
+											<i class="fa-solid fa-snowflake text-primary text-[12px] absolute top-0 left-[9px]"></i>
+											<i class="fa-solid fa-snowflake text-primary text-[9px] absolute top-[10px] left-0"></i>
+											<i class="fa-solid fa-snowflake text-primary text-[14px] absolute top-[10px] left-[16px]"></i>
+											<i class="fa-solid fa-snowflake text-primary text-[8px] absolute bottom-0 left-[8px]"></i>
+										</div>
 									{:else}
-										<span class="material-symbols-outlined text-primary text-[28px]">{step.icon}</span>
+										<i class="fa-solid {step.icon} text-primary text-[22px]"></i>
 									{/if}
 								</div>
+								<!-- Progress ring SVG (on top) -->
+								<svg width="72" height="72" class="absolute inset-0 z-10 pointer-events-none" style="transform: rotate(90deg);">
+									<!-- Track -->
+									<circle cx="36" cy="36" r={RING_R} fill="none" stroke="rgba(67,76,94,0.8)" stroke-width="3" />
+									<!-- Progress arc -->
+									<circle cx="36" cy="36" r={RING_R} fill="none" stroke="#8fbf6f" stroke-width="3" stroke-dasharray="{step.ringFilled} {RING_CIRC - step.ringFilled}" stroke-linecap="round" />
+								</svg>
 							</div>
 							<p class="text-[11px] font-bold text-text-primary mt-3 tracking-wide">{step.label}</p>
 							<p class="text-[9px] text-text-muted font-mono">{step.fillPct.toFixed(0)}%</p>
 						</a>
 						<!-- Main tooltip -->
-						<div class="absolute top-full mt-1 z-20 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-4 w-56 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 {i === 0 ? 'left-0' : i === mainSteps.length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}" style="background: linear-gradient(160deg, #3b4252 0%, #2e3440 100%);">
+						<div class="absolute top-full mt-1 z-50 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-4 w-56 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 {i === 0 ? 'left-0' : i === mainSteps.length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}" style="background: linear-gradient(160deg, #3b4252 0%, #2e3440 100%);">
 							<div class="flex items-center justify-between mb-2">
 								<p class="text-[11px] font-bold text-text-primary">{step.label}</p>
 								<span class="text-[9px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded">{step.fillPct.toFixed(0)}%</span>
@@ -208,7 +219,7 @@
 								<div class="h-3.5 w-3.5 rounded-full bg-bg-page border-[1.5px] border-primary/50 z-10 transition-all duration-200 group-hover/notch:border-primary group-hover/notch:bg-primary/20 group-hover/notch:scale-150 cursor-default"></div>
 								<p class="text-[7px] font-medium text-text-muted/70 mt-1.5 whitespace-nowrap uppercase tracking-widest">{notchSteps[i].label}</p>
 								<!-- Notch tooltip -->
-								<div class="absolute top-full mt-5 z-20 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-3 w-44 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-all duration-200 left-1/2 -translate-x-1/2" style="background: linear-gradient(160deg, #3b4252 0%, #2e3440 100%);">
+								<div class="absolute top-full mt-5 z-50 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-3 w-44 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-all duration-200 left-1/2 -translate-x-1/2" style="background: linear-gradient(160deg, #3b4252 0%, #2e3440 100%);">
 									<div class="flex items-center gap-1.5 mb-2">
 										<div class="h-1.5 w-1.5 rounded-full bg-primary/60"></div>
 										<p class="text-[10px] font-bold text-text-primary">{notchSteps[i].label}</p>
@@ -270,9 +281,9 @@
 				</div>
 				{#each data.activeBatchProgress as batch}
 					{@const completedStages = batch.stages.filter(s => s.status === 'Finalized').length}
-					<a href="/batches/{batch.id}" style="display: grid; grid-template-columns: 120px repeat(7, 1fr) 80px 120px 55px;" class="items-center py-2 border-b border-border-subtle hover:bg-bg-card-hover transition-colors rounded gap-1 min-w-[850px]">
+					<a href="/batches/{batch.id}" style="display: grid; grid-template-columns: 120px repeat(7, 1fr) 80px 120px 55px;" class="items-center py-2 border-b border-border-subtle rounded gap-1 min-w-[850px]">
 						<!-- Lot ID + Operator -->
-						<div>
+						<div class="hover:bg-bg-card-hover transition-colors rounded px-1 py-0.5">
 							<p class="text-xs font-bold text-text-primary">{batch.batch_number}</p>
 							<p class="text-[10px] text-text-muted">{batch.operator_name ?? '—'}</p>
 						</div>
@@ -281,7 +292,7 @@
 							{@const colStatus = columnStatusColor(batch.stages, col.dbStages)}
 							{@const isFinalized = colStatus.includes('primary')}
 							{@const isInProgress = colStatus.includes('blue')}
-							<div class="group/cell relative text-center rounded py-1 px-0.5 text-[9px] font-bold {colStatus}">
+							<div class="group/cell relative text-center rounded py-1 px-0.5 text-[9px] font-bold hover:bg-bg-card-hover transition-colors {colStatus}">
 								{#if ci === 0}
 									{batch.powder_weight_kg != null ? batch.powder_weight_kg.toFixed(1) : '—'}
 								{:else if ci === 6}
@@ -338,14 +349,14 @@
 							</div>
 						{/each}
 						<!-- Progress bar -->
-						<div class="px-1">
+						<div class="px-1 hover:bg-bg-card-hover transition-colors rounded py-0.5">
 							<div class="h-1.5 w-full bg-border-card rounded-full overflow-hidden">
 								<div class="h-full bg-primary rounded-full" style="width: {(completedStages / 8 * 100)}%"></div>
 							</div>
 							<p class="text-[9px] text-text-muted text-center mt-0.5">{completedStages}/8</p>
 						</div>
 						<!-- Current stage -->
-						<div>
+						<div class="hover:bg-bg-card-hover transition-colors rounded py-0.5 px-1">
 							<p class="text-[10px] font-bold text-text-secondary">
 								{#if batch.final_product_weight_kg != null}
 									Complete
@@ -357,7 +368,7 @@
 							</p>
 						</div>
 						<!-- Next action -->
-						<div class="text-center">
+						<div class="text-center hover:bg-bg-card-hover transition-colors rounded py-0.5">
 							<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded {nextAction(batch) === 'Review' ? 'bg-amber-900/30 text-amber-400' : 'bg-blue-900/30 text-blue-400'}">{nextAction(batch)}</span>
 						</div>
 					</a>
