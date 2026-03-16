@@ -29,11 +29,10 @@
 	const filtrationPct = pm.ethanol70TotalL > 0 ? (pm.filtrationOutputL / pm.ethanol70TotalL * 100).toFixed(1) : '0';
 	const distillationPct = pm.filtrationOutputL > 0 ? (pm.ethanolRecoveredL / pm.filtrationOutputL * 100).toFixed(1) : '0';
 
-	// Pipeline steps (7 visual steps)
+	// Pipeline steps (6 visual steps — EtOH includes filtration)
 	const pipelineSteps = [
 		{ icon: 'grain', label: 'Powder', href: '/stages/1', fillPct: stageFill(1) },
 		{ icon: 'science', label: 'EtOH', href: '/stages/2', fillPct: stageFill(2) },
-		{ icon: 'filter_alt', label: 'Filtration', href: '/stages/3', fillPct: stageFill(3) },
 		{ icon: 'local_fire_department', label: 'Distillation', href: '/stages/4', fillPct: stageFill(4) },
 		{ icon: '+/−', label: 'A/B', href: '/stages/5', fillPct: stageFill(5), customIcon: true },
 		{ icon: '✦', label: 'Precipitation', href: '/stages/7', fillPct: stageFill(7), customIcon: true },
@@ -141,26 +140,27 @@
 									<span class="text-[10px] font-bold text-text-primary">{processedKg.toLocaleString()} kg</span>
 								</div>
 							{:else if i === 1}
-								<!-- EtOH 70% -->
+								<!-- EtOH (extraction + filtration) -->
 								<div class="flex justify-between">
 									<span class="text-[10px] text-text-muted">Extractions</span>
 									<span class="text-[10px] font-bold text-text-primary">{pm.lotsExtracted} / {pm.ethanolStockUsedL.toLocaleString()}L</span>
 								</div>
+								<div class="border-t border-border-subtle pt-1.5 mt-1.5 space-y-1.5">
+									<p class="text-[9px] font-bold text-text-muted uppercase tracking-wider">Filtration</p>
+									<div class="flex justify-between">
+										<span class="text-[10px] text-text-muted">Recovered</span>
+										<span class="text-[10px] font-bold text-text-primary">{pm.filtrationOutputL.toLocaleString()} L</span>
+									</div>
+									<div class="flex justify-between">
+										<span class="text-[10px] text-text-muted">Lost</span>
+										<span class="text-[10px] font-bold text-red-500">{filtrationLossL} L</span>
+									</div>
+									<div class="flex justify-between">
+										<span class="text-[10px] text-text-muted">Recovery</span>
+										<span class="text-[10px] font-bold text-text-primary">{filtrationPct}%</span>
+									</div>
+								</div>
 							{:else if i === 2}
-								<!-- Filtration -->
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Recovered</span>
-									<span class="text-[10px] font-bold text-text-primary">{pm.filtrationOutputL.toLocaleString()} L</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Lost</span>
-									<span class="text-[10px] font-bold text-red-500">{filtrationLossL} L</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Recovery</span>
-									<span class="text-[10px] font-bold text-text-primary">{filtrationPct}%</span>
-								</div>
-							{:else if i === 3}
 								<!-- Distillation -->
 								<div class="flex justify-between">
 									<span class="text-[10px] text-text-muted">Recovered</span>
@@ -174,7 +174,7 @@
 									<span class="text-[10px] text-text-muted">Recovery</span>
 									<span class="text-[10px] font-bold text-text-primary">{distillationPct}%</span>
 								</div>
-							{:else if i === 4}
+							{:else if i === 3}
 								<!-- A/B -->
 								<div class="flex justify-between">
 									<span class="text-[10px] text-text-muted">Recovered</span>
@@ -184,13 +184,13 @@
 									<span class="text-[10px] text-text-muted">Lost</span>
 									<span class="text-[10px] font-bold text-red-500">{pm.limoneneLostL} L</span>
 								</div>
-							{:else if i === 5}
-								<!-- Back Ext & Ppt -->
+							{:else if i === 4}
+								<!-- Precipitation -->
 								<div class="flex justify-between">
 									<span class="text-[10px] text-text-muted">Wet weight</span>
 									<span class="text-[10px] font-bold text-text-primary">{pm.precipitateKg} kg</span>
 								</div>
-							{:else if i === 6}
+							{:else if i === 5}
 								<!-- Final Yield -->
 								<div class="flex justify-between">
 									<span class="text-[10px] text-text-muted">Dried extract</span>
@@ -238,7 +238,7 @@
 							<p class="text-xs font-bold text-text-primary">{batch.batch_number}</p>
 							<p class="text-[10px] text-text-muted">{batch.operator_name ?? '—'}</p>
 						</div>
-						<!-- 8 Stage cells -->
+						<!-- 7 Stage cells -->
 						{#each TABLE_COLUMNS as col, ci}
 							{@const colStatus = columnStatusColor(batch.stages, col.dbStages)}
 							{@const isFinalized = colStatus.includes('primary')}
