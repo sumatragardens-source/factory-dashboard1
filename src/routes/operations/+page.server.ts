@@ -1,51 +1,53 @@
 import {
-	getActiveBatches,
-	getCompletedBatchCount,
 	getStalledBatches,
-	getRecentBatches,
 	getRecentDeviations,
 	getPendingApprovals,
-	getBatchesByStage,
 	getAllMachineStatuses,
-	getAverageEthanolRecovery,
 	getOpenDeviationCount,
-	getBatchCountByStatus,
 	getSolventTotals,
-	getLatestCompletedBatchNumber
+	getLatestCompletedBatchNumber,
+	getTotalLeafInputProcessed,
+	getTotalFinalProductWeight,
+	getStagePipelineSummary,
+	getActiveBatchProgress,
+	getPendingLabResults,
+	getLatestCompletedBatchCostPerKg,
+	getLatestHplcResult
 } from '$lib/data/repositories/dashboardRepo';
 import { getLowStockMaterials } from '$lib/data/repositories/materialRepo';
-import { getBatchCosts } from '$lib/data/repositories/costingRepo';
-import { getLabResultsByBatch } from '$lib/data/repositories/labResultRepo';
-import { calculateTotalBatchCost, calculateCostByCategory } from '$lib/calculations/costing';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
-	// Get cost data for batch 1 (SG-2026-001)
-	const batch1Costs = getBatchCosts(1);
-	const totalCost = calculateTotalBatchCost(batch1Costs);
-	const costBreakdown = calculateCostByCategory(batch1Costs);
+	const stalledBatches = getStalledBatches();
+	const pendingApprovals = getPendingApprovals();
+	const openDeviationCount = getOpenDeviationCount();
+	const lowStockMaterials = getLowStockMaterials();
 
-	// Get HPLC result for batch 1
-	const labResults = getLabResultsByBatch(1);
-	const hplcResult = labResults.find((r) => r.test_type === 'HPLC' && r.status === 'Completed') ?? null;
+	const pendingActionsCount =
+		openDeviationCount + pendingApprovals.length + stalledBatches.length + lowStockMaterials.length;
 
 	return {
-		activeBatches: getActiveBatches(),
-		completedCount: getCompletedBatchCount(),
-		stalledBatches: getStalledBatches(),
-		recentBatches: getRecentBatches(),
-		recentDeviations: getRecentDeviations(),
-		pendingApprovals: getPendingApprovals(),
-		batchesByStage: getBatchesByStage(),
+		// Row 1: Hero KPIs
+		throughput: getTotalLeafInputProcessed(),
+		totalFinalProduct: getTotalFinalProductWeight(),
+		activeBatchProgress: getActiveBatchProgress(),
+		pendingActionsCount,
+
+		// Row 2: Pipeline
+		stagePipeline: getStagePipelineSummary(),
+
+		// Row 4: Support
 		machines: getAllMachineStatuses(),
-		avgEthanolRecovery: getAverageEthanolRecovery(),
-		openDeviationCount: getOpenDeviationCount(),
-		statusCounts: getBatchCountByStatus(),
-		lowStockMaterials: getLowStockMaterials(),
-		solventTotals: getSolventTotals(),
+		pendingLabResults: getPendingLabResults(),
+		recentDeviations: getRecentDeviations(),
+		pendingApprovals,
+		stalledBatches,
+		lowStockMaterials,
+
+		// Row 5: Analytics
+		latestHplcResult: getLatestHplcResult(),
 		latestCompletedBatch: getLatestCompletedBatchNumber(),
-		totalCost,
-		costBreakdown,
-		hplcResult
+		solventTotals: getSolventTotals(),
+		costSnapshot: getLatestCompletedBatchCostPerKg()
 	};
 };
