@@ -47,8 +47,7 @@
 	// Lot progress table columns (7 visual columns mapping to 8 DB stages)
 	const TABLE_COLUMNS = [
 		{ label: 'Powder', dbStages: [1] },
-		{ label: '# Ext.', dbStages: [2] },
-		{ label: 'EtOH (L)', dbStages: [2] },
+		{ label: 'EtOH', dbStages: [2] },
 		{ label: 'Filt.', dbStages: [3] },
 		{ label: 'Dist.', dbStages: [4] },
 		{ label: 'A/B', dbStages: [5] },
@@ -222,7 +221,7 @@
 		{:else}
 			<div class="overflow-x-auto">
 				<!-- Header -->
-				<div style="display: grid; grid-template-columns: 120px repeat(8, 1fr) 80px 120px 55px;" class="text-[8px] font-bold text-text-muted uppercase tracking-wider pb-2 border-b border-border-subtle gap-1 min-w-[850px]">
+				<div style="display: grid; grid-template-columns: 120px repeat(7, 1fr) 80px 120px 55px;" class="text-[8px] font-bold text-text-muted uppercase tracking-wider pb-2 border-b border-border-subtle gap-1 min-w-[850px]">
 					<div>Lot</div>
 					{#each TABLE_COLUMNS as col}
 						<div class="text-center">{col.label}</div>
@@ -233,7 +232,7 @@
 				</div>
 				{#each data.activeBatchProgress as batch}
 					{@const completedStages = batch.stages.filter(s => s.status === 'Finalized').length}
-					<a href="/batches/{batch.id}" style="display: grid; grid-template-columns: 120px repeat(8, 1fr) 80px 120px 55px;" class="items-center py-2 border-b border-border-subtle hover:bg-bg-card-hover transition-colors rounded gap-1 min-w-[850px]">
+					<a href="/batches/{batch.id}" style="display: grid; grid-template-columns: 120px repeat(7, 1fr) 80px 120px 55px;" class="items-center py-2 border-b border-border-subtle hover:bg-bg-card-hover transition-colors rounded gap-1 min-w-[850px]">
 						<!-- Lot ID + Operator -->
 						<div>
 							<p class="text-xs font-bold text-text-primary">{batch.batch_number}</p>
@@ -247,11 +246,7 @@
 							<div class="group/cell relative text-center rounded py-1 px-0.5 text-[9px] font-bold {colStatus}">
 								{#if ci === 0}
 									{batch.powder_weight_kg != null ? batch.powder_weight_kg.toFixed(1) : '—'}
-								{:else if ci === 1}
-									{batch.reactor_count || '—'}
-								{:else if ci === 2}
-									{batch.ethanol_stock_used_l != null ? batch.ethanol_stock_used_l.toFixed(0) : '—'}
-								{:else if ci === 7}
+								{:else if ci === 6}
 									{batch.final_product_weight_kg != null ? batch.final_product_weight_kg.toFixed(1) : '—'}
 								{:else if isFinalized}
 									✓
@@ -261,9 +256,15 @@
 									—
 								{/if}
 								<!-- Hover tooltip for middle columns -->
-								{#if ci >= 3 && ci <= 6 && (isFinalized || isInProgress)}
+								{#if ci >= 1 && ci <= 5 && (isFinalized || isInProgress)}
 									<div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-30 bg-bg-card border border-border-card rounded-lg shadow-lg p-2.5 w-44 text-left opacity-0 pointer-events-none group-hover/cell:opacity-100 transition-opacity duration-150">
-										{#if ci === 3}
+										{#if ci === 1}
+											<p class="text-[9px] font-bold text-text-primary mb-1.5">Ethanol Extraction</p>
+											<div class="space-y-1">
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Extractions</span><span class="text-[9px] font-bold text-text-primary">{batch.reactor_count}</span></div>
+												<div class="flex justify-between"><span class="text-[9px] text-text-muted">EtOH Used</span><span class="text-[9px] font-bold text-text-primary">{batch.ethanol_stock_used_l?.toFixed(0) ?? '—'} L</span></div>
+											</div>
+										{:else if ci === 2}
 											<p class="text-[9px] font-bold text-text-primary mb-1.5">Filtration</p>
 											<div class="space-y-1">
 												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Bag Filter</span><span class="text-[9px] font-bold text-text-primary">{batch.bag_filter_output_l?.toFixed(0) ?? '—'} L</span></div>
@@ -272,7 +273,7 @@
 												<div class="flex justify-between border-t border-border-subtle pt-1"><span class="text-[9px] text-text-muted">Total Recovered</span><span class="text-[9px] font-bold text-text-primary">{batch.total_ethanol_70_to_rotovap_l?.toFixed(0) ?? '—'} L</span></div>
 												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Total Lost</span><span class="text-[9px] font-bold text-red-500">{((batch.ethanol_70_volume_l ?? 0) - (batch.total_ethanol_70_to_rotovap_l ?? 0)).toFixed(0)} L</span></div>
 											</div>
-										{:else if ci === 4}
+										{:else if ci === 3}
 											<p class="text-[9px] font-bold text-text-primary mb-1.5">Distillation</p>
 											<div class="space-y-1">
 												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Processed</span><span class="text-[9px] font-bold text-text-primary">{batch.total_ethanol_70_to_rotovap_l?.toFixed(0) ?? '—'} L</span></div>
@@ -280,7 +281,7 @@
 												<div class="flex justify-between"><span class="text-[9px] text-text-muted">EtOH Lost</span><span class="text-[9px] font-bold text-red-500">{batch.total_ethanol_loss_l?.toFixed(0) ?? '0'} L</span></div>
 												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Water Recovered</span><span class="text-[9px] font-bold text-text-primary">{batch.water_mother_liquid_l?.toFixed(0) ?? '—'} L</span></div>
 											</div>
-										{:else if ci === 5}
+										{:else if ci === 4}
 											<p class="text-[9px] font-bold text-text-primary mb-1.5">Acid/Base Extraction</p>
 											<div class="space-y-1">
 												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Avg pH</span><span class="text-[9px] font-bold text-text-primary">{batch.actual_ph_acid?.toFixed(1) ?? '—'} / {batch.actual_ph_base?.toFixed(1) ?? '—'}</span></div>
@@ -288,7 +289,7 @@
 												<div class="flex justify-between"><span class="text-[9px] text-text-muted">D-Limo Recovered</span><span class="text-[9px] font-bold text-text-primary">{batch.limonene_recovered_l?.toFixed(1) ?? '—'} L</span></div>
 												<div class="flex justify-between"><span class="text-[9px] text-text-muted">D-Limo Lost</span><span class="text-[9px] font-bold text-red-500">{batch.limonene_loss_l?.toFixed(1) ?? '0'} L</span></div>
 											</div>
-										{:else if ci === 6}
+										{:else if ci === 5}
 											<p class="text-[9px] font-bold text-text-primary mb-1.5">Precipitation</p>
 											<div class="space-y-1">
 												<div class="flex justify-between"><span class="text-[9px] text-text-muted">Wet Weight</span><span class="text-[9px] font-bold text-text-primary">{batch.precipitate_weight_kg?.toFixed(1) ?? '—'} kg</span></div>
