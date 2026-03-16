@@ -18,7 +18,7 @@
 <aside class="w-64 border-r border-border-card bg-bg-card flex flex-col shrink-0">
 	<div class="p-6 border-b border-border-card">
 		<h1 class="text-lg font-black tracking-tighter text-text-primary flex items-center gap-2">
-			<span class="material-symbols-outlined text-primary">eco</span>
+			<span class="material-symbols-outlined text-accent">eco</span>
 			SUMATRA GARDENS
 		</h1>
 		<p class="text-[10px] uppercase tracking-widest text-text-muted font-bold mt-1">Factory Operations</p>
@@ -34,7 +34,7 @@
 						? 'bg-primary/20 text-text-primary font-semibold'
 						: 'text-text-muted hover:bg-bg-card-hover'}"
 			>
-				<span class="material-symbols-outlined text-primary">{iconMap[item.icon] ?? 'circle'}</span>
+				<span class="material-symbols-outlined text-accent">{iconMap[item.icon] ?? 'circle'}</span>
 				<span>{item.label}</span>
 			</a>
 		{/each}
