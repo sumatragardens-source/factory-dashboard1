@@ -112,143 +112,133 @@
 	</div>
 
 	<!-- Row 2: Process Pipeline -->
-	<div class="col-span-12 bg-bg-card border border-border-card p-6 rounded-xl shadow-sm">
-		<h2 class="text-lg font-bold mb-6 flex items-center gap-2">
-			<span class="material-symbols-outlined">hub</span>
-			Active Process Pipeline
-			<span class="text-xs font-normal text-text-muted ml-2">Processing {TOTAL_INTAKE_KG.toLocaleString()} kg raw material</span>
-		</h2>
-		<div class="relative flex items-start px-4">
-			{#each mainSteps as step, i}
-				<!-- Main icon -->
-				<div class="flex-none group relative flex flex-col items-center text-center z-10">
-					<a href={step.href} class="flex flex-col items-center">
-						<div class="h-16 w-16 rounded-full bg-primary/30 text-primary border-2 border-primary shadow-[0_0_12px_rgba(143,191,111,0.3)] flex items-center justify-center">
-							{#if step.icon === '✦'}
-								<span class="text-[12px] leading-tight tracking-[2px]">✦✦✦<br>✦✦</span>
-							{:else if step.customIcon}
-								<span class="text-[20px] font-black leading-none">{step.icon}</span>
-							{:else}
-								<span class="material-symbols-outlined text-[26px]">{step.icon}</span>
-							{/if}
-						</div>
-						<p class="text-[11px] font-semibold whitespace-nowrap mt-2">{step.label}</p>
-					</a>
-					<!-- Main tooltip -->
-					<div class="absolute top-full mt-1 z-20 bg-bg-card border border-border-card rounded-lg shadow-lg p-3 w-52 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 {i === 0 ? 'left-0' : i === mainSteps.length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}">
-						<p class="text-[10px] font-bold text-primary">{step.fillPct.toFixed(0)}% complete</p>
-						<p class="text-[10px] text-text-muted mb-2">{(100 - step.fillPct).toFixed(0)}% remaining</p>
-						<div class="border-t border-border-subtle pt-2 space-y-1.5">
-							{#if i === 0}
-								<!-- Raw Material -->
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Processed</span>
-									<span class="text-[10px] font-bold text-text-primary">{processedKg.toLocaleString()} kg</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Remaining</span>
-									<span class="text-[10px] font-bold text-text-primary">{remainingKg.toLocaleString()} kg</span>
-								</div>
-							{:else if i === 1}
-								<!-- EtOH (extraction + filtration) -->
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Extractions</span>
-									<span class="text-[10px] font-bold text-text-primary">{pm.lotsExtracted} / {pm.ethanolStockUsedL.toLocaleString()}L</span>
-								</div>
-								<div class="border-t border-border-subtle pt-1.5 mt-1.5 space-y-1.5">
-									<p class="text-[9px] font-bold text-text-muted uppercase tracking-wider">Filtration</p>
-									<div class="flex justify-between">
-										<span class="text-[10px] text-text-muted">Recovered</span>
-										<span class="text-[10px] font-bold text-text-primary">{pm.filtrationOutputL.toLocaleString()} L</span>
-									</div>
-									<div class="flex justify-between">
-										<span class="text-[10px] text-text-muted">Lost</span>
-										<span class="text-[10px] font-bold text-red-500">{filtrationLossL} L</span>
-									</div>
-									<div class="flex justify-between">
-										<span class="text-[10px] text-text-muted">Recovery</span>
-										<span class="text-[10px] font-bold text-text-primary">{filtrationPct}%</span>
-									</div>
-								</div>
-							{:else if i === 2}
-								<!-- Distillation -->
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Recovered</span>
-									<span class="text-[10px] font-bold text-text-primary">{pm.ethanolRecoveredL.toLocaleString()} L</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Lost</span>
-									<span class="text-[10px] font-bold text-red-500">{pm.ethanolLostL} L</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Recovery</span>
-									<span class="text-[10px] font-bold text-text-primary">{distillationPct}%</span>
-								</div>
-							{:else if i === 3}
-								<!-- Precipitation -->
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Wet weight</span>
-									<span class="text-[10px] font-bold text-text-primary">{pm.precipitateKg} kg</span>
-								</div>
-								<div class="border-t border-border-subtle pt-1.5 mt-1.5 space-y-1.5">
-									<p class="text-[9px] font-bold text-text-muted uppercase tracking-wider">A/B Extraction</p>
-									<div class="flex justify-between">
-										<span class="text-[10px] text-text-muted">D-Limo Recovered</span>
-										<span class="text-[10px] font-bold text-text-primary">{pm.limoneneRecoveredL} L</span>
-									</div>
-									<div class="flex justify-between">
-										<span class="text-[10px] text-text-muted">D-Limo Lost</span>
-										<span class="text-[10px] font-bold text-red-500">{pm.limoneneLostL} L</span>
-									</div>
-								</div>
-							{:else if i === 4}
-								<!-- Final Yield -->
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Dried extract</span>
-									<span class="text-[10px] font-bold text-text-primary">{pm.finalProductKg} kg</span>
-								</div>
-							{/if}
-						</div>
+	<div class="col-span-12 relative overflow-hidden rounded-2xl border border-border-card" style="background: linear-gradient(135deg, #242933 0%, #2e3440 40%, #2a3140 100%);">
+		<!-- Subtle grid pattern overlay -->
+		<div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 24px 24px;"></div>
+		<div class="relative p-8">
+			<div class="flex items-center justify-between mb-8">
+				<div class="flex items-center gap-3">
+					<div class="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center">
+						<span class="material-symbols-outlined text-primary text-[18px]">hub</span>
+					</div>
+					<div>
+						<h2 class="text-base font-bold tracking-tight">Active Process Pipeline</h2>
+						<p class="text-[10px] text-text-muted">Processing {TOTAL_INTAKE_KG.toLocaleString()} kg raw material</p>
 					</div>
 				</div>
-				<!-- Connector with notch circle (between main icons) -->
-				{#if i < mainSteps.length - 1}
-					<div class="flex-1 flex items-center relative" style="margin-top: 30px;">
-						<div class="flex-1 h-0.5 bg-primary/50"></div>
-						<div class="flex-none group/notch relative flex flex-col items-center mx-0.5">
-							<div class="h-2.5 w-2.5 rounded-full bg-primary border border-primary/60 z-10"></div>
-							<p class="text-[8px] text-text-muted mt-1 whitespace-nowrap">{notchSteps[i].label}</p>
-							<!-- Notch tooltip -->
-							<div class="absolute top-full mt-2 z-20 bg-bg-card border border-border-card rounded-lg shadow-lg p-2.5 w-44 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-opacity duration-150 left-1/2 -translate-x-1/2">
-								<p class="text-[9px] font-bold text-primary mb-1.5">{notchSteps[i].label}</p>
-								<div class="space-y-1">
-									{#if i === 0}
-										<!-- Powder -->
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">Total Powder</span><span class="text-[9px] font-bold text-text-primary">{pm.totalPowderKg} kg</span></div>
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">Lots Ground</span><span class="text-[9px] font-bold text-text-primary">{pm.stageCounts[1] ?? 0}</span></div>
-									{:else if i === 1}
-										<!-- Filtration -->
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">Recovered</span><span class="text-[9px] font-bold text-text-primary">{pm.filtrationOutputL} L</span></div>
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">Lost</span><span class="text-[9px] font-bold text-red-500">{filtrationLossL} L</span></div>
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">Recovery</span><span class="text-[9px] font-bold text-text-primary">{filtrationPct}%</span></div>
-									{:else if i === 2}
-										<!-- A/B -->
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">D-Limo Recovered</span><span class="text-[9px] font-bold text-text-primary">{pm.limoneneRecoveredL} L</span></div>
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">D-Limo Lost</span><span class="text-[9px] font-bold text-red-500">{pm.limoneneLostL} L</span></div>
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">Lots Processed</span><span class="text-[9px] font-bold text-text-primary">{pm.stageCounts[5] ?? 0}</span></div>
-									{:else if i === 3}
-										<!-- Drying -->
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">Precipitate In</span><span class="text-[9px] font-bold text-text-primary">{pm.precipitateKg} kg</span></div>
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">Final Product</span><span class="text-[9px] font-bold text-text-primary">{pm.finalProductKg} kg</span></div>
-										<div class="flex justify-between"><span class="text-[9px] text-text-muted">Lots Dried</span><span class="text-[9px] font-bold text-text-primary">{pm.stageCounts[8] ?? 0}</span></div>
+				<div class="flex items-center gap-4 text-[10px]">
+					<div class="flex items-center gap-1.5">
+						<div class="h-2 w-2 rounded-full bg-primary"></div>
+						<span class="text-text-muted">Complete</span>
+					</div>
+					<div class="flex items-center gap-1.5">
+						<div class="h-2 w-2 rounded-full bg-primary/40"></div>
+						<span class="text-text-muted">Sub-stage</span>
+					</div>
+				</div>
+			</div>
+
+			<div class="relative flex items-start px-6">
+				{#each mainSteps as step, i}
+					<!-- Main stage node -->
+					<div class="flex-none group relative flex flex-col items-center text-center z-10">
+						<a href={step.href} class="flex flex-col items-center transition-transform duration-200 hover:scale-105">
+							<div class="relative">
+								<!-- Outer glow ring -->
+								<div class="absolute -inset-1 rounded-full bg-primary/10 blur-sm"></div>
+								<!-- Icon circle -->
+								<div class="relative h-[72px] w-[72px] rounded-full bg-gradient-to-br from-primary/25 to-primary/10 border-2 border-primary/80 flex items-center justify-center backdrop-blur-sm shadow-lg shadow-primary/10">
+									{#if step.icon === '✦'}
+										<span class="text-primary text-[14px] leading-tight tracking-[2px]">✦✦✦<br>✦✦</span>
+									{:else if step.customIcon}
+										<span class="text-primary text-[22px] font-black leading-none">{step.icon}</span>
+									{:else}
+										<span class="material-symbols-outlined text-primary text-[28px]">{step.icon}</span>
 									{/if}
 								</div>
 							</div>
+							<p class="text-[11px] font-bold text-text-primary mt-3 tracking-wide">{step.label}</p>
+							<p class="text-[9px] text-text-muted font-mono">{step.fillPct.toFixed(0)}%</p>
+						</a>
+						<!-- Main tooltip -->
+						<div class="absolute top-full mt-1 z-20 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-4 w-56 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 {i === 0 ? 'left-0' : i === mainSteps.length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}" style="background: linear-gradient(160deg, #3b4252 0%, #2e3440 100%);">
+							<div class="flex items-center justify-between mb-2">
+								<p class="text-[11px] font-bold text-text-primary">{step.label}</p>
+								<span class="text-[9px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded">{step.fillPct.toFixed(0)}%</span>
+							</div>
+							<div class="h-1 w-full bg-bg-page rounded-full overflow-hidden mb-3">
+								<div class="h-full bg-primary rounded-full transition-all" style="width: {step.fillPct}%"></div>
+							</div>
+							<div class="space-y-1.5">
+								{#if i === 0}
+									<div class="flex justify-between"><span class="text-[10px] text-text-muted">Processed</span><span class="text-[10px] font-bold text-text-primary">{processedKg.toLocaleString()} kg</span></div>
+									<div class="flex justify-between"><span class="text-[10px] text-text-muted">Remaining</span><span class="text-[10px] font-bold text-text-primary">{remainingKg.toLocaleString()} kg</span></div>
+								{:else if i === 1}
+									<div class="flex justify-between"><span class="text-[10px] text-text-muted">Extractions</span><span class="text-[10px] font-bold text-text-primary">{pm.lotsExtracted} / {pm.ethanolStockUsedL.toLocaleString()}L</span></div>
+									<div class="border-t border-border-subtle pt-1.5 mt-1 space-y-1.5">
+										<p class="text-[9px] font-bold text-primary/70 uppercase tracking-wider">Filtration</p>
+										<div class="flex justify-between"><span class="text-[10px] text-text-muted">Recovered</span><span class="text-[10px] font-bold text-text-primary">{pm.filtrationOutputL.toLocaleString()} L</span></div>
+										<div class="flex justify-between"><span class="text-[10px] text-text-muted">Lost</span><span class="text-[10px] font-bold text-red-400">{filtrationLossL} L</span></div>
+										<div class="flex justify-between"><span class="text-[10px] text-text-muted">Recovery</span><span class="text-[10px] font-bold text-text-primary">{filtrationPct}%</span></div>
+									</div>
+								{:else if i === 2}
+									<div class="flex justify-between"><span class="text-[10px] text-text-muted">Recovered</span><span class="text-[10px] font-bold text-text-primary">{pm.ethanolRecoveredL.toLocaleString()} L</span></div>
+									<div class="flex justify-between"><span class="text-[10px] text-text-muted">Lost</span><span class="text-[10px] font-bold text-red-400">{pm.ethanolLostL} L</span></div>
+									<div class="flex justify-between"><span class="text-[10px] text-text-muted">Recovery</span><span class="text-[10px] font-bold text-text-primary">{distillationPct}%</span></div>
+								{:else if i === 3}
+									<div class="flex justify-between"><span class="text-[10px] text-text-muted">Wet weight</span><span class="text-[10px] font-bold text-text-primary">{pm.precipitateKg} kg</span></div>
+									<div class="border-t border-border-subtle pt-1.5 mt-1 space-y-1.5">
+										<p class="text-[9px] font-bold text-primary/70 uppercase tracking-wider">A/B Extraction</p>
+										<div class="flex justify-between"><span class="text-[10px] text-text-muted">D-Limo Recovered</span><span class="text-[10px] font-bold text-text-primary">{pm.limoneneRecoveredL} L</span></div>
+										<div class="flex justify-between"><span class="text-[10px] text-text-muted">D-Limo Lost</span><span class="text-[10px] font-bold text-red-400">{pm.limoneneLostL} L</span></div>
+									</div>
+								{:else if i === 4}
+									<div class="flex justify-between"><span class="text-[10px] text-text-muted">Dried extract</span><span class="text-[10px] font-bold text-text-primary">{pm.finalProductKg} kg</span></div>
+								{/if}
+							</div>
 						</div>
-						<div class="flex-1 h-0.5 bg-primary/50"></div>
 					</div>
-				{/if}
-			{/each}
+					<!-- Connector with notch circle -->
+					{#if i < mainSteps.length - 1}
+						<div class="flex-1 flex items-center relative" style="margin-top: 35px;">
+							<!-- Left line segment -->
+							<div class="flex-1 h-px bg-gradient-to-r from-primary/60 to-primary/30"></div>
+							<!-- Notch node -->
+							<div class="flex-none group/notch relative flex flex-col items-center mx-2">
+								<div class="h-3.5 w-3.5 rounded-full bg-bg-page border-[1.5px] border-primary/50 z-10 transition-all duration-200 group-hover/notch:border-primary group-hover/notch:bg-primary/20 group-hover/notch:scale-150 cursor-default"></div>
+								<p class="text-[7px] font-medium text-text-muted/70 mt-1.5 whitespace-nowrap uppercase tracking-widest">{notchSteps[i].label}</p>
+								<!-- Notch tooltip -->
+								<div class="absolute top-full mt-5 z-20 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-3 w-44 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-all duration-200 left-1/2 -translate-x-1/2" style="background: linear-gradient(160deg, #3b4252 0%, #2e3440 100%);">
+									<div class="flex items-center gap-1.5 mb-2">
+										<div class="h-1.5 w-1.5 rounded-full bg-primary/60"></div>
+										<p class="text-[10px] font-bold text-text-primary">{notchSteps[i].label}</p>
+									</div>
+									<div class="space-y-1">
+										{#if i === 0}
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">Total Powder</span><span class="text-[9px] font-bold text-text-primary">{pm.totalPowderKg} kg</span></div>
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">Lots Ground</span><span class="text-[9px] font-bold text-text-primary">{pm.stageCounts[1] ?? 0}</span></div>
+										{:else if i === 1}
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">Recovered</span><span class="text-[9px] font-bold text-text-primary">{pm.filtrationOutputL} L</span></div>
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">Lost</span><span class="text-[9px] font-bold text-red-400">{filtrationLossL} L</span></div>
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">Recovery</span><span class="text-[9px] font-bold text-text-primary">{filtrationPct}%</span></div>
+										{:else if i === 2}
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">D-Limo Recovered</span><span class="text-[9px] font-bold text-text-primary">{pm.limoneneRecoveredL} L</span></div>
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">D-Limo Lost</span><span class="text-[9px] font-bold text-red-400">{pm.limoneneLostL} L</span></div>
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">Lots Processed</span><span class="text-[9px] font-bold text-text-primary">{pm.stageCounts[5] ?? 0}</span></div>
+										{:else if i === 3}
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">Precipitate In</span><span class="text-[9px] font-bold text-text-primary">{pm.precipitateKg} kg</span></div>
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">Final Product</span><span class="text-[9px] font-bold text-text-primary">{pm.finalProductKg} kg</span></div>
+											<div class="flex justify-between"><span class="text-[9px] text-text-muted">Lots Dried</span><span class="text-[9px] font-bold text-text-primary">{pm.stageCounts[8] ?? 0}</span></div>
+										{/if}
+									</div>
+								</div>
+							</div>
+							<!-- Right line segment -->
+							<div class="flex-1 h-px bg-gradient-to-r from-primary/30 to-primary/60"></div>
+						</div>
+					{/if}
+				{/each}
+			</div>
 		</div>
 	</div>
 
