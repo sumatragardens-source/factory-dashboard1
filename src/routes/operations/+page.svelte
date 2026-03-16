@@ -217,6 +217,7 @@
 						<div class="flex-1 h-0.5 bg-primary/50"></div>
 						<div class="flex-none group/notch relative flex flex-col items-center mx-0.5">
 							<div class="h-2.5 w-2.5 rounded-full bg-primary border border-primary/60 z-10"></div>
+							<p class="text-[8px] text-text-muted mt-1 whitespace-nowrap">{notchSteps[i].label}</p>
 							<!-- Notch tooltip -->
 							<div class="absolute top-full mt-2 z-20 bg-bg-card border border-border-card rounded-lg shadow-lg p-2.5 w-44 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-opacity duration-150 left-1/2 -translate-x-1/2">
 								<p class="text-[9px] font-bold text-primary mb-1.5">{notchSteps[i].label}</p>
