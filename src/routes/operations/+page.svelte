@@ -123,7 +123,7 @@
 				<!-- Main icon -->
 				<div class="flex-none group relative flex flex-col items-center text-center z-10">
 					<a href={step.href} class="flex flex-col items-center">
-						<div class="h-16 w-16 rounded-full bg-primary/20 text-primary border-2 border-primary flex items-center justify-center">
+						<div class="h-16 w-16 rounded-full bg-primary/30 text-primary border-2 border-primary shadow-[0_0_12px_rgba(143,191,111,0.3)] flex items-center justify-center">
 							{#if step.icon === '✦'}
 								<span class="text-[12px] leading-tight tracking-[2px]">✦✦✦<br>✦✦</span>
 							{:else if step.customIcon}
@@ -132,6 +132,7 @@
 								<span class="material-symbols-outlined text-[26px]">{step.icon}</span>
 							{/if}
 						</div>
+						<p class="text-[11px] font-semibold whitespace-nowrap mt-2">{step.label}</p>
 					</a>
 					<!-- Main tooltip -->
 					<div class="absolute top-full mt-1 z-20 bg-bg-card border border-border-card rounded-lg shadow-lg p-3 w-52 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 {i === 0 ? 'left-0' : i === mainSteps.length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}">
@@ -213,16 +214,16 @@
 				<!-- Connector with notch circle (between main icons) -->
 				{#if i < mainSteps.length - 1}
 					<div class="flex-1 flex items-center relative" style="margin-top: 30px;">
-						<div class="flex-1 h-0.5 bg-primary/30"></div>
+						<div class="flex-1 h-0.5 bg-primary/50"></div>
 						<div class="flex-none group/notch relative flex flex-col items-center mx-0.5">
-							<div class="h-2.5 w-2.5 rounded-full bg-primary/40 z-10"></div>
+							<div class="h-2.5 w-2.5 rounded-full bg-primary border border-primary/60 z-10"></div>
 							<!-- Notch tooltip -->
 							<div class="absolute top-full mt-2 z-20 bg-bg-card border border-border-card rounded-lg shadow-lg p-2.5 w-40 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-opacity duration-150 left-1/2 -translate-x-1/2">
 								<p class="text-[9px] font-bold text-primary mb-1">{notchSteps[i].label}</p>
 								<p class="text-[9px] text-text-muted">Stage {notchSteps[i].stage} · {pm.stageCounts[notchSteps[i].stage] ?? 0} lots finalized</p>
 							</div>
 						</div>
-						<div class="flex-1 h-0.5 bg-primary/30"></div>
+						<div class="flex-1 h-0.5 bg-primary/50"></div>
 					</div>
 				{/if}
 			{/each}
