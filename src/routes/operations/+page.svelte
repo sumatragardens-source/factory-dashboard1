@@ -29,14 +29,19 @@
 	const filtrationPct = pm.ethanol70TotalL > 0 ? (pm.filtrationOutputL / pm.ethanol70TotalL * 100).toFixed(1) : '0';
 	const distillationPct = pm.filtrationOutputL > 0 ? (pm.ethanolRecoveredL / pm.filtrationOutputL * 100).toFixed(1) : '0';
 
-	// Pipeline steps (6 visual steps — EtOH includes filtration)
-	const pipelineSteps = [
-		{ icon: 'grain', label: 'Powder', href: '/stages/1', fillPct: stageFill(1) },
+	// Pipeline: 5 main icons connected by lines with 4 notch circles between them
+	const mainSteps = [
+		{ icon: 'eco', label: 'Raw Material', href: '/stages/1', fillPct: stageFill(1) },
 		{ icon: 'science', label: 'EtOH', href: '/stages/2', fillPct: stageFill(2) },
 		{ icon: 'local_fire_department', label: 'Distillation', href: '/stages/4', fillPct: stageFill(4) },
-		{ icon: '+/−', label: 'A/B', href: '/stages/5', fillPct: stageFill(5), customIcon: true },
 		{ icon: '✦', label: 'Precipitation', href: '/stages/7', fillPct: stageFill(7), customIcon: true },
 		{ icon: 'diamond', label: 'Final Yield', href: '/stages/8', fillPct: stageFill(8) }
+	];
+	const notchSteps = [
+		{ label: 'Powder', stage: 1 },
+		{ label: 'Filtration', stage: 3 },
+		{ label: 'A/B', stage: 5 },
+		{ label: 'Drying', stage: 8 }
 	];
 
 	// Solvent recovery rates (bottom cards)
@@ -113,9 +118,10 @@
 			Active Process Pipeline
 			<span class="text-xs font-normal text-text-muted ml-2">Processing {TOTAL_INTAKE_KG.toLocaleString()} kg raw material</span>
 		</h2>
-		<div class="relative flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-2 px-4">
-			{#each pipelineSteps as step, i}
-				<div class="group relative flex flex-col items-center text-center">
+		<div class="relative flex items-start px-4">
+			{#each mainSteps as step, i}
+				<!-- Main icon -->
+				<div class="flex-none group relative flex flex-col items-center text-center z-10">
 					<a href={step.href} class="flex flex-col items-center">
 						<div class="h-12 w-12 rounded-full bg-primary/20 text-primary border-2 border-primary flex items-center justify-center">
 							{#if step.icon === '✦'}
@@ -128,16 +134,20 @@
 						</div>
 						<p class="text-[11px] font-semibold whitespace-nowrap mt-2">{step.label}</p>
 					</a>
-					<!-- Tooltip -->
-					<div class="absolute top-full mt-1 z-20 bg-bg-card border border-border-card rounded-lg shadow-lg p-3 w-52 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 {i === 0 ? 'left-0' : i === pipelineSteps.length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}">
+					<!-- Main tooltip -->
+					<div class="absolute top-full mt-1 z-20 bg-bg-card border border-border-card rounded-lg shadow-lg p-3 w-52 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 {i === 0 ? 'left-0' : i === mainSteps.length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}">
 						<p class="text-[10px] font-bold text-primary">{step.fillPct.toFixed(0)}% complete</p>
 						<p class="text-[10px] text-text-muted mb-2">{(100 - step.fillPct).toFixed(0)}% remaining</p>
 						<div class="border-t border-border-subtle pt-2 space-y-1.5">
 							{#if i === 0}
-								<!-- Powder -->
+								<!-- Raw Material -->
 								<div class="flex justify-between">
 									<span class="text-[10px] text-text-muted">Processed</span>
 									<span class="text-[10px] font-bold text-text-primary">{processedKg.toLocaleString()} kg</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-[10px] text-text-muted">Remaining</span>
+									<span class="text-[10px] font-bold text-text-primary">{remainingKg.toLocaleString()} kg</span>
 								</div>
 							{:else if i === 1}
 								<!-- EtOH (extraction + filtration) -->
@@ -175,22 +185,23 @@
 									<span class="text-[10px] font-bold text-text-primary">{distillationPct}%</span>
 								</div>
 							{:else if i === 3}
-								<!-- A/B -->
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Recovered</span>
-									<span class="text-[10px] font-bold text-text-primary">{pm.limoneneRecoveredL} L</span>
-								</div>
-								<div class="flex justify-between">
-									<span class="text-[10px] text-text-muted">Lost</span>
-									<span class="text-[10px] font-bold text-red-500">{pm.limoneneLostL} L</span>
-								</div>
-							{:else if i === 4}
 								<!-- Precipitation -->
 								<div class="flex justify-between">
 									<span class="text-[10px] text-text-muted">Wet weight</span>
 									<span class="text-[10px] font-bold text-text-primary">{pm.precipitateKg} kg</span>
 								</div>
-							{:else if i === 5}
+								<div class="border-t border-border-subtle pt-1.5 mt-1.5 space-y-1.5">
+									<p class="text-[9px] font-bold text-text-muted uppercase tracking-wider">A/B Extraction</p>
+									<div class="flex justify-between">
+										<span class="text-[10px] text-text-muted">D-Limo Recovered</span>
+										<span class="text-[10px] font-bold text-text-primary">{pm.limoneneRecoveredL} L</span>
+									</div>
+									<div class="flex justify-between">
+										<span class="text-[10px] text-text-muted">D-Limo Lost</span>
+										<span class="text-[10px] font-bold text-red-500">{pm.limoneneLostL} L</span>
+									</div>
+								</div>
+							{:else if i === 4}
 								<!-- Final Yield -->
 								<div class="flex justify-between">
 									<span class="text-[10px] text-text-muted">Dried extract</span>
@@ -200,6 +211,22 @@
 						</div>
 					</div>
 				</div>
+				<!-- Connector with notch circle (between main icons) -->
+				{#if i < mainSteps.length - 1}
+					<div class="flex-1 flex items-center relative" style="margin-top: 22px;">
+						<div class="flex-1 h-0.5 bg-primary/30"></div>
+						<div class="flex-none group/notch relative flex flex-col items-center mx-1">
+							<div class="h-5 w-5 rounded-full bg-bg-page border-2 border-primary/50 z-10"></div>
+							<p class="text-[8px] text-text-muted mt-1 whitespace-nowrap">{notchSteps[i].label}</p>
+							<!-- Notch tooltip -->
+							<div class="absolute top-full mt-4 z-20 bg-bg-card border border-border-card rounded-lg shadow-lg p-2.5 w-40 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-opacity duration-150 left-1/2 -translate-x-1/2">
+								<p class="text-[9px] font-bold text-primary mb-1">{notchSteps[i].label}</p>
+								<p class="text-[9px] text-text-muted">Stage {notchSteps[i].stage} · {pm.stageCounts[notchSteps[i].stage] ?? 0} lots finalized</p>
+							</div>
+						</div>
+						<div class="flex-1 h-0.5 bg-primary/30"></div>
+					</div>
+				{/if}
 			{/each}
 		</div>
 	</div>
