@@ -39,7 +39,6 @@
 				<p class="text-[10px] uppercase tracking-widest text-slate-500 font-black">Avg. Annual Yield</p>
 				<div class="flex items-baseline gap-2 mt-1">
 					<p class="text-3xl font-black text-slate-900">{data.avgYield}%</p>
-					<span class="text-xs font-bold text-primary">+1.2%</span>
 				</div>
 			</div>
 
@@ -48,7 +47,6 @@
 				<p class="text-[10px] uppercase tracking-widest text-slate-500 font-black">Solvent Efficiency</p>
 				<div class="flex items-baseline gap-2 mt-1">
 					<p class="text-3xl font-black text-slate-900">{data.solventEfficiency}%</p>
-					<span class="text-xs font-bold text-red-500">-0.5%</span>
 				</div>
 			</div>
 
@@ -170,8 +168,10 @@
 					{/each}
 				</div>
 				<div class="flex justify-between mt-1">
-					<span class="text-[10px] text-slate-400">Jan</span>
-					<span class="text-[10px] text-slate-400">Jun</span>
+					{#if data.costPerKgData.length > 0}
+						<span class="text-[10px] text-slate-400">{data.costPerKgData[0].batch.replace('SG-2026-', 'B-')}</span>
+						<span class="text-[10px] text-slate-400">{data.costPerKgData[data.costPerKgData.length - 1].batch.replace('SG-2026-', 'B-')}</span>
+					{/if}
 				</div>
 			</div>
 
@@ -191,26 +191,6 @@
 				</div>
 			</div>
 
-			<!-- Process Duration Optimization -->
-			<div class="bg-slate-800 rounded p-6">
-				<h3 class="text-[10px] font-black uppercase tracking-widest text-slate-300 mb-4">Process Duration Optimization</h3>
-				<div class="space-y-3">
-					{#each data.stageDurations as sd}
-						<div class="flex items-center gap-3">
-							<div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-								<span class="material-symbols-outlined text-primary text-sm">{sd.icon}</span>
-							</div>
-							<div class="flex-1">
-								<p class="text-[10px] uppercase tracking-wider text-slate-300 font-bold">{sd.shortName}</p>
-								<div class="w-full bg-slate-700 rounded-full h-1 mt-1">
-									<div class="bg-primary h-1 rounded-full" style="width: {(sd.hours / 30) * 100}%"></div>
-								</div>
-							</div>
-							<span class="text-xs font-bold text-slate-300">{sd.hours} HRS</span>
-						</div>
-					{/each}
-				</div>
 			</div>
-		</div>
 	</div>
 </div>

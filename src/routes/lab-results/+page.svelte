@@ -76,7 +76,7 @@
 						<h1 class="text-2xl font-black text-slate-900">Sample Analysis: {selected.batch_number}</h1>
 						<p class="text-sm text-slate-500 mt-1">{selected.strain}. {selected.test_type} alkaloid profile and purity verification.</p>
 					</div>
-					<button class="bg-primary text-slate-900 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2">
+					<button disabled title="Coming soon" class="bg-primary text-slate-900 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 opacity-50 cursor-not-allowed">
 						<span class="material-symbols-outlined text-sm">download</span>
 						Export PDF
 					</button>

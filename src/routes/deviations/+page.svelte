@@ -31,7 +31,7 @@
 			<h1 class="text-2xl font-black text-slate-900">Deviations</h1>
 			<p class="text-sm text-slate-500">Non-conformance tracking and corrective actions</p>
 		</div>
-		<button class="bg-primary text-slate-900 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2">
+		<button disabled title="Coming soon" class="bg-primary text-slate-900 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 opacity-50 cursor-not-allowed">
 			<span class="material-symbols-outlined text-sm">add</span>
 			Report Deviation
 		</button>
@@ -75,7 +75,7 @@
 			</h3>
 			<div class="flex gap-2">
 				{#each ['All', 'Open', 'Resolved', 'Closed'] as filter}
-					<button class="text-[10px] font-bold uppercase px-3 py-1 rounded {filter === 'All' ? 'bg-primary/10 text-primary' : 'text-slate-500 hover:bg-slate-50'}">
+					<button disabled title="Coming soon" class="text-[10px] font-bold uppercase px-3 py-1 rounded {filter === 'All' ? 'bg-primary/10 text-primary' : 'text-slate-500'} opacity-50 cursor-not-allowed">
 						{filter}
 					</button>
 				{/each}

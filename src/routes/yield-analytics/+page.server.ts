@@ -84,14 +84,6 @@ export const load: PageServerLoad = () => {
 		ORDER BY b.created_at ASC
 	`).all() as any[];
 
-	// Process duration by stage (averages)
-	const stageDurations = [
-		{ stage: 'Raw Leaf to Powder', shortName: 'RAW LEAF TO POWDER', hours: 4.5, icon: 'settings' },
-		{ stage: 'Ethanol Extraction', shortName: 'ETHANOL EXTRACTION', hours: 24.0, icon: 'science' },
-		{ stage: 'Acid/Base Partitioning', shortName: 'ACID/BASE PARTITIONING', hours: 18.0, icon: 'swap_vert' },
-		{ stage: 'Final Production', shortName: 'FINAL PRODUCTION', hours: 25.5, icon: 'thermostat' }
-	];
-
 	// Solvent performance trend (per-batch ethanol recovery)
 	const solventTrend = db.prepare(`
 		SELECT b.batch_number, s2.recovery_rate_pct
@@ -109,7 +101,6 @@ export const load: PageServerLoad = () => {
 		costPerKgData,
 		latestCostPerKg,
 		cycleTimes,
-		stageDurations,
 		solventTrend
 	};
 };

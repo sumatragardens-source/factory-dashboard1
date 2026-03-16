@@ -1,5 +1,11 @@
 <script lang="ts">
+	import { getStageName } from '$lib/constants/stageNames';
+
 	let { data } = $props();
+
+	function resolveStageRelevance(text: string): string {
+		return text.replace(/Stage (\d)/g, (_, n) => getStageName(Number(n)));
+	}
 
 	const statusColors: Record<string, string> = {
 		Running: 'bg-primary',
@@ -26,11 +32,11 @@
 	<div class="flex items-center justify-between mb-6">
 		<div>
 			<h1 class="text-2xl font-black text-slate-900">Machine Operations</h1>
-			<p class="text-sm text-slate-500">Machine registry and operational status</p>
+			<p class="text-sm text-slate-500">Machine utilization and operational status</p>
 		</div>
-		<button class="bg-primary text-slate-900 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2">
+		<button disabled title="Coming soon" class="bg-primary text-slate-900 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 opacity-50 cursor-not-allowed">
 			<span class="material-symbols-outlined text-sm">add</span>
-			Register Machine
+			Add Machine
 		</button>
 	</div>
 
@@ -45,7 +51,7 @@
 						</div>
 						<div>
 							<h3 class="text-sm font-bold text-slate-900">{machine.name}</h3>
-							<p class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">{machine.stage_relevance}</p>
+							<p class="text-[10px] uppercase tracking-wider text-slate-500 font-bold">{resolveStageRelevance(machine.stage_relevance ?? '')}</p>
 						</div>
 					</div>
 					<span class="flex items-center gap-1.5 text-[10px] font-bold uppercase px-2 py-1 rounded {statusBadge[machine.status]}">
@@ -66,8 +72,8 @@
 				</div>
 
 				<div class="flex gap-2">
-					<button class="flex-1 border border-slate-200 text-slate-700 py-2 rounded text-xs font-bold uppercase hover:bg-slate-50 transition-colors">Maintenance</button>
-					<button class="flex-1 bg-primary text-slate-900 py-2 rounded text-xs font-bold uppercase hover:brightness-105 transition-all">
+					<button disabled title="Coming soon" class="flex-1 border border-slate-200 text-slate-700 py-2 rounded text-xs font-bold uppercase opacity-50 cursor-not-allowed">Maintenance</button>
+					<button disabled title="Coming soon" class="flex-1 bg-primary text-slate-900 py-2 rounded text-xs font-bold uppercase opacity-50 cursor-not-allowed">
 						{machine.status === 'Running' ? 'Pause Ops' : 'Start'}
 					</button>
 				</div>

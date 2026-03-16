@@ -100,11 +100,10 @@
 		</div>
 	</div>
 
-	<!-- Critical Alerts Panel -->
+	<!-- Operator Queue Panel -->
 	<div class="col-span-3 row-span-3 bg-white border border-slate-200 rounded flex flex-col overflow-hidden">
 		<div class="p-3 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-			<h3 class="text-[10px] font-black uppercase tracking-widest text-slate-500">Critical Alerts</h3>
-			<span class="w-2 h-2 rounded-full bg-red-500"></span>
+			<h3 class="text-[10px] font-black uppercase tracking-widest text-slate-500">Operator Queue</h3>
 		</div>
 		<div class="flex-1 overflow-y-auto divide-y divide-slate-100">
 			{#each data.recentDeviations as dev}

@@ -53,7 +53,7 @@
 				</div>
 			</div>
 			<div class="flex gap-3">
-				<button class="px-4 py-2 bg-primary/20 text-slate-900 rounded text-sm font-bold flex items-center gap-2">
+				<button disabled title="Coming soon" class="px-4 py-2 bg-primary/20 text-slate-900 rounded text-sm font-bold flex items-center gap-2 opacity-50 cursor-not-allowed">
 					<span class="material-symbols-outlined text-sm">save</span>
 					Save Progress
 				</button>
@@ -835,8 +835,8 @@
 				<span class="flex items-center gap-1"><span class="w-2 h-2 bg-primary rounded-full"></span> SYSTEM ONLINE</span>
 			</div>
 			<div class="flex gap-4">
-				<button class="text-sm font-bold opacity-60 hover:opacity-100 transition-opacity">Discard</button>
-				<button class="bg-slate-900 text-white px-8 py-2 rounded-lg text-sm font-black uppercase tracking-widest shadow-lg">Finalize Stage</button>
+				<button disabled title="Coming soon" class="text-sm font-bold opacity-50 cursor-not-allowed">Discard</button>
+				<button disabled title="Coming soon" class="bg-slate-900 text-white px-8 py-2 rounded-lg text-sm font-black uppercase tracking-widest opacity-50 cursor-not-allowed">Finalize Stage</button>
 			</div>
 		</footer>
 	</main>

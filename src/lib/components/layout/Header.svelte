@@ -10,25 +10,25 @@
 	<h2 class="text-lg font-bold text-slate-900">{title}</h2>
 
 	<div class="flex items-center gap-4">
-		<div class="relative flex items-center bg-slate-100 rounded-lg px-3 py-1.5">
+		<div class="relative flex items-center bg-slate-100 rounded-lg px-3 py-1.5 opacity-50 cursor-not-allowed">
 			<span class="material-symbols-outlined text-slate-400 text-xl mr-2">search</span>
 			<input
 				type="text"
-				placeholder="Search batches, lots, or lab results..."
-				class="bg-transparent border-none focus:ring-0 text-xs w-48 placeholder:text-slate-400"
+				disabled
+				placeholder="Search coming soon..."
+				class="bg-transparent border-none focus:ring-0 text-xs w-48 placeholder:text-slate-400 cursor-not-allowed"
 			/>
 		</div>
 
-		<button class="bg-primary text-slate-900 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-tighter flex items-center gap-2">
+		<a href="/batches" class="bg-primary text-slate-900 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-tighter flex items-center gap-2">
 			<span class="material-symbols-outlined text-sm">add_box</span>
 			Create New Batch
-		</button>
+		</a>
 
 		<div class="h-8 w-px bg-slate-200 mx-1"></div>
 
-		<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full relative">
+		<button class="p-2 text-slate-500 rounded-full relative opacity-50 cursor-not-allowed" disabled title="Coming soon">
 			<span class="material-symbols-outlined">notifications</span>
-			<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
 		</button>
 
 		<div class="h-8 w-8 rounded-full bg-primary/30 flex items-center justify-center text-slate-700 font-bold text-[10px]">SG</div>

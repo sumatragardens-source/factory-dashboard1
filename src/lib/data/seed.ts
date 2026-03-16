@@ -6,9 +6,9 @@ export function seedData(db: Database.Database): void {
 		INSERT INTO machines (code, name, machine_type, location, status, stage_relevance) VALUES
 			('GRN-01', 'Grinder Unit 1', 'Grinder', 'Processing Room A', 'Running', 'Raw Leaf to Powder'),
 			('RXT-01', 'Reactor Unit 1', 'Reactor', 'Extraction Room', 'Running', 'Ethanol Extraction'),
-			('SEP-01', 'Separation Vessel 1', 'Separation Vessel', 'Extraction Room', 'Idle', 'Acid/Base Extraction'),
+			('SEP-01', 'Separation Vessel 1', 'Separation Vessel', 'Extraction Room', 'Idle', 'Acid/Base Extraction and Partitioning'),
 			('RTV-01', 'Rotovap Unit 1', 'Rotovap', 'Extraction Room', 'Maintenance', 'Ethanol Extraction'),
-			('DRY-01', 'Drying Cabinet 1', 'Drying Cabinet', 'Drying Room', 'Running', 'Final Product');
+			('DRY-01', 'Drying Cabinet 1', 'Drying Cabinet', 'Drying Room', 'Running', 'Back Extraction, Precipitation, Drying, and Final Product');
 	`);
 
 	// --- Materials ---
@@ -16,10 +16,10 @@ export function seedData(db: Database.Database): void {
 		INSERT INTO materials (code, name, unit, on_hand_qty, reorder_threshold, stage_relevance) VALUES
 			('MAT-LEAF', 'Dried Leaf', 'kg', 45.0, 50, 'Raw Leaf to Powder'),
 			('MAT-ETOH', 'Ethanol 96%', 'L', 180.0, 100, 'Ethanol Extraction'),
-			('MAT-H2O', 'DI Water', 'L', 480.0, 200, 'Acid/Base Extraction'),
-			('MAT-HCL', 'HCl', 'L', 8.5, 10, 'Acid/Base Extraction'),
-			('MAT-NAOH', 'NaOH', 'kg', 38.0, 40, 'Acid/Base Extraction'),
-			('MAT-LIM', 'Limonene', 'L', 25.0, 20, 'Acid/Base, Final Product');
+			('MAT-H2O', 'DI Water', 'L', 480.0, 200, 'Acid/Base Extraction and Partitioning'),
+			('MAT-HCL', 'HCl', 'L', 8.5, 10, 'Acid/Base Extraction and Partitioning'),
+			('MAT-NAOH', 'NaOH', 'kg', 38.0, 40, 'Acid/Base Extraction and Partitioning'),
+			('MAT-LIM', 'Limonene', 'L', 25.0, 20, 'Acid/Base Extraction and Partitioning, Back Extraction, Precipitation, Drying, and Final Product');
 	`);
 
 	// --- Batches ---

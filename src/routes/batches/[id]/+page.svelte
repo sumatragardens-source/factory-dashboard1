@@ -43,7 +43,7 @@
 				</div>
 			</div>
 			<div class="flex gap-2">
-				<button class="flex items-center gap-2 bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 px-4 py-2 rounded font-bold text-sm transition-all">
+				<button disabled title="Coming soon" class="flex items-center gap-2 bg-primary/10 text-primary border border-primary/30 px-4 py-2 rounded font-bold text-sm opacity-50 cursor-not-allowed">
 					<span class="material-symbols-outlined text-lg">download</span>
 					Export Report
 				</button>
@@ -458,7 +458,7 @@
 				<span class="material-symbols-outlined text-5xl text-slate-300 mb-4">picture_as_pdf</span>
 				<h3 class="text-lg font-bold text-slate-900 mb-2">Export Batch Report</h3>
 				<p class="text-sm text-slate-500 mb-6">Generate a comprehensive PDF report for this batch including all stage data, lab results, and cost breakdown.</p>
-				<button class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm flex items-center gap-2 mx-auto hover:brightness-105 transition-all">
+				<button disabled title="Coming soon" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm flex items-center gap-2 mx-auto opacity-50 cursor-not-allowed">
 					<span class="material-symbols-outlined">picture_as_pdf</span>
 					Generate PDF
 				</button>

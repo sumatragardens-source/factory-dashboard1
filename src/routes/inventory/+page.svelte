@@ -1,19 +1,25 @@
 <script lang="ts">
+	import { getStageName } from '$lib/constants/stageNames';
+
 	let { data } = $props();
+
+	function resolveStageRelevance(text: string): string {
+		return text.replace(/Stage (\d)/g, (_, n) => getStageName(Number(n)));
+	}
 </script>
 
 <div class="p-6">
 	<div class="flex items-center justify-between mb-6">
 		<div>
 			<h1 class="text-2xl font-black text-slate-900">Material Inventory & Traceability</h1>
-			<p class="text-sm text-slate-500">Real-time stock levels across active extraction stages.</p>
+			<p class="text-sm text-slate-500">Material stock levels across active extraction stages.</p>
 		</div>
 		<div class="flex gap-3">
-			<button class="bg-slate-900 text-white px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2">
+			<button disabled title="Coming soon" class="bg-slate-900 text-white px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 opacity-50 cursor-not-allowed">
 				<span class="material-symbols-outlined text-sm">add</span>
-				New Batch Receipt
+				Record Material Receipt
 			</button>
-			<button class="bg-primary/10 text-slate-900 border border-primary/30 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2">
+			<button disabled title="Coming soon" class="bg-primary/10 text-slate-900 border border-primary/30 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 opacity-50 cursor-not-allowed">
 				<span class="material-symbols-outlined text-sm">download</span>
 				Export Log
 			</button>
@@ -23,7 +29,7 @@
 	<!-- Stock Table -->
 	<div class="bg-white border border-slate-200 rounded overflow-hidden mb-8">
 		<div class="px-6 py-3 border-b border-slate-200 flex justify-between items-center">
-			<h3 class="text-[10px] font-black uppercase tracking-widest text-slate-500">Live Stock Manifest</h3>
+			<h3 class="text-[10px] font-black uppercase tracking-widest text-slate-500">Current Stock Levels</h3>
 			<span class="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded font-bold">{data.materials.length} Tracked Materials</span>
 		</div>
 		<table class="w-full text-left">
@@ -51,7 +57,7 @@
 							<span class="text-sm {isBelowThreshold ? 'bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold' : 'bg-slate-100 text-slate-600 px-2 py-0.5 rounded'}">{mat.reorder_threshold} {mat.unit}</span>
 						</td>
 						<td class="px-6 py-4">
-							<span class="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded font-medium">{mat.stage_relevance}</span>
+							<span class="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded font-medium">{resolveStageRelevance(mat.stage_relevance ?? '')}</span>
 						</td>
 					</tr>
 				{/each}
@@ -62,8 +68,8 @@
 	<!-- Recent Movements -->
 	<div class="bg-white border border-slate-200 rounded overflow-hidden">
 		<div class="px-6 py-3 border-b border-slate-200 flex justify-between items-center">
-			<h3 class="text-[10px] font-black uppercase tracking-widest text-primary">Recent Movements / Traceability Log</h3>
-			<button class="text-[10px] text-primary font-bold uppercase">View Full Ledger</button>
+			<h3 class="text-[10px] font-black uppercase tracking-widest text-primary">Material Movement Log</h3>
+			<button disabled title="Coming soon" class="text-[10px] text-primary font-bold uppercase opacity-50 cursor-not-allowed">View Full Log</button>
 		</div>
 		<table class="w-full text-left">
 			<thead>

@@ -7,9 +7,9 @@
 		<div>
 			<p class="text-xs text-slate-500">Operations &gt; <span class="text-primary font-bold">Batch Costing</span></p>
 			<h1 class="text-2xl font-black text-slate-900">Batch Costing</h1>
-			<p class="text-sm text-slate-500">Real-time extraction cost tracking and profit analysis.</p>
+			<p class="text-sm text-slate-500">Stage cost accumulation and batch cost analysis.</p>
 		</div>
-		<button class="bg-primary/10 text-slate-900 border border-primary/30 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2">
+		<button disabled title="Coming soon" class="bg-primary/10 text-slate-900 border border-primary/30 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 opacity-50 cursor-not-allowed">
 			<span class="material-symbols-outlined text-sm">download</span>
 			Export Report
 		</button>
