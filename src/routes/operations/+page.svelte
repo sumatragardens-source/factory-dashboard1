@@ -19,8 +19,8 @@
 	// Alkaloid donut data
 	const hplc = data.latestHplcResult;
 	const alkaloidSegments = hplc ? [
-		{ label: 'Mitragynine', pct: hplc.mitragynine_pct ?? 0, color: '#1152d4' },
-		{ label: '7-OHM', pct: hplc.hydroxy_mitragynine_pct ?? 0, color: '#3b82f6' },
+		{ label: 'Mitragynine', pct: hplc.mitragynine_pct ?? 0, color: '#10b981' },
+		{ label: '7-OHM', pct: hplc.hydroxy_mitragynine_pct ?? 0, color: '#34d399' },
 		{ label: 'Paynantheine', pct: hplc.paynantheine_pct ?? 0, color: '#475569' },
 		{ label: 'Speciogynine', pct: hplc.speciogynine_pct ?? 0, color: '#94a3b8' },
 		{ label: 'Speciociliatine', pct: hplc.speciociliatine_pct ?? 0, color: '#cbd5e1' },
@@ -80,7 +80,7 @@
 				<p class="text-2xl font-black text-text-primary">{data.throughput.total} <span class="text-xs font-normal text-text-muted">kg</span></p>
 				<p class="text-[10px] text-text-muted">{data.throughput.batchCount} batches · {avgKgPerBatch} kg/batch avg</p>
 			</div>
-			<span class="material-symbols-outlined text-accent opacity-50">eco</span>
+			<span class="material-symbols-outlined text-primary opacity-50">eco</span>
 		</div>
 
 		<!-- Yield Progress -->
@@ -127,12 +127,12 @@
 				{@const isActive = stage.activeCount > 0}
 				{@const icons = ['grain', 'science', 'filter_alt', 'inventory_2']}
 				<a href="/stages/{stage.stageNumber}" class="relative z-10 flex flex-col items-center text-center">
-					<div class="h-14 w-14 rounded-full {isActive ? 'bg-accent/20 text-accent border-2 border-accent' : 'bg-bg-input text-text-muted border-2 border-border-card'} flex items-center justify-center mb-3">
+					<div class="h-14 w-14 rounded-full {isActive ? 'bg-primary/20 text-primary border-2 border-primary' : 'bg-bg-input text-text-muted border-2 border-border-card'} flex items-center justify-center mb-3">
 						<span class="material-symbols-outlined">{icons[i]}</span>
 					</div>
 					<p class="font-semibold text-sm">{getStageName(stage.stageNumber)}</p>
 					<p class="text-xs text-text-muted">{stage.activeCount} Active</p>
-					<span class="mt-2 px-2 py-0.5 rounded {isActive ? 'bg-accent/10 text-accent' : 'bg-bg-input text-text-muted'} text-[10px] font-bold uppercase tracking-wider">
+					<span class="mt-2 px-2 py-0.5 rounded {isActive ? 'bg-primary/10 text-primary' : 'bg-bg-input text-text-muted'} text-[10px] font-bold uppercase tracking-wider">
 						{isActive ? 'In Progress' : 'Idle'}
 					</span>
 				</a>
