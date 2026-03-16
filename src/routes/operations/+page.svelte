@@ -114,30 +114,26 @@
 		</div>
 	</div>
 
-	<!-- Row 2: 4-Stage Pipeline -->
+	<!-- Row 2: Active Batch Pipeline -->
 	<div class="col-span-12 bg-bg-card border border-border-card p-4 rounded">
-		<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-3">Processing Pipeline</h3>
-		<div class="flex items-stretch gap-2">
+		<div class="flex items-center justify-between mb-2">
+			<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted">Active Batch Pipeline Status</h3>
+			<span class="text-[10px] text-primary bg-primary/10 px-2 py-0.5 rounded font-bold">{data.activeBatchProgress.length} Batches Active</span>
+		</div>
+		<div class="flex items-center justify-between gap-2">
 			{#each data.stagePipeline as stage, i}
-				<a href="/stages/{stage.stageNumber}" title={getStageName(stage.stageNumber)} class="flex-1 border border-border-card rounded p-3 hover:bg-bg-card-hover transition-colors">
-					<p class="text-[9px] font-bold text-text-primary uppercase tracking-wide">{getStageName(stage.stageNumber)}</p>
-					<div class="mt-2 flex items-baseline gap-1">
-						<span class="text-lg font-black text-text-primary">{stage.activeCount}</span>
-						<span class="text-[10px] text-text-muted">active</span>
+				<a href="/stages/{stage.stageNumber}" class="flex-1 group">
+					<div class="h-1.5 w-full bg-border-card rounded-full mb-2 relative overflow-hidden">
+						<div class="absolute top-0 left-0 h-full bg-primary rounded-full" style="width: {(stage.completedThroughCount / maxCompletedThrough * 100).toFixed(0)}%"></div>
 					</div>
-					<p class="text-[10px] text-text-muted">{stage.activeQtyKg} kg in stage</p>
-					{#if data.avgCycleTime[stage.stageNumber]}
-						<p class="text-[10px] text-primary">{data.avgCycleTime[stage.stageNumber]}h avg cycle</p>
-					{/if}
-					<div class="mt-2 h-1.5 w-full bg-border-card rounded-full overflow-hidden">
-						<div class="h-full bg-primary rounded-full" style="width: {(stage.completedThroughCount / maxCompletedThrough * 100).toFixed(0)}%"></div>
+					<p class="text-[9px] font-bold text-text-primary uppercase" style="font-size: 8px; line-height: 1.1;">{getStageName(stage.stageNumber)}</p>
+					<div class="flex items-center justify-between mt-1">
+						<span class="text-[10px] text-text-secondary">{stage.activeCount} Active</span>
+						<span class="text-[10px] font-mono font-bold {stage.activeCount > 0 && data.avgCycleTime[stage.stageNumber] ? 'text-primary' : 'text-text-muted'}">{data.avgCycleTime[stage.stageNumber] ? `${data.avgCycleTime[stage.stageNumber]}h avg` : '—'}</span>
 					</div>
-					<p class="text-[9px] text-text-muted mt-1">{stage.completedThroughCount} completed · {stage.completedThroughOutputKg} kg output</p>
 				</a>
-				{#if i < 3}
-					<div class="flex items-center">
-						<span class="material-symbols-outlined text-text-muted text-sm">chevron_right</span>
-					</div>
+				{#if i < data.stagePipeline.length - 1}
+					<span class="material-symbols-outlined text-text-muted">chevron_right</span>
 				{/if}
 			{/each}
 		</div>
