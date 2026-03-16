@@ -57,3 +57,48 @@ export function getBatchStages(batchId: number): BatchStage[] {
 		.prepare('SELECT * FROM batch_stages WHERE batch_id = ? ORDER BY stage_number')
 		.all(batchId) as BatchStage[];
 }
+
+export function startStage(batchId: number, stageNumber: number): void {
+	const db = getDb();
+	const txn = db.transaction(() => {
+		db.prepare(`
+			UPDATE batch_stages SET status = 'In Progress', started_at = datetime('now')
+			WHERE batch_id = ? AND stage_number = ? AND status = 'Pending'
+		`).run(batchId, stageNumber);
+
+		db.prepare(`
+			UPDATE batches SET status = 'In Progress', current_stage = ?, started_at = COALESCE(started_at, datetime('now')), updated_at = datetime('now')
+			WHERE id = ?
+		`).run(stageNumber, batchId);
+	});
+	txn();
+}
+
+export function finalizeStage(batchId: number, stageNumber: number, finalizedBy: string): void {
+	const db = getDb();
+	const txn = db.transaction(() => {
+		db.prepare(`
+			UPDATE batch_stages SET status = 'Finalized', finalized_at = datetime('now'), finalized_by = ?
+			WHERE batch_id = ? AND stage_number = ?
+		`).run(finalizedBy, batchId, stageNumber);
+
+		if (stageNumber < 4) {
+			const nextStage = stageNumber + 1;
+			db.prepare(`
+				UPDATE batch_stages SET status = 'In Progress', started_at = datetime('now')
+				WHERE batch_id = ? AND stage_number = ? AND status = 'Pending'
+			`).run(batchId, nextStage);
+
+			db.prepare(`
+				UPDATE batches SET current_stage = ?, updated_at = datetime('now')
+				WHERE id = ?
+			`).run(nextStage, batchId);
+		} else {
+			db.prepare(`
+				UPDATE batches SET status = 'Pending Review', updated_at = datetime('now'), completed_at = datetime('now')
+				WHERE id = ?
+			`).run(batchId);
+		}
+	});
+	txn();
+}

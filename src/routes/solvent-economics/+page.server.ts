@@ -8,9 +8,9 @@ export const load: PageServerLoad = () => {
 	// Ethanol totals from stage2
 	const ethanol = db.prepare(`
 		SELECT
-			COALESCE(SUM(ethanol_volume_l), 0) as total_issued,
-			COALESCE(SUM(recovered_ethanol_l), 0) as total_recovered,
-			COALESCE(SUM(ethanol_loss_l), 0) as total_lost,
+			COALESCE(SUM(ethanol_stock_used_l), 0) as total_issued,
+			COALESCE(SUM(total_ethanol_recovered_l), 0) as total_recovered,
+			COALESCE(SUM(total_ethanol_loss_l), 0) as total_lost,
 			COALESCE(AVG(recovery_rate_pct), 0) as avg_recovery
 		FROM stage2_records
 	`).get() as any;
@@ -30,7 +30,7 @@ export const load: PageServerLoad = () => {
 
 	// Per-batch ethanol ledger
 	const ethanolByBatch = db.prepare(`
-		SELECT b.batch_number, s2.ethanol_volume_l, s2.recovered_ethanol_l, s2.ethanol_loss_l, s2.recovery_rate_pct
+		SELECT b.batch_number, s2.ethanol_stock_used_l, s2.total_ethanol_recovered_l, s2.total_ethanol_loss_l, s2.recovery_rate_pct
 		FROM stage2_records s2
 		JOIN batches b ON b.id = s2.batch_id
 		ORDER BY b.created_at DESC

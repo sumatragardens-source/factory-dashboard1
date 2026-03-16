@@ -56,29 +56,57 @@ export interface Stage1Record {
 export interface Stage2Record {
 	id: number;
 	batch_id: number;
-	dry_mass_kg: number | null;
-	ethanol_volume_l: number | null;
-	solvent_ratio: number | null;
-	ethanol_grade: string | null;
-	reactor_id: number | null;
-	set_temperature_c: number | null;
-	agitation_rpm: number | null;
-	soak_time_min: number | null;
+	ethanol_stock_grade_pct: number | null;
+	target_ethanol_pct: number | null;
+	ethanol_stock_used_l: number | null;
+	water_added_l: number | null;
+	ethanol_70_volume_l: number | null;
 	settle_time_min: number | null;
-	filter_micron: number | null;
-	filter_pressure_psi: number | null;
-	de_added: number | null;
-	rotovap_id: number | null;
-	rotovap_bath_temp_c: number | null;
-	rotovap_vacuum_mbar: number | null;
-	recovered_ethanol_l: number | null;
-	ethanol_loss_l: number | null;
+	bag_filter_input_l: number | null;
+	bag_filter_output_l: number | null;
+	centrifuge_input_l: number | null;
+	centrifuge_output_l: number | null;
+	screw_press_input_l: number | null;
+	screw_press_output_l: number | null;
+	total_ethanol_70_to_rotovap_l: number | null;
+	total_ethanol_distilled_l: number | null;
+	water_mother_liquid_l: number | null;
+	total_ethanol_recovered_l: number | null;
+	total_ethanol_loss_l: number | null;
 	recovery_rate_pct: number | null;
 	extract_weight_kg: number | null;
 	operator_name: string | null;
 	notes: string | null;
 	created_at: string;
 	updated_at: string;
+}
+
+export interface Stage2Reactor {
+	id: number;
+	batch_id: number;
+	reactor_number: number;
+	machine_id: number | null;
+	temperature_c: number | null;
+	rpm: number | null;
+	soak_time_min: number | null;
+	powder_mass_kg: number | null;
+	ethanol_70_volume_l: number | null;
+	solvent_ratio: number | null;
+}
+
+export interface Stage2RotovapDay {
+	id: number;
+	batch_id: number;
+	rotovap_number: number;
+	machine_id: number | null;
+	day_number: number;
+	water_bath_temp_c: number | null;
+	vacuum_mbar: number | null;
+	chiller_temp_c: number | null;
+	rpm: number | null;
+	run_time_hours: number | null;
+	ethanol_recovered_l: number | null;
+	recovery_per_hour_l: number | null;
 }
 
 export interface Stage3Record {

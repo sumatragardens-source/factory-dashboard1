@@ -6,17 +6,17 @@
 	let { title = 'Operations' }: Props = $props();
 </script>
 
-<header class="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 shrink-0">
-	<h2 class="text-lg font-bold text-slate-900">{title}</h2>
+<header class="h-16 border-b border-border-card bg-bg-card flex items-center justify-between px-6 shrink-0">
+	<h2 class="text-lg font-bold text-text-primary">{title}</h2>
 
 	<div class="flex items-center gap-4">
-		<div class="relative flex items-center bg-slate-100 rounded-lg px-3 py-1.5 opacity-50 cursor-not-allowed">
-			<span class="material-symbols-outlined text-slate-400 text-xl mr-2">search</span>
+		<div class="relative flex items-center bg-bg-input rounded-lg px-3 py-1.5 opacity-50 cursor-not-allowed">
+			<span class="material-symbols-outlined text-text-muted text-xl mr-2">search</span>
 			<input
 				type="text"
 				disabled
 				placeholder="Search coming soon..."
-				class="bg-transparent border-none focus:ring-0 text-xs w-48 placeholder:text-slate-400 cursor-not-allowed"
+				class="bg-transparent border-none focus:ring-0 text-xs w-48 placeholder:text-text-muted cursor-not-allowed"
 			/>
 		</div>
 
@@ -25,12 +25,12 @@
 			Create New Batch
 		</a>
 
-		<div class="h-8 w-px bg-slate-200 mx-1"></div>
+		<div class="h-8 w-px bg-border-card mx-1"></div>
 
-		<button class="p-2 text-slate-500 rounded-full relative opacity-50 cursor-not-allowed" disabled title="Coming soon">
+		<button class="p-2 text-text-muted rounded-full relative opacity-50 cursor-not-allowed" disabled title="Coming soon">
 			<span class="material-symbols-outlined">notifications</span>
 		</button>
 
-		<div class="h-8 w-8 rounded-full bg-primary/30 flex items-center justify-center text-slate-700 font-bold text-[10px]">SG</div>
+		<div class="h-8 w-8 rounded-full bg-primary/30 flex items-center justify-center text-text-secondary font-bold text-[10px]">SG</div>
 	</div>
 </header>

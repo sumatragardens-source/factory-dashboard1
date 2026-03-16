@@ -5,11 +5,22 @@
 	--color-primary-dark: #7aa874;
 	--color-bg-light: #f7f7f6;
 	--color-bg-dark: #171c16;
+	--color-bg-page: #171c16;
+	--color-bg-card: #1e2420;
+	--color-bg-card-hover: #252d24;
+	--color-bg-input: #252d24;
+	--color-border-card: #2a332a;
+	--color-border-subtle: #222b22;
+	--color-text-primary: #e2e8f0;
+	--color-text-secondary: #94a3b8;
+	--color-text-muted: #64748b;
 	--font-family-display: 'Inter', sans-serif;
 }
 
 body {
 	font-family: 'Inter', sans-serif;
+	background-color: var(--color-bg-page);
+	color: var(--color-text-primary);
 }
 
 .material-symbols-outlined {

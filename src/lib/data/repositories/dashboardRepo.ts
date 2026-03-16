@@ -98,7 +98,7 @@ export function getSolventTotals(): {
 } {
 	const db = getDb();
 	const ethanol = db
-		.prepare(`SELECT COALESCE(SUM(ethanol_volume_l), 0) as issued, COALESCE(SUM(recovered_ethanol_l), 0) as recovered, COALESCE(SUM(ethanol_loss_l), 0) as lost FROM stage2_records`)
+		.prepare(`SELECT COALESCE(SUM(ethanol_stock_used_l), 0) as issued, COALESCE(SUM(total_ethanol_recovered_l), 0) as recovered, COALESCE(SUM(total_ethanol_loss_l), 0) as lost FROM stage2_records`)
 		.get() as { issued: number; recovered: number; lost: number };
 	const limonene = db
 		.prepare(`SELECT COALESCE(SUM(limonene_volume_l), 0) as issued, COALESCE(SUM(limonene_recovered_l), 0) as recovered, COALESCE(SUM(limonene_loss_l), 0) as lost FROM stage3_records`)
@@ -275,6 +275,21 @@ export function getLatestCompletedBatchCostPerKg(): {
 		finalProductKg,
 		costPerKg: calculateCostPerKg(totalCost, finalProductKg)
 	};
+}
+
+export function getAverageCycleTimePerStage(): Record<number, number> {
+	const db = getDb();
+	const rows = db
+		.prepare(`
+			SELECT stage_number, AVG((julianday(finalized_at) - julianday(started_at)) * 24) as avg_hours
+			FROM batch_stages
+			WHERE status = 'Finalized' AND started_at IS NOT NULL AND finalized_at IS NOT NULL
+			GROUP BY stage_number
+		`)
+		.all() as { stage_number: number; avg_hours: number }[];
+	const result: Record<number, number> = {};
+	for (const r of rows) result[r.stage_number] = Number(r.avg_hours.toFixed(1));
+	return result;
 }
 
 export function getLatestHplcResult(): LabResult | null {

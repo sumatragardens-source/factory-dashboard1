@@ -22,10 +22,10 @@
 	};
 	const statusText: Record<string, string> = {
 		Completed: 'text-primary',
-		'In Progress': 'text-blue-600',
-		'Pending Review': 'text-amber-600',
-		Rejected: 'text-red-600',
-		Draft: 'text-slate-400'
+		'In Progress': 'text-blue-400',
+		'Pending Review': 'text-amber-400',
+		Rejected: 'text-red-400',
+		Draft: 'text-text-muted'
 	};
 
 	function daysSince(dateStr: string): number {
@@ -36,10 +36,10 @@
 <div class="p-6">
 	<div class="flex items-center justify-between mb-6">
 		<div>
-			<h1 class="text-2xl font-black text-slate-900">Batch Queue</h1>
-			<p class="text-sm text-slate-500">Manage and track all extraction batches</p>
+			<h1 class="text-2xl font-black text-text-primary">Batch Queue</h1>
+			<p class="text-sm text-text-muted">Manage and track all extraction batches</p>
 		</div>
-		<button onclick={() => showNewForm = !showNewForm} class="bg-primary text-slate-900 px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 hover:brightness-105 transition-all">
+		<button onclick={() => showNewForm = !showNewForm} class="bg-primary text-text-primary px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 hover:brightness-105 transition-all">
 			<span class="material-symbols-outlined text-sm">{showNewForm ? 'close' : 'add_box'}</span>
 			{showNewForm ? 'Cancel' : 'New Batch'}
 		</button>
@@ -47,15 +47,15 @@
 
 	<!-- New Batch Form -->
 	{#if showNewForm}
-		<form method="POST" action="?/create" class="bg-white border border-primary/20 rounded p-6 mb-6">
+		<form method="POST" action="?/create" class="bg-bg-card border border-primary/20 rounded p-6 mb-6">
 			<h3 class="text-sm font-black uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
 				<span class="material-symbols-outlined text-lg">add_box</span>
 				Create New Batch
 			</h3>
 			<div class="grid grid-cols-4 gap-4">
 				<div class="space-y-1">
-					<label class="text-[10px] font-bold uppercase text-slate-500">Strain</label>
-					<select name="strain" required class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary">
+					<label class="text-[10px] font-bold uppercase text-text-muted">Strain</label>
+					<select name="strain" required class="w-full bg-bg-card-hover border-border-card rounded-lg text-sm focus:ring-primary">
 						<option value="">Select strain...</option>
 						{#each strainOptions as strain}
 							<option value={strain}>{strain}</option>
@@ -63,20 +63,20 @@
 					</select>
 				</div>
 				<div class="space-y-1">
-					<label class="text-[10px] font-bold uppercase text-slate-500">Supplier</label>
-					<input name="supplier" type="text" required placeholder="e.g. Sumatra Direct" class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" />
+					<label class="text-[10px] font-bold uppercase text-text-muted">Supplier</label>
+					<input name="supplier" type="text" required placeholder="e.g. Sumatra Direct" class="w-full bg-bg-card-hover border-border-card rounded-lg text-sm focus:ring-primary" />
 				</div>
 				<div class="space-y-1">
-					<label class="text-[10px] font-bold uppercase text-slate-500">Leaf Input (kg)</label>
-					<input name="leaf_input_kg" type="number" step="0.1" min="0.1" required class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" />
+					<label class="text-[10px] font-bold uppercase text-text-muted">Leaf Input (kg)</label>
+					<input name="leaf_input_kg" type="number" step="0.1" min="0.1" required class="w-full bg-bg-card-hover border-border-card rounded-lg text-sm focus:ring-primary" />
 				</div>
 				<div class="space-y-1">
-					<label class="text-[10px] font-bold uppercase text-slate-500">Operator</label>
-					<input name="operator_name" type="text" required placeholder="e.g. Ahmad R." class="w-full bg-slate-50 border-slate-200 rounded-lg text-sm focus:ring-primary" />
+					<label class="text-[10px] font-bold uppercase text-text-muted">Operator</label>
+					<input name="operator_name" type="text" required placeholder="e.g. Ahmad R." class="w-full bg-bg-card-hover border-border-card rounded-lg text-sm focus:ring-primary" />
 				</div>
 			</div>
 			<div class="mt-4 flex justify-end">
-				<button type="submit" class="bg-primary text-slate-900 px-6 py-2 rounded font-bold text-xs uppercase tracking-widest hover:brightness-105 transition-all flex items-center gap-2">
+				<button type="submit" class="bg-primary text-text-primary px-6 py-2 rounded font-bold text-xs uppercase tracking-widest hover:brightness-105 transition-all flex items-center gap-2">
 					<span class="material-symbols-outlined text-sm">check</span>
 					Create Batch
 				</button>
@@ -89,7 +89,7 @@
 		{#each statuses as st}
 			<button
 				class="px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-colors
-					{statusFilter === st ? 'bg-primary/20 text-slate-900' : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}"
+					{statusFilter === st ? 'bg-primary/20 text-text-primary' : 'bg-bg-card text-text-muted hover:bg-bg-card-hover border border-border-card'}"
 				onclick={() => statusFilter = st}
 			>
 				{st} {st === 'All' ? `(${data.batches.length})` : `(${data.batches.filter((b: any) => b.status === st).length})`}
@@ -98,25 +98,25 @@
 	</div>
 
 	<!-- Batches Table -->
-	<div class="bg-white border border-slate-200 rounded overflow-hidden">
+	<div class="bg-bg-card border border-border-card rounded overflow-hidden">
 		<table class="w-full text-left">
 			<thead>
-				<tr class="border-b border-slate-200 bg-slate-50">
-					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Batch #</th>
-					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Status</th>
-					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Current Stage</th>
-					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Strain</th>
-					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Leaf (kg)</th>
-					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Operator</th>
-					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Days</th>
-					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Created</th>
+				<tr class="border-b border-border-card bg-bg-card-hover">
+					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Batch #</th>
+					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Status</th>
+					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Current Stage</th>
+					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Strain</th>
+					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Leaf (kg)</th>
+					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Operator</th>
+					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Days</th>
+					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Created</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each filteredBatches as batch}
-					<tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer" onclick={() => { window.location.href = `/batches/${batch.id}` }}>
+					<tr class="border-b border-border-subtle hover:bg-bg-card-hover transition-colors cursor-pointer" onclick={() => { window.location.href = `/batches/${batch.id}` }}>
 						<td class="px-4 py-3">
-							<a href="/batches/{batch.id}" class="text-sm font-bold text-slate-900 hover:text-primary">{batch.batch_number}</a>
+							<a href="/batches/{batch.id}" class="text-sm font-bold text-text-primary hover:text-primary">{batch.batch_number}</a>
 						</td>
 						<td class="px-4 py-3">
 							<div class="flex items-center gap-2">
@@ -124,12 +124,12 @@
 								<span class="text-xs font-bold {statusText[batch.status as BatchState]}">{batch.status}</span>
 							</div>
 						</td>
-						<td class="px-4 py-3 text-xs text-slate-600 max-w-48">{getStageName(batch.current_stage)}</td>
-						<td class="px-4 py-3 text-xs text-slate-600">{batch.strain ?? '—'}</td>
-						<td class="px-4 py-3 text-xs font-mono text-slate-600">{batch.leaf_input_kg}</td>
-						<td class="px-4 py-3 text-xs text-slate-600">{batch.operator_name ?? '—'}</td>
-						<td class="px-4 py-3 text-xs font-mono text-slate-600">{daysSince(batch.created_at)}d</td>
-						<td class="px-4 py-3 text-xs text-slate-400 font-mono">{new Date(batch.created_at).toLocaleDateString()}</td>
+						<td class="px-4 py-3 text-xs text-text-secondary max-w-48">{getStageName(batch.current_stage)}</td>
+						<td class="px-4 py-3 text-xs text-text-secondary">{batch.strain ?? '—'}</td>
+						<td class="px-4 py-3 text-xs font-mono text-text-secondary">{batch.leaf_input_kg}</td>
+						<td class="px-4 py-3 text-xs text-text-secondary">{batch.operator_name ?? '—'}</td>
+						<td class="px-4 py-3 text-xs font-mono text-text-secondary">{daysSince(batch.created_at)}d</td>
+						<td class="px-4 py-3 text-xs text-text-muted font-mono">{new Date(batch.created_at).toLocaleDateString()}</td>
 					</tr>
 				{/each}
 			</tbody>

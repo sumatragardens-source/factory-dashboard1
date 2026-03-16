@@ -8,7 +8,10 @@ export function seedData(db: Database.Database): void {
 			('RXT-01', 'Reactor Unit 1', 'Reactor', 'Extraction Room', 'Running', 'Ethanol Extraction'),
 			('SEP-01', 'Separation Vessel 1', 'Separation Vessel', 'Extraction Room', 'Idle', 'Acid/Base Extraction and Partitioning'),
 			('RTV-01', 'Rotovap Unit 1', 'Rotovap', 'Extraction Room', 'Maintenance', 'Ethanol Extraction'),
-			('DRY-01', 'Drying Cabinet 1', 'Drying Cabinet', 'Drying Room', 'Running', 'Back Extraction, Precipitation, Drying, and Final Product');
+			('DRY-01', 'Drying Cabinet 1', 'Drying Cabinet', 'Drying Room', 'Running', 'Back Extraction, Precipitation, Drying, and Final Product'),
+			('RXT-02', 'Reactor Unit 2', 'Reactor', 'Extraction Room', 'Idle', 'Ethanol Extraction'),
+			('RXT-03', 'Reactor Unit 3', 'Reactor', 'Extraction Room', 'Idle', 'Ethanol Extraction'),
+			('RTV-02', 'Rotovap Unit 2', 'Rotovap', 'Extraction Room', 'Idle', 'Ethanol Extraction');
 	`);
 
 	// --- Materials ---
@@ -122,15 +125,47 @@ export function seedData(db: Database.Database): void {
 			(9, '2026-02-07', '2026-02-08', 6.3, 0.3, 6.0, 8.4, 1, 0.5, 'Medium', 40, 1800, 52, 5.78, 0.14, 96.3, 1.3, 'Dewi S.');
 	`);
 
-	// --- Stage 2 records ---
+	// --- Stage 2 records (new schema: batch-level with dilution calc, filtration pipeline, rotovap totals) ---
 	db.exec(`
-		INSERT INTO stage2_records (batch_id, dry_mass_kg, ethanol_volume_l, solvent_ratio, ethanol_grade, reactor_id, set_temperature_c, agitation_rpm, soak_time_min, settle_time_min, filter_micron, filter_pressure_psi, de_added, rotovap_id, rotovap_bath_temp_c, rotovap_vacuum_mbar, recovered_ethanol_l, ethanol_loss_l, recovery_rate_pct, extract_weight_kg, operator_name) VALUES
-			(1, 4.82, 38.5, 8.0, '96%', 2, 60, 120, 180, 30, 25, 15, 0.1, 4, 45, 150, 36.2, 2.3, 94.0, 0.58, 'Ahmad R.'),
-			(2, 6.24, 50.0, 8.0, '96%', 2, 60, 120, 180, 30, 25, 15, 0.12, 4, 45, 150, 47.5, 2.5, 95.0, 0.75, 'Dewi S.'),
-			(3, 4.05, 32.4, 8.0, '96%', 2, 60, 120, 180, 30, 25, 15, 0.08, 4, 45, 150, 30.5, 1.9, 94.1, 0.49, 'Ahmad R.'),
-			(6, 5.57, 44.6, 8.0, '96%', 2, 60, 120, 180, 30, 25, 15, 0.11, 4, 45, 150, 42.3, 2.3, 94.8, 0.67, 'Ahmad R.'),
-			(7, 3.84, 30.7, 8.0, '96%', 2, 60, 120, 180, 30, 25, 15, 0.08, 4, 45, 150, 29.2, 1.5, 95.1, 0.46, 'Budi P.'),
-			(9, 5.78, 46.2, 8.0, '96%', 2, 60, 120, 180, 30, 25, 15, 0.12, 4, 45, 150, 43.9, 2.3, 95.0, 0.69, 'Dewi S.');
+		INSERT INTO stage2_records (batch_id, ethanol_stock_grade_pct, target_ethanol_pct, ethanol_stock_used_l, water_added_l, ethanol_70_volume_l, settle_time_min, bag_filter_input_l, bag_filter_output_l, centrifuge_input_l, centrifuge_output_l, screw_press_input_l, screw_press_output_l, total_ethanol_70_to_rotovap_l, total_ethanol_distilled_l, water_mother_liquid_l, total_ethanol_recovered_l, total_ethanol_loss_l, recovery_rate_pct, extract_weight_kg, operator_name) VALUES
+			(1, 96, 70, 28.1, 10.4, 38.5, 30, 38.5, 37.0, 37.0, 36.5, 36.5, 36.2, 36.2, 33.9, 2.3, 33.9, 2.3, 94.0, 0.58, 'Ahmad R.'),
+			(2, 96, 70, 36.5, 13.5, 50.0, 30, 50.0, 48.5, 48.5, 48.0, 48.0, 47.5, 47.5, 45.0, 2.5, 45.0, 2.5, 95.0, 0.75, 'Dewi S.'),
+			(3, 96, 70, 23.6, 8.8, 32.4, 30, 32.4, 31.5, 31.5, 31.0, 31.0, 30.5, 30.5, 28.6, 1.9, 28.6, 1.9, 94.1, 0.49, 'Ahmad R.'),
+			(6, 96, 70, 32.6, 12.0, 44.6, 30, 44.6, 43.5, 43.5, 43.0, 43.0, 42.3, 42.3, 40.0, 2.3, 40.0, 2.3, 94.8, 0.67, 'Ahmad R.'),
+			(7, 96, 70, 22.4, 8.3, 30.7, 30, 30.7, 30.0, 30.0, 29.5, 29.5, 29.2, 29.2, 27.7, 1.5, 27.7, 1.5, 95.1, 0.46, 'Budi P.'),
+			(9, 96, 70, 33.7, 12.5, 46.2, 30, 46.2, 45.0, 45.0, 44.5, 44.5, 43.9, 43.9, 41.6, 2.3, 41.6, 2.3, 95.0, 0.69, 'Dewi S.');
+	`);
+
+	// --- Stage 2 reactors (1-3 per batch) ---
+	db.exec(`
+		INSERT INTO stage2_reactors (batch_id, reactor_number, machine_id, temperature_c, rpm, soak_time_min, powder_mass_kg, ethanol_70_volume_l, solvent_ratio) VALUES
+			(1, 1, 2, 60, 120, 180, 2.41, 19.3, 8.0),
+			(1, 2, 6, 60, 120, 180, 2.41, 19.2, 8.0),
+			(2, 1, 2, 60, 120, 180, 3.12, 25.0, 8.0),
+			(2, 2, 6, 60, 120, 180, 3.12, 25.0, 8.0),
+			(3, 1, 2, 60, 120, 180, 4.05, 32.4, 8.0),
+			(6, 1, 2, 60, 120, 180, 2.79, 22.3, 8.0),
+			(6, 2, 6, 60, 120, 180, 2.78, 22.3, 8.0),
+			(7, 1, 2, 60, 120, 180, 3.84, 30.7, 8.0),
+			(9, 1, 2, 60, 120, 180, 2.89, 23.1, 8.0),
+			(9, 2, 6, 60, 120, 180, 2.89, 23.1, 8.0);
+	`);
+
+	// --- Stage 2 rotovap daily logs ---
+	db.exec(`
+		INSERT INTO stage2_rotovap_days (batch_id, rotovap_number, machine_id, day_number, water_bath_temp_c, vacuum_mbar, chiller_temp_c, rpm, run_time_hours, ethanol_recovered_l, recovery_per_hour_l) VALUES
+			(1, 1, 4, 1, 45, 150, 5, 120, 6.0, 18.0, 3.0),
+			(1, 1, 4, 2, 45, 150, 5, 120, 5.5, 15.9, 2.9),
+			(2, 1, 4, 1, 45, 150, 5, 120, 7.0, 22.5, 3.2),
+			(2, 1, 4, 2, 45, 150, 5, 120, 7.0, 22.5, 3.2),
+			(3, 1, 4, 1, 45, 150, 5, 120, 5.0, 14.3, 2.9),
+			(3, 1, 4, 2, 45, 150, 5, 120, 5.0, 14.3, 2.9),
+			(6, 1, 4, 1, 45, 150, 5, 120, 6.5, 20.0, 3.1),
+			(6, 1, 4, 2, 45, 150, 5, 120, 6.5, 20.0, 3.1),
+			(7, 1, 4, 1, 45, 150, 5, 120, 5.0, 13.9, 2.8),
+			(7, 1, 4, 2, 45, 150, 5, 120, 5.0, 13.8, 2.8),
+			(9, 1, 4, 1, 45, 150, 5, 120, 7.0, 20.8, 3.0),
+			(9, 1, 4, 2, 45, 150, 5, 120, 7.0, 20.8, 3.0);
 	`);
 
 	// --- Stage 3 records ---
@@ -220,8 +255,8 @@ export function seedData(db: Database.Database): void {
 	db.exec(`
 		INSERT INTO material_movements (material_id, batch_id, movement_type, quantity, stage_number, reference_note, performed_by, created_at) VALUES
 			(1, 1, 'Issued', 5.0, 1, 'Dried leaf issued for batch SG-2026-001', 'Ahmad R.', '2026-01-15 08:30:00'),
-			(2, 1, 'Issued', 38.5, 2, 'Ethanol issued for extraction', 'Ahmad R.', '2026-01-20 08:00:00'),
-			(2, 1, 'Recovered', 36.2, 2, 'Ethanol recovered via rotovap', 'Ahmad R.', '2026-01-28 14:00:00'),
+			(2, 1, 'Issued', 28.1, 2, 'Ethanol stock issued for extraction', 'Ahmad R.', '2026-01-20 08:00:00'),
+			(2, 1, 'Recovered', 33.9, 2, 'Ethanol recovered via rotovap', 'Ahmad R.', '2026-01-28 14:00:00'),
 			(3, 1, 'Issued', 5.0, 3, 'DI Water for wash', 'Ahmad R.', '2026-01-30 08:00:00'),
 			(4, 1, 'Issued', 0.5, 3, 'HCl for acid extraction', 'Ahmad R.', '2026-01-30 08:30:00'),
 			(5, 1, 'Issued', 0.8, 3, 'NaOH for base extraction', 'Ahmad R.', '2026-01-30 10:00:00'),

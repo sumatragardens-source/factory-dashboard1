@@ -15,13 +15,13 @@
 	};
 </script>
 
-<aside class="w-64 border-r border-slate-200 bg-white flex flex-col shrink-0">
-	<div class="p-6 border-b border-slate-200">
-		<h1 class="text-lg font-black tracking-tighter text-slate-900 flex items-center gap-2">
+<aside class="w-64 border-r border-border-card bg-bg-card flex flex-col shrink-0">
+	<div class="p-6 border-b border-border-card">
+		<h1 class="text-lg font-black tracking-tighter text-text-primary flex items-center gap-2">
 			<span class="material-symbols-outlined text-primary">eco</span>
 			SUMATRA GARDENS
 		</h1>
-		<p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold mt-1">Factory Operations</p>
+		<p class="text-[10px] uppercase tracking-widest text-text-muted font-bold mt-1">Factory Operations</p>
 	</div>
 
 	<nav class="flex-1 p-4 space-y-1 overflow-y-auto no-scrollbar">
@@ -31,8 +31,8 @@
 				href={item.href}
 				class="flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors
 					{isActive
-						? 'bg-primary/20 text-slate-900 font-semibold'
-						: 'text-slate-500 hover:bg-slate-100'}"
+						? 'bg-primary/20 text-text-primary font-semibold'
+						: 'text-text-muted hover:bg-bg-card-hover'}"
 			>
 				<span class="material-symbols-outlined text-primary">{iconMap[item.icon] ?? 'circle'}</span>
 				<span>{item.label}</span>
@@ -40,7 +40,7 @@
 		{/each}
 	</nav>
 
-	<div class="p-4 border-t border-slate-200">
+	<div class="p-4 border-t border-border-card">
 		<a
 			href="/batches?action=new"
 			class="w-full bg-primary text-slate-900 font-bold py-2 rounded text-xs tracking-widest hover:brightness-105 transition-all flex items-center justify-center gap-2 uppercase"

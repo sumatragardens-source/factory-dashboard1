@@ -1,6 +1,5 @@
 import {
 	getStalledBatches,
-	getRecentDeviations,
 	getPendingApprovals,
 	getAllMachineStatuses,
 	getOpenDeviationCount,
@@ -12,7 +11,8 @@ import {
 	getActiveBatchProgress,
 	getPendingLabResults,
 	getLatestCompletedBatchCostPerKg,
-	getLatestHplcResult
+	getLatestHplcResult,
+	getAverageCycleTimePerStage
 } from '$lib/data/repositories/dashboardRepo';
 import { getLowStockMaterials } from '$lib/data/repositories/materialRepo';
 import type { PageServerLoad } from './$types';
@@ -35,14 +35,11 @@ export const load: PageServerLoad = () => {
 
 		// Row 2: Pipeline
 		stagePipeline: getStagePipelineSummary(),
+		avgCycleTime: getAverageCycleTimePerStage(),
 
 		// Row 4: Support
 		machines: getAllMachineStatuses(),
 		pendingLabResults: getPendingLabResults(),
-		recentDeviations: getRecentDeviations(),
-		pendingApprovals,
-		stalledBatches,
-		lowStockMaterials,
 
 		// Row 5: Analytics
 		latestHplcResult: getLatestHplcResult(),
