@@ -3,7 +3,14 @@ import {
 	getActiveBatchProgress,
 	getLatestCompletedBatchCostPerKg,
 	getTotalFinalYield,
-	getOperationsPipelineMetrics
+	getOperationsPipelineMetrics,
+	getCostBreakdown,
+	getDailyOpCost,
+	getAvgCostPerKg,
+	getEthanolRecoveryTrend,
+	getDailyCostTrend,
+	getBatchYieldTrend,
+	getLatestHplcResult
 } from '$lib/data/repositories/dashboardRepo';
 import type { PageServerLoad } from './$types';
 
@@ -13,6 +20,13 @@ export const load: PageServerLoad = () => {
 		activeBatchProgress: getActiveBatchProgress(),
 		totalFinalYield: getTotalFinalYield(),
 		solventTotals: getSolventTotals(),
-		costSnapshot: getLatestCompletedBatchCostPerKg()
+		costSnapshot: getLatestCompletedBatchCostPerKg(),
+		costBreakdown: getCostBreakdown(),
+		dailyOpCost: getDailyOpCost(),
+		avgCostPerKg: getAvgCostPerKg(),
+		ethRecoveryTrend: getEthanolRecoveryTrend(),
+		costTrend: getDailyCostTrend(),
+		yieldTrend: getBatchYieldTrend(),
+		hplcResult: getLatestHplcResult()
 	};
 };

@@ -12,15 +12,20 @@
 		return Math.min(100, ((pm.stageCounts[stageNumber] ?? 0) * 100) / TOTAL_INTAKE_KG * 100);
 	}
 
-	// KPI: Throughput — lots that have finalized stage 1
+	// KPI: Active lots (currently in progress)
+	const activeLots = data.activeBatchProgress.filter(b => b.status === 'In Progress').length;
+	const totalLotsNeeded = Math.ceil(TOTAL_INTAKE_KG / 100);
+	const lotsRemaining = totalLotsNeeded - (pm.stageCounts[1] ?? 0);
+	const kgRemaining = TOTAL_INTAKE_KG - ((pm.stageCounts[1] ?? 0) * 100);
+
+	// KPI: Completed lots
+	const completedLots = pm.completedCount;
+	const completedKg = data.totalFinalYield.producedKg;
+	const totalKgRemaining = data.totalFinalYield.targetKg - completedKg;
+
+	// KPI: Throughput
 	const lotsProcessed = pm.stageCounts[1] ?? 0;
-
-	// KPI: Final Yield
-	const yieldPct = Math.min(100, data.totalFinalYield.pct);
-	const remainingYieldKg = (data.totalFinalYield.targetKg - data.totalFinalYield.producedKg).toFixed(1);
-
-	// Intake bar
-	const processedKg = (pm.stageCounts[1] ?? 0) * 100;
+	const processedKg = lotsProcessed * 100;
 	const intakePct = (processedKg / TOTAL_INTAKE_KG) * 100;
 	const remainingKg = TOTAL_INTAKE_KG - processedKg;
 
@@ -28,6 +33,10 @@
 	const filtrationLossL = Number((pm.ethanol70TotalL - pm.filtrationOutputL).toFixed(1));
 	const filtrationPct = pm.ethanol70TotalL > 0 ? (pm.filtrationOutputL / pm.ethanol70TotalL * 100).toFixed(1) : '0';
 	const distillationPct = pm.filtrationOutputL > 0 ? (pm.ethanolRecoveredL / pm.filtrationOutputL * 100).toFixed(1) : '0';
+
+	// Solvent recovery rates
+	const ethRecoveryRate = data.solventTotals.ethanol_issued > 0 ? (data.solventTotals.ethanol_recovered / data.solventTotals.ethanol_issued * 100) : 0;
+	const limRecoveryRate = data.solventTotals.limonene_issued > 0 ? (data.solventTotals.limonene_recovered / data.solventTotals.limonene_issued * 100) : 0;
 
 	// Pipeline: 5 main icons connected by lines with 4 notch circles between them
 	const RING_SIZE = 76;
@@ -46,10 +55,6 @@
 		{ label: 'A/B', stage: 5 },
 		{ label: 'Drying', stage: 8 }
 	];
-
-	// Solvent recovery rates (bottom cards)
-	const ethRecoveryRate = data.solventTotals.ethanol_issued > 0 ? (data.solventTotals.ethanol_recovered / data.solventTotals.ethanol_issued * 100) : 0;
-	const limRecoveryRate = data.solventTotals.limonene_issued > 0 ? (data.solventTotals.limonene_recovered / data.solventTotals.limonene_issued * 100) : 0;
 
 	// Lot progress table columns (7 visual columns mapping to 8 DB stages)
 	const TABLE_COLUMNS = [
@@ -76,45 +81,581 @@
 		return 'Record';
 	}
 
-	const stageBreakdown = [1, 2, 3, 4, 5, 6, 7, 8].map(n => ({
-		stage: n,
-		count: data.activeBatchProgress.filter(b => b.current_stage === n).length
-	})).filter(s => s.count > 0);
+	// Daily yield: final product kg / days of operation
+	const totalFinalKg = data.totalFinalYield.producedKg;
+	const operationDays = Math.max(1, Math.ceil((Date.now() - new Date('2026-01-10').getTime()) / (1000 * 60 * 60 * 24)));
+	const dailyYieldKg = totalFinalKg / operationDays;
+
+	// Extract efficiency: kg final product per kg raw input
+	const extractEfficiency = processedKg > 0 ? (totalFinalKg / processedKg * 100) : 0;
+	const extractTarget = 1.5; // target extract rate %
+
+	// Quality data
+	const hplc = data.hplcResult;
+	const hplcCompleted = hplc?.status === 'Completed';
+	const totalAlkaloids = hplcCompleted && hplc
+		? [hplc.mitragynine_pct, hplc.hydroxy_mitragynine_pct, hplc.paynantheine_pct,
+		   hplc.speciogynine_pct, hplc.speciociliatine_pct]
+			.filter((v): v is number => v !== null)
+			.reduce((a, b) => a + b, 0)
+		: null;
+
+	// Daily yield target: total target kg / expected operation days
+	const dailyYieldTarget = data.totalFinalYield.targetKg / 90; // 90-day operation window
+	const costPerKgTarget = 500; // target cost per kg of final product
+
+	// Next actions queue: group active batches by their next needed step
+	const activeBatches = data.activeBatchProgress.filter(b => b.status === 'In Progress' || b.status === 'Pending Review');
+	const nextActionQueue = activeBatches.map(b => {
+		if (b.status === 'Pending Review') return { label: 'Review', href: `/batches/${b.id}` };
+		return { label: getStageName(b.current_stage), href: `/stages/${b.current_stage}` };
+	});
+	const actionGroups: Record<string, { count: number; href: string }> = {};
+	for (const a of nextActionQueue) {
+		if (!actionGroups[a.label]) actionGroups[a.label] = { count: 0, href: a.href };
+		actionGroups[a.label].count++;
+	}
+	const sortedActions = Object.entries(actionGroups).sort((a, b) => b[1].count - a[1].count);
+
+	// Cost breakdown
+	const cb = data.costBreakdown;
+	const costCategories = [
+		{ label: 'Raw Material', value: cb.rawMaterial },
+		{ label: 'Solvents', value: cb.solvents },
+		{ label: 'Reagents', value: cb.reagents },
+		{ label: 'Labor', value: cb.labor },
+		{ label: 'Utilities', value: cb.utilities }
+	];
+	const costTotal = cb.total;
+
+	// Smooth area chart generation (Catmull-Rom interpolation)
+	function smoothPath(values: number[], w: number, h: number, pad = 10) {
+		if (values.length < 2) return { line: '', area: '', points: [] as { x: number; y: number }[] };
+		const min = Math.min(...values);
+		const max = Math.max(...values, min + 0.01);
+		const range = max - min;
+		const pts = values.map((v, i) => ({
+			x: pad + (i / (values.length - 1)) * (w - 2 * pad),
+			y: pad + (1 - (v - min) / range) * (h - 2 * pad)
+		}));
+		let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+		for (let i = 0; i < pts.length - 1; i++) {
+			const p0 = pts[Math.max(0, i - 1)];
+			const p1 = pts[i];
+			const p2 = pts[i + 1];
+			const p3 = pts[Math.min(pts.length - 1, i + 2)];
+			const t = 0.3;
+			const c1x = (p1.x + (p2.x - p0.x) * t).toFixed(1);
+			const c1y = (p1.y + (p2.y - p0.y) * t).toFixed(1);
+			const c2x = (p2.x - (p3.x - p1.x) * t).toFixed(1);
+			const c2y = (p2.y - (p3.y - p1.y) * t).toFixed(1);
+			d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+		}
+		const area = `${d} L${pts[pts.length - 1].x.toFixed(1)},${h} L${pts[0].x.toFixed(1)},${h} Z`;
+		return { line: d, area, points: pts };
+	}
+
+	function computeTargetY(target: number, values: number[], h: number, pad = 10): number {
+		const min = Math.min(...values, target);
+		const max = Math.max(...values, target, min + 0.01);
+		return pad + (1 - (target - min) / (max - min)) * (h - 2 * pad);
+	}
+
+	// Target constants
+	const ETH_RECOVERY_TARGET = 95;
+	const DAILY_BUDGET = 200;
+	const YIELD_TARGET = extractTarget; // 1.5
+
+	// Stage yields (% of each stage's input retained)
+	const grindingYield = processedKg > 0 ? (pm.totalPowderKg / processedKg * 100) : 0;
+	const extractionYield = pm.totalPowderKg > 0 ? (pm.extractTotalKg / pm.totalPowderKg * 100) : 0;
+
+	// Cost KPI helpers
+	const costPerBatch = pm.completedCount > 0 ? costTotal / pm.completedCount : 0;
+	const budgetVariance = data.dailyOpCost - DAILY_BUDGET;
+
+	// Sorted cost categories for bars (monochromatic steel-blue, opacity ranked)
+	const sortedCostCategories = [...costCategories].sort((a, b) => b.value - a.value);
+	const maxCost = Math.max(...costCategories.map(c => c.value), 1);
+	const costBarOpacities = [0.85, 0.65, 0.50, 0.38, 0.25];
+
+	// Chart dimensions (wide panoramic, shallow signal-monitor)
+	const CW = 240, CH = 44;
+
+	// Filtration return & concentration metrics
+	const filtrationReturnL = pm.filtrationOutputL;
+	const filtrateConcentration = pm.extractTotalKg > 0 && filtrationReturnL > 0
+		? (pm.extractTotalKg / filtrationReturnL * 1000) : 0; // g/L
+	const estimatedDissolvedKg = pm.extractTotalKg;
+	const distillationRecoveryPct = ethRecoveryRate; // overall solvent recovery %
+	const distillationDelta = distillationRecoveryPct - ETH_RECOVERY_TARGET;
+
+	// Per-batch concentration trend
+	const concValues = data.ethRecoveryTrend.map(d =>
+		d.filtrationReturnL > 0 ? (d.extractWeightKg / d.filtrationReturnL * 1000) : 0
+	);
+	const filtReturnValues = data.ethRecoveryTrend.map(d => d.filtrationReturnL);
+
+	// Trend chart selector state
+	let selectedEthTrend: 'concentration' | 'recovery' | 'filtration' = $state('concentration');
+
+	// Pre-computed smooth chart paths (all three trend views)
+	const ethValues = data.ethRecoveryTrend.map(d => d.recoveryPct);
+	const ethChart = smoothPath(ethValues, CW, CH);
+	const ethTargetY = ethValues.length >= 2 ? computeTargetY(ETH_RECOVERY_TARGET, ethValues, CH) : 0;
+
+	const concChart = smoothPath(concValues, CW, CH);
+	const filtReturnChart = smoothPath(filtReturnValues, CW, CH);
+
+	const costValues = data.costTrend.map(d => d.total);
+	const costChart = smoothPath(costValues, CW, CH);
+	const costTargetY = costValues.length >= 2 ? computeTargetY(DAILY_BUDGET, costValues, CH) : 0;
+
+	const yieldValues = data.yieldTrend.map(d => d.yieldPct);
+	const yieldChart = smoothPath(yieldValues, CW, CH);
+	const yieldTargetY = yieldValues.length >= 2 ? computeTargetY(YIELD_TARGET, yieldValues, CH) : 0;
+
+	const avgYield = yieldValues.length > 0
+		? yieldValues.reduce((a, b) => a + b, 0) / yieldValues.length
+		: extractEfficiency;
+	const yieldDelta = extractEfficiency - avgYield;
+
+	const totalEthLoss = data.solventTotals.ethanol_lost;
 </script>
 
 <div class="flex-1 p-4 grid grid-cols-12 gap-4 overflow-auto content-start">
-	<!-- Row 1: 3 KPI Cards -->
-	<div class="col-span-12 grid grid-cols-3 gap-4">
-		<!-- Total Throughput -->
+	<!-- Row 1: 7 Alert KPI Cards -->
+	<div class="col-span-12 grid grid-cols-7 gap-3">
+		<!-- Active Batches -->
 		<div class="bg-bg-card border border-border-card p-3 rounded">
-			<p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Total Throughput</p>
-			<p class="text-2xl font-black text-text-primary">{processedKg.toLocaleString()} <span class="text-xs font-normal text-text-muted">kg processed</span></p>
-			<p class="text-[10px] text-text-muted">{lotsProcessed} lots · {intakePct.toFixed(1)}% of raw material</p>
-		</div>
-
-		<!-- Completed Lots -->
-		<div class="bg-bg-card border border-border-card p-3 rounded">
-			<p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Completed Lots</p>
-			<p class="text-2xl font-black text-text-primary">{lotsProcessed}</p>
-			<p class="text-[10px] text-text-muted">
-				{#each stageBreakdown as sb, i}
-					S{sb.stage}: {sb.count}{i < stageBreakdown.length - 1 ? ' · ' : ''}
-				{/each}
-			</p>
-		</div>
-
-		<!-- Final Yield Progress -->
-		<div class="bg-bg-card border border-border-card p-3 rounded">
-			<p class="text-[10px] font-black uppercase tracking-widest text-text-muted">Final Yield Progress</p>
-			<p class="text-2xl font-black text-text-primary">{data.totalFinalYield.producedKg} <span class="text-xs font-normal text-text-muted">/ {data.totalFinalYield.targetKg} kg</span></p>
-			<div class="mt-1.5 h-1.5 w-full bg-border-card rounded-full overflow-hidden">
-				<div class="h-full bg-primary rounded-full transition-all" style="width: {yieldPct}%"></div>
+			<p class="text-[10px] font-bold uppercase tracking-widest text-text-muted">Active Batches</p>
+			<div class="flex items-baseline gap-2 mt-1">
+				<p class="text-3xl font-black text-text-primary">{activeLots}</p>
+				<span class="text-[10px] font-bold text-text-muted">+{totalLotsNeeded - lotsProcessed} remaining</span>
 			</div>
-			<p class="text-[10px] text-text-muted mt-1">{yieldPct.toFixed(1)}% · {remainingYieldKg} kg remaining</p>
+			<div class="mt-2 h-1 w-full bg-border-card rounded-full overflow-hidden">
+				<div class="h-full bg-primary rounded-full" style="width: {intakePct}%"></div>
+			</div>
+			<p class="text-[9px] text-text-muted mt-1">{kgRemaining.toLocaleString()} kg remaining</p>
+		</div>
+
+		<!-- EtOH Recovery -->
+		<div class="bg-bg-card border border-border-card p-3 rounded">
+			<p class="text-[10px] font-bold uppercase tracking-widest text-text-muted">EtOH Recovery</p>
+			<div class="flex items-baseline gap-2 mt-1">
+				<p class="text-3xl font-black text-text-primary">{ethRecoveryRate.toFixed(1)}%</p>
+				{#if ethRecoveryRate >= 95}
+					<span class="text-[10px] font-bold text-primary">&#9650; {(ethRecoveryRate - 95).toFixed(1)}%</span>
+				{:else}
+					<span class="text-[10px] font-bold text-red-400">&#9660; {(95 - ethRecoveryRate).toFixed(1)}%</span>
+				{/if}
+			</div>
+			<p class="text-[9px] text-text-muted mt-2">LIMIT: >95.0%</p>
+		</div>
+
+		<!-- Daily OP Cost -->
+		<div class="bg-bg-card border border-border-card p-3 rounded">
+			<p class="text-[10px] font-bold uppercase tracking-widest text-text-muted">Daily OP Cost</p>
+			<div class="flex items-baseline gap-2 mt-1">
+				<p class="text-3xl font-black text-text-primary">${Math.round(data.dailyOpCost).toLocaleString()}</p>
+				<span class="text-[10px] text-text-muted">Budget</span>
+			</div>
+			<div class="mt-2 h-1 w-full bg-border-card rounded-full overflow-hidden">
+				<div class="h-full bg-blue-500 rounded-full" style="width: {Math.min(100, (data.dailyOpCost / 15000) * 100)}%"></div>
+			</div>
+		</div>
+
+		<!-- Cost per KG -->
+		<div class="bg-bg-card border border-border-card p-3 rounded">
+			<p class="text-[10px] font-bold uppercase tracking-widest text-text-muted">Cost / KG</p>
+			<div class="flex items-baseline gap-2 mt-1">
+				<p class="text-3xl font-black text-text-primary">${Math.round(data.avgCostPerKg).toLocaleString()}</p>
+				{#if data.avgCostPerKg <= costPerKgTarget}
+					<span class="text-[10px] font-bold text-primary">&#9650; -{((costPerKgTarget - data.avgCostPerKg) / costPerKgTarget * 100).toFixed(0)}%</span>
+				{:else}
+					<span class="text-[10px] font-bold text-red-400">&#9660; +{((data.avgCostPerKg - costPerKgTarget) / costPerKgTarget * 100).toFixed(0)}%</span>
+				{/if}
+			</div>
+			<p class="text-[9px] text-text-muted mt-2">TARGET: ${costPerKgTarget}/kg</p>
+		</div>
+
+		<!-- Daily Yield -->
+		<div class="bg-bg-card border border-border-card p-3 rounded">
+			<p class="text-[10px] font-bold uppercase tracking-widest text-text-muted">Daily Yield</p>
+			<div class="flex items-baseline gap-2 mt-1">
+				<p class="text-3xl font-black text-text-primary">{Math.round(dailyYieldKg * 1000).toLocaleString()}</p>
+				<span class="text-[10px] text-text-muted">g/day</span>
+			</div>
+			<div class="flex items-baseline gap-2 mt-1">
+				{#if dailyYieldKg >= dailyYieldTarget}
+					<span class="text-[10px] font-bold text-primary">&#9650; +{((dailyYieldKg - dailyYieldTarget) / dailyYieldTarget * 100).toFixed(0)}%</span>
+				{:else}
+					<span class="text-[10px] font-bold text-red-400">&#9660; -{((dailyYieldTarget - dailyYieldKg) / dailyYieldTarget * 100).toFixed(0)}%</span>
+				{/if}
+			</div>
+			<p class="text-[9px] text-text-muted mt-1">TARGET: {Math.round(dailyYieldTarget * 1000).toLocaleString()} g/day</p>
+		</div>
+
+		<!-- Extract Rate -->
+		<div class="bg-bg-card border border-border-card p-3 rounded">
+			<p class="text-[10px] font-bold uppercase tracking-widest text-text-muted">Extract Rate</p>
+			<div class="flex items-baseline gap-2 mt-1">
+				<p class="text-3xl font-black text-text-primary">{extractEfficiency.toFixed(1)}%</p>
+				{#if extractEfficiency >= extractTarget}
+					<span class="text-[10px] font-bold text-primary">&#9650; +{(extractEfficiency - extractTarget).toFixed(1)}%</span>
+				{:else}
+					<span class="text-[10px] font-bold text-red-400">&#9660; -{(extractTarget - extractEfficiency).toFixed(1)}%</span>
+				{/if}
+			</div>
+			<p class="text-[9px] text-text-muted mt-2">TARGET: {extractTarget}% yield</p>
+		</div>
+
+		<!-- Pending Actions -->
+		<div class="bg-bg-card border border-border-card border-l-[3px] border-l-red-500 p-3 rounded">
+			<p class="text-[10px] font-bold uppercase tracking-widest text-text-muted">Pending Actions</p>
+			<div class="flex items-baseline gap-2 mt-1">
+				<p class="text-3xl font-black text-red-400">{activeBatches.length}</p>
+				<span class="text-[10px] text-text-muted">awaiting</span>
+			</div>
+			<div class="mt-1.5 space-y-0.5 max-h-[42px] overflow-y-auto no-scrollbar">
+				{#each sortedActions as [action, { count, href }]}
+					<a {href} class="block text-[9px] text-text-muted hover:text-red-400 transition-colors">{count}x {action}</a>
+				{/each}
+			</div>
 		</div>
 	</div>
 
-	<!-- Row 2: Process Pipeline -->
+	<!-- Row 2: Analytics Cards -->
+	<div class="col-span-12 grid grid-cols-3 gap-3 items-stretch">
+		<!-- Card 1: Ethanol Process Intelligence -->
+		<div class="bg-bg-card border border-border-card rounded-xl px-4 pt-3 pb-2.5 flex flex-col">
+			<!-- Header + inline KPIs -->
+			<div class="flex items-center gap-2 mb-2">
+				<span class="material-symbols-outlined text-[14px] opacity-50" style="color: #8BAA7C;">water_drop</span>
+				<h3 class="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Ethanol Process Intelligence</h3>
+			</div>
+			<!-- Inline KPI row -->
+			<div class="flex items-baseline gap-3 mb-2.5">
+				<div class="flex items-baseline gap-1">
+					<span class="text-base font-semibold text-text-primary">{filtrationReturnL.toFixed(0)}</span>
+					<span class="text-[8px] text-text-muted/50">L return</span>
+				</div>
+				<div class="flex items-baseline gap-1">
+					<span class="text-base font-semibold" style="color: #8BAA7C;">{filtrateConcentration.toFixed(1)}</span>
+					<span class="text-[8px] text-text-muted/50">g/L</span>
+					<span class="text-[7px] text-text-muted/30">({filtrateConcentration.toFixed(1)} mg/mL)</span>
+				</div>
+				<div class="flex items-baseline gap-1 ml-auto">
+					<span class="text-base font-semibold text-text-primary">{distillationRecoveryPct.toFixed(1)}%</span>
+					{#if distillationDelta >= 0}
+						<span class="text-[9px] font-medium" style="color: #8BAA7C;">+{distillationDelta.toFixed(1)}</span>
+					{:else}
+						<span class="text-[9px] font-medium" style="color: #C4896A;">{distillationDelta.toFixed(1)}</span>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Trend Chart with Toggle -->
+			<div class="mb-2">
+				<div class="flex items-center justify-between mb-1">
+					<p class="text-[8px] font-medium uppercase tracking-[0.12em] text-text-muted/60">Batch Trend</p>
+					<div class="flex gap-px rounded overflow-hidden" style="border: 1px solid rgba(55, 65, 81, 0.35);">
+						<button class="px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {selectedEthTrend === 'concentration' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={selectedEthTrend === 'concentration' ? 'background: rgba(139, 170, 124, 0.15);' : ''} onclick={() => selectedEthTrend = 'concentration'}>g/L</button>
+						<button class="px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {selectedEthTrend === 'recovery' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={selectedEthTrend === 'recovery' ? 'background: rgba(107, 140, 168, 0.15);' : ''} onclick={() => selectedEthTrend = 'recovery'}>Recovery</button>
+						<button class="px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {selectedEthTrend === 'filtration' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={selectedEthTrend === 'filtration' ? 'background: rgba(139, 170, 124, 0.15);' : ''} onclick={() => selectedEthTrend = 'filtration'}>Return</button>
+					</div>
+				</div>
+				{#if selectedEthTrend === 'concentration'}
+					{#if concValues.length < 2}
+						<svg viewBox="0 0 {CW} {CH}" class="w-full"><text x={CW / 2} y={CH / 2} text-anchor="middle" dominant-baseline="middle" fill="#4A5568" font-size="8">No data</text></svg>
+					{:else}
+						<svg viewBox="0 0 {CW} {CH}" class="w-full">
+							<defs><linearGradient id="concGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8BAA7C" stop-opacity="0.22" /><stop offset="100%" stop-color="#8BAA7C" stop-opacity="0.02" /></linearGradient></defs>
+							<path d={concChart.area} fill="url(#concGrad)" /><path d={concChart.line} fill="none" stroke="#8BAA7C" stroke-width="1.5" opacity="0.7" />
+							{#each concChart.points as pt}<circle cx={pt.x} cy={pt.y} r="1.5" fill="#8BAA7C" opacity="0.45" />{/each}
+						</svg>
+					{/if}
+				{:else if selectedEthTrend === 'recovery'}
+					{#if ethValues.length < 2}
+						<svg viewBox="0 0 {CW} {CH}" class="w-full"><text x={CW / 2} y={CH / 2} text-anchor="middle" dominant-baseline="middle" fill="#4A5568" font-size="8">No data</text></svg>
+					{:else}
+						<svg viewBox="0 0 {CW} {CH}" class="w-full">
+							<defs><linearGradient id="ethGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6B8CA8" stop-opacity="0.22" /><stop offset="100%" stop-color="#6B8CA8" stop-opacity="0.02" /></linearGradient></defs>
+							<line x1="10" y1={ethTargetY} x2="230" y2={ethTargetY} stroke="#4A5568" stroke-dasharray="3 4" stroke-width="0.5" opacity="0.5" />
+							<text x="233" y={ethTargetY + 3} text-anchor="end" fill="#4A5568" font-size="6" opacity="0.4">{ETH_RECOVERY_TARGET}%</text>
+							<path d={ethChart.area} fill="url(#ethGrad)" /><path d={ethChart.line} fill="none" stroke="#6B8CA8" stroke-width="1.5" opacity="0.7" />
+							{#each ethChart.points as pt}<circle cx={pt.x} cy={pt.y} r="1.5" fill="#6B8CA8" opacity="0.45" />{/each}
+						</svg>
+					{/if}
+				{:else}
+					{#if filtReturnValues.length < 2}
+						<svg viewBox="0 0 {CW} {CH}" class="w-full"><text x={CW / 2} y={CH / 2} text-anchor="middle" dominant-baseline="middle" fill="#4A5568" font-size="8">No data</text></svg>
+					{:else}
+						<svg viewBox="0 0 {CW} {CH}" class="w-full">
+							<defs><linearGradient id="filtGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8BAA7C" stop-opacity="0.22" /><stop offset="100%" stop-color="#8BAA7C" stop-opacity="0.02" /></linearGradient></defs>
+							<path d={filtReturnChart.area} fill="url(#filtGrad)" /><path d={filtReturnChart.line} fill="none" stroke="#8BAA7C" stroke-width="1.5" opacity="0.7" />
+							{#each filtReturnChart.points as pt}<circle cx={pt.x} cy={pt.y} r="1.5" fill="#8BAA7C" opacity="0.45" />{/each}
+						</svg>
+					{/if}
+				{/if}
+			</div>
+
+			<!-- Solvent Path — compact horizontal flow -->
+			<div class="flex items-center gap-1.5 mb-2 py-1.5 px-2 rounded" style="background: rgba(55, 65, 81, 0.15);">
+				<div class="flex items-center gap-1">
+					<span class="h-1 w-1 rounded-full" style="background: rgba(107, 140, 168, 0.8);"></span>
+					<span class="text-[8px] text-text-muted/50">Issued</span>
+					<span class="text-[8px] font-medium text-text-secondary">{data.solventTotals.ethanol_issued.toFixed(0)}L</span>
+				</div>
+				<span class="text-[8px] text-text-muted/20">&rarr;</span>
+				<div class="flex items-center gap-1">
+					<span class="h-1 w-1 rounded-full" style="background: rgba(139, 170, 124, 0.8);"></span>
+					<span class="text-[8px] text-text-muted/50">Filt.</span>
+					<span class="text-[8px] font-medium text-text-secondary">{filtrationReturnL.toFixed(0)}L</span>
+				</div>
+				<span class="text-[8px] text-text-muted/20">&rarr;</span>
+				<div class="flex items-center gap-1">
+					<span class="h-1 w-1 rounded-full" style="background: rgba(107, 140, 168, 0.6);"></span>
+					<span class="text-[8px] text-text-muted/50">Recov.</span>
+					<span class="text-[8px] font-medium text-text-secondary">{data.solventTotals.ethanol_recovered.toFixed(0)}L</span>
+				</div>
+				<span class="text-[8px] text-text-muted/20">&rarr;</span>
+				<div class="flex items-center gap-1">
+					<span class="h-1 w-1 rounded-full" style="background: rgba(196, 137, 106, 0.5);"></span>
+					<span class="text-[8px] text-text-muted/50">Loss</span>
+					<span class="text-[8px] font-medium" style="color: #C4896A;">{totalEthLoss.toFixed(0)}L</span>
+				</div>
+			</div>
+
+			<!-- Bottom metrics strip -->
+			<div class="grid grid-cols-5 gap-1.5 border-t pt-2 mt-auto" style="border-color: rgba(55, 65, 81, 0.3);">
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Issued</p>
+					<p class="text-[9px] font-semibold text-text-secondary">{data.solventTotals.ethanol_issued.toFixed(0)} L</p>
+				</div>
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Filt. Ret.</p>
+					<p class="text-[9px] font-semibold text-text-secondary">{filtrationReturnL.toFixed(0)} L</p>
+				</div>
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Strength</p>
+					<p class="text-[9px] font-semibold" style="color: #8BAA7C;">{filtrateConcentration.toFixed(1)} g/L</p>
+				</div>
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Recovery</p>
+					<p class="text-[9px] font-semibold text-text-secondary">{distillationRecoveryPct.toFixed(1)}%</p>
+				</div>
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Loss</p>
+					<p class="text-[9px] font-semibold" style="color: #C4896A;">{totalEthLoss.toFixed(0)} L</p>
+				</div>
+			</div>
+			<!-- Limonene -->
+			<div class="flex items-center gap-3 mt-1.5 pt-1.5" style="border-top: 1px solid rgba(55, 65, 81, 0.15);">
+				<span class="text-[7px] font-medium uppercase text-text-muted/25">D-Limo</span>
+				<span class="text-[7px] text-text-muted/35">Rec. <span class="text-text-muted/55 font-medium">{data.solventTotals.limonene_recovered.toFixed(1)}L</span></span>
+				<span class="text-[7px] text-text-muted/35">Lost <span class="font-medium" style="color: rgba(196, 137, 106, 0.45);">{data.solventTotals.limonene_lost.toFixed(1)}L</span></span>
+			</div>
+		</div>
+
+		<!-- Card 2: Operational Cost -->
+		<div class="bg-bg-card border border-border-card rounded-xl px-4 pt-3 pb-2.5 flex flex-col">
+			<!-- Header -->
+			<div class="flex items-center justify-between mb-2">
+				<div class="flex items-center gap-2">
+					<span class="material-symbols-outlined text-[14px] opacity-50" style="color: #6B8CA8;">payments</span>
+					<h3 class="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Operational Cost</h3>
+				</div>
+				<div class="flex items-baseline gap-1.5">
+					<span class="text-base font-semibold text-text-primary">${Math.round(data.dailyOpCost)}<span class="text-[9px] font-normal text-text-muted/50">/day</span></span>
+					{#if budgetVariance <= 0}
+						<span class="text-[9px] font-medium" style="color: #8BAA7C;">-${Math.abs(Math.round(budgetVariance))}</span>
+					{:else}
+						<span class="text-[9px] font-medium" style="color: #C4896A;">+${Math.round(budgetVariance)}</span>
+					{/if}
+					<span class="text-[8px] text-text-muted/35">vs ${DAILY_BUDGET}</span>
+				</div>
+			</div>
+
+			<!-- Area Chart -->
+			<div class="mb-2">
+				<p class="text-[8px] font-medium uppercase tracking-[0.12em] text-text-muted/60 mb-1">7-Day Trend</p>
+				{#if costValues.length < 2}
+					<svg viewBox="0 0 {CW} {CH}" class="w-full"><text x={CW / 2} y={CH / 2} text-anchor="middle" dominant-baseline="middle" fill="#4A5568" font-size="8">No data</text></svg>
+				{:else}
+					<svg viewBox="0 0 {CW} {CH}" class="w-full">
+						<defs><linearGradient id="costGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6B8CA8" stop-opacity="0.22" /><stop offset="100%" stop-color="#6B8CA8" stop-opacity="0.02" /></linearGradient></defs>
+						<line x1="10" y1={costTargetY} x2="230" y2={costTargetY} stroke="#4A5568" stroke-dasharray="3 4" stroke-width="0.5" opacity="0.5" />
+						<text x="233" y={costTargetY + 3} text-anchor="end" fill="#4A5568" font-size="6" opacity="0.4">${DAILY_BUDGET}</text>
+						<path d={costChart.area} fill="url(#costGrad)" /><path d={costChart.line} fill="none" stroke="#6B8CA8" stroke-width="1.5" opacity="0.7" />
+						{#each costChart.points as pt}<circle cx={pt.x} cy={pt.y} r="1.5" fill="#6B8CA8" opacity="0.45" />{/each}
+					</svg>
+				{/if}
+			</div>
+
+			<!-- Cost Distribution -->
+			<div class="mb-2">
+				<p class="text-[8px] font-medium uppercase tracking-[0.12em] text-text-muted/60 mb-1.5">Cost Distribution</p>
+				<div class="space-y-1.5">
+					{#each sortedCostCategories as cat, i}
+						<div class="flex items-center gap-2">
+							<span class="text-[8px] text-text-muted w-[64px] flex-none">{cat.label}</span>
+							<div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(55, 65, 81, 0.3);">
+								<div class="h-full rounded-full" style="width: {(cat.value / maxCost) * 100}%; background: rgba(107, 140, 168, {costBarOpacities[i]});"></div>
+							</div>
+							<span class="text-[8px] font-medium text-text-secondary w-12 text-right flex-none">${Math.round(cat.value).toLocaleString()}</span>
+						</div>
+					{/each}
+				</div>
+			</div>
+
+			<!-- Metric row -->
+			<div class="grid grid-cols-3 gap-2 border-t pt-2 mt-auto" style="border-color: rgba(55, 65, 81, 0.3);">
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Cost/Batch</p>
+					<p class="text-[9px] font-semibold text-text-secondary">${Math.round(costPerBatch).toLocaleString()}</p>
+				</div>
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Cost/KG</p>
+					<p class="text-[9px] font-semibold text-text-secondary">${Math.round(data.avgCostPerKg).toLocaleString()}</p>
+				</div>
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Budget Var</p>
+					<p class="text-[9px] font-semibold" style="color: {budgetVariance <= 0 ? '#8BAA7C' : '#C4896A'};">{((data.dailyOpCost - DAILY_BUDGET) / Math.max(DAILY_BUDGET, 1) * 100).toFixed(0)}%</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Card 3: Yield & Quality -->
+		<div class="bg-bg-card border border-border-card rounded-xl px-4 pt-3 pb-2.5 flex flex-col">
+			<!-- Header -->
+			<div class="flex items-center justify-between mb-2">
+				<div class="flex items-center gap-2">
+					<span class="material-symbols-outlined text-[14px] opacity-50" style="color: #8BAA7C;">science</span>
+					<h3 class="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Yield & Quality</h3>
+				</div>
+				<div class="flex items-baseline gap-1.5">
+					<span class="text-base font-semibold text-text-primary">{data.totalFinalYield.producedKg.toFixed(2)} kg</span>
+					<span class="text-[9px] text-text-muted/50">{extractEfficiency.toFixed(2)}%</span>
+					{#if yieldDelta >= 0}
+						<span class="text-[9px] font-medium" style="color: #8BAA7C;">+{yieldDelta.toFixed(2)}</span>
+					{:else}
+						<span class="text-[9px] font-medium" style="color: #C4896A;">{yieldDelta.toFixed(2)}</span>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Area Chart -->
+			<div class="mb-2">
+				<p class="text-[8px] font-medium uppercase tracking-[0.12em] text-text-muted/60 mb-1">Batch Yield Trend</p>
+				{#if yieldValues.length < 2}
+					<svg viewBox="0 0 {CW} {CH}" class="w-full"><text x={CW / 2} y={CH / 2} text-anchor="middle" dominant-baseline="middle" fill="#4A5568" font-size="8">No data</text></svg>
+				{:else}
+					<svg viewBox="0 0 {CW} {CH}" class="w-full">
+						<defs><linearGradient id="yieldGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8BAA7C" stop-opacity="0.22" /><stop offset="100%" stop-color="#8BAA7C" stop-opacity="0.02" /></linearGradient></defs>
+						<line x1="10" y1={yieldTargetY} x2="230" y2={yieldTargetY} stroke="#4A5568" stroke-dasharray="3 4" stroke-width="0.5" opacity="0.5" />
+						<text x="233" y={yieldTargetY + 3} text-anchor="end" fill="#4A5568" font-size="6" opacity="0.4">{YIELD_TARGET}%</text>
+						<path d={yieldChart.area} fill="url(#yieldGrad)" /><path d={yieldChart.line} fill="none" stroke="#8BAA7C" stroke-width="1.5" opacity="0.7" />
+						{#each yieldChart.points as pt}<circle cx={pt.x} cy={pt.y} r="1.5" fill="#8BAA7C" opacity="0.45" />{/each}
+					</svg>
+				{/if}
+			</div>
+
+			<!-- Material Conversion + Quality — compact side-by-side -->
+			<div class="grid grid-cols-2 gap-3 mb-2">
+				<!-- Material Conversion -->
+				<div>
+					<p class="text-[8px] font-medium uppercase tracking-[0.12em] text-text-muted/60 mb-1.5">Conversion</p>
+					<div class="space-y-0">
+						<div class="flex items-center gap-1.5">
+							<span class="h-1 w-1 rounded-full flex-none" style="background: rgba(139, 170, 124, 0.9);"></span>
+							<span class="text-[8px] text-text-muted flex-1">Leaf</span>
+							<span class="text-[8px] font-medium text-text-secondary">{processedKg.toFixed(0)} kg</span>
+						</div>
+						<div class="flex items-center gap-1.5 py-px">
+							<div class="w-1 flex justify-center"><div class="w-px h-2" style="background: rgba(139, 170, 124, 0.25);"></div></div>
+							<span class="text-[7px] text-text-muted/35">{grindingYield.toFixed(0)}%</span>
+						</div>
+						<div class="flex items-center gap-1.5">
+							<span class="h-1 w-1 rounded-full flex-none" style="background: rgba(139, 170, 124, 0.6);"></span>
+							<span class="text-[8px] text-text-muted flex-1">Powder</span>
+							<span class="text-[8px] font-medium text-text-secondary">{pm.totalPowderKg.toFixed(1)} kg</span>
+						</div>
+						<div class="flex items-center gap-1.5 py-px">
+							<div class="w-1 flex justify-center"><div class="w-px h-2" style="background: rgba(139, 170, 124, 0.25);"></div></div>
+							<span class="text-[7px] text-text-muted/35">{extractionYield.toFixed(1)}%</span>
+						</div>
+						<div class="flex items-center gap-1.5">
+							<span class="h-1 w-1 rounded-full flex-none" style="background: rgba(139, 170, 124, 0.35);"></span>
+							<span class="text-[8px] text-text-muted flex-1">Extract</span>
+							<span class="text-[8px] font-medium text-text-secondary">{data.totalFinalYield.producedKg.toFixed(2)} kg</span>
+						</div>
+						<div class="mt-1 pt-1" style="border-top: 1px solid rgba(55, 65, 81, 0.2);">
+							<span class="text-[7px] text-text-muted/40">Overall {extractEfficiency.toFixed(2)}%</span>
+						</div>
+					</div>
+				</div>
+				<!-- Quality Profile -->
+				<div>
+					<p class="text-[8px] font-medium uppercase tracking-[0.12em] text-text-muted/60 mb-1.5">Quality</p>
+					{#if hplcCompleted && hplc}
+						<div class="space-y-1">
+							<div class="flex justify-between">
+								<span class="text-[8px] text-text-muted">Mitragynine</span>
+								<span class="text-[8px] font-medium text-text-secondary">{hplc.mitragynine_pct?.toFixed(1)}%</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-[8px] text-text-muted">7-OH-M</span>
+								<span class="text-[8px] font-medium text-text-secondary">{hplc.hydroxy_mitragynine_pct?.toFixed(1)}%</span>
+							</div>
+							<div class="flex justify-between">
+								<span class="text-[8px] text-text-muted">Purity</span>
+								<span class="text-[8px] font-medium text-text-secondary">{hplc.purity_pct?.toFixed(1)}%</span>
+							</div>
+							{#if totalAlkaloids !== null}
+								<div class="flex justify-between">
+									<span class="text-[8px] text-text-muted">Total Alk.</span>
+									<span class="text-[8px] font-medium text-text-secondary">{totalAlkaloids.toFixed(1)}%</span>
+								</div>
+							{/if}
+							<div class="flex items-center gap-1">
+								<span class="h-1 w-1 rounded-full" style="background: #8BAA7C;"></span>
+								<span class="text-[7px] font-medium" style="color: #8BAA7C;">HPLC Verified</span>
+							</div>
+						</div>
+					{:else if hplc}
+						<div class="flex flex-col items-center justify-center gap-1 py-2">
+							<span class="material-symbols-outlined text-[14px]" style="color: #C4896A;">hourglass_top</span>
+							<span class="text-[8px] font-medium" style="color: #C4896A;">{hplc.status}</span>
+						</div>
+					{:else}
+						<div class="flex flex-col items-center justify-center gap-1 py-2">
+							<span class="material-symbols-outlined text-[14px] text-text-muted/25">science</span>
+							<span class="text-[8px] text-text-muted/40">No HPLC data</span>
+						</div>
+					{/if}
+				</div>
+			</div>
+
+			<!-- Metric row -->
+			<div class="grid grid-cols-3 gap-2 border-t pt-2 mt-auto" style="border-color: rgba(55, 65, 81, 0.3);">
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Produced</p>
+					<p class="text-[9px] font-semibold text-text-secondary">{data.totalFinalYield.producedKg.toFixed(2)} kg</p>
+				</div>
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Target</p>
+					<p class="text-[9px] font-semibold text-text-secondary">{data.totalFinalYield.targetKg.toFixed(2)} kg</p>
+				</div>
+				<div>
+					<p class="text-[7px] text-text-muted/40 uppercase">Avg Yield</p>
+					<p class="text-[9px] font-semibold text-text-secondary">{avgYield.toFixed(2)}%</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Row 3: Process Pipeline -->
 	<div class="col-span-12 relative overflow-visible rounded-2xl border border-border-card z-20" style="background: linear-gradient(135deg, #111827 0%, #1F2937 40%, #162032 100%);">
 		<!-- Subtle grid pattern overlay -->
 		<div class="absolute inset-0 opacity-[0.03] rounded-2xl overflow-hidden" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 24px 24px;"></div>
@@ -268,7 +809,7 @@
 		{#if data.activeBatchProgress.length === 0}
 			<p class="text-xs text-text-muted">No active lots</p>
 		{:else}
-			<div class="overflow-x-auto">
+			<div class="overflow-x-auto overflow-y-auto max-h-[280px]">
 				<!-- Header -->
 				<div style="display: grid; grid-template-columns: 120px repeat(7, 1fr) 80px 120px 55px;" class="text-[8px] font-bold text-text-muted uppercase tracking-wider pb-2 border-b border-border-subtle gap-1 min-w-[850px]">
 					<div>Lot</div>
@@ -375,86 +916,5 @@
 				{/each}
 			</div>
 		{/if}
-	</div>
-
-	<!-- Row 4: Analytics (2-col) -->
-	<div class="col-span-12 grid grid-cols-2 gap-4">
-		<!-- Solvent Summary -->
-		<div class="bg-bg-card border border-border-card p-4 rounded">
-			<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-3">Solvent Summary</h3>
-			<!-- Ethanol -->
-			<div class="mb-3">
-				<p class="text-[10px] font-bold text-text-secondary mb-1">Ethanol</p>
-				<div class="grid grid-cols-3 gap-2 text-center">
-					<div>
-						<p class="text-sm font-black text-text-primary">{data.solventTotals.ethanol_issued.toFixed(1)}</p>
-						<p class="text-[9px] text-text-muted">Issued (L)</p>
-					</div>
-					<div>
-						<p class="text-sm font-black text-primary">{data.solventTotals.ethanol_recovered.toFixed(1)}</p>
-						<p class="text-[9px] text-text-muted">Recovered (L)</p>
-					</div>
-					<div>
-						<p class="text-sm font-black text-red-500">{data.solventTotals.ethanol_lost.toFixed(1)}</p>
-						<p class="text-[9px] text-text-muted">Lost (L)</p>
-					</div>
-				</div>
-				<div class="mt-1.5 h-1 w-full bg-border-card rounded-full overflow-hidden">
-					<div class="h-full bg-primary rounded-full" style="width: {ethRecoveryRate.toFixed(0)}%"></div>
-				</div>
-				<p class="text-[9px] text-text-muted mt-0.5">{ethRecoveryRate.toFixed(1)}% recovery</p>
-			</div>
-			<!-- Limonene -->
-			<div>
-				<p class="text-[10px] font-bold text-text-secondary mb-1">Limonene</p>
-				<div class="grid grid-cols-3 gap-2 text-center">
-					<div>
-						<p class="text-sm font-black text-text-primary">{data.solventTotals.limonene_issued.toFixed(1)}</p>
-						<p class="text-[9px] text-text-muted">Issued (L)</p>
-					</div>
-					<div>
-						<p class="text-sm font-black text-primary">{data.solventTotals.limonene_recovered.toFixed(1)}</p>
-						<p class="text-[9px] text-text-muted">Recovered (L)</p>
-					</div>
-					<div>
-						<p class="text-sm font-black text-red-500">{data.solventTotals.limonene_lost.toFixed(1)}</p>
-						<p class="text-[9px] text-text-muted">Lost (L)</p>
-					</div>
-				</div>
-				<div class="mt-1.5 h-1 w-full bg-border-card rounded-full overflow-hidden">
-					<div class="h-full bg-primary rounded-full" style="width: {limRecoveryRate.toFixed(0)}%"></div>
-				</div>
-				<p class="text-[9px] text-text-muted mt-0.5">{limRecoveryRate.toFixed(1)}% recovery</p>
-			</div>
-		</div>
-
-		<!-- Cost Snapshot -->
-		<div class="bg-bg-card border border-border-card p-4 rounded">
-			<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted mb-3">Cost Snapshot</h3>
-			{#if data.costSnapshot}
-				<div class="space-y-3">
-					<div>
-						<p class="text-[10px] text-text-muted">Latest Completed Lot</p>
-						<p class="text-xs font-bold text-text-primary">{data.costSnapshot.batch_number}</p>
-					</div>
-					<div class="grid grid-cols-3 gap-2 text-center">
-						<div>
-							<p class="text-lg font-black text-text-primary">${data.costSnapshot.costPerKg.toFixed(0)}</p>
-							<p class="text-[9px] text-text-muted">Cost/kg</p>
-						</div>
-						<div>
-							<p class="text-lg font-black text-text-primary">${(data.costSnapshot.totalCost / 1000).toFixed(1)}k</p>
-							<p class="text-[9px] text-text-muted">Total Cost</p>
-						</div>
-						<div>
-							<p class="text-lg font-black text-primary">{data.costSnapshot.finalProductKg.toFixed(2)}</p>
-							<p class="text-[9px] text-text-muted">Product (kg)</p>
-						</div>
-					</div>
-				</div>
-			{:else}
-				<p class="text-[10px] text-text-muted">No completed lot data</p>
-			{/if}
-		</div>
 	</div>
 </div>

@@ -242,8 +242,8 @@ export function getActiveBatchProgress(): ActiveBatchWithProgress[] {
 			LEFT JOIN stage2_records s2 ON s2.batch_id = b.id
 			LEFT JOIN stage3_records s3 ON s3.batch_id = b.id
 			LEFT JOIN stage4_records s4 ON s4.batch_id = b.id
-			WHERE b.status IN ('In Progress', 'Pending Review')
-			ORDER BY b.current_stage DESC, b.created_at ASC
+			WHERE b.status != 'Draft'
+			ORDER BY b.batch_number ASC
 		`)
 		.all() as Omit<ActiveBatchWithProgress, 'stages'>[];
 
@@ -328,8 +328,11 @@ export function getLatestHplcResult(): LabResult | null {
 		.prepare(`
 			SELECT lr.* FROM lab_results lr
 			JOIN batches b ON b.id = lr.batch_id
-			WHERE lr.test_type = 'HPLC' AND lr.status = 'Completed' AND b.status = 'Completed'
-			ORDER BY b.completed_at DESC LIMIT 1
+			WHERE lr.test_type = 'HPLC'
+			ORDER BY
+				CASE lr.status WHEN 'Completed' THEN 0 WHEN 'In Progress' THEN 1 WHEN 'Pending' THEN 2 ELSE 3 END,
+				lr.created_at DESC
+			LIMIT 1
 		`)
 		.get() as LabResult | undefined;
 	return row ?? null;
@@ -476,6 +479,215 @@ export interface OperationsPipelineMetrics {
 	precipitateKg: number;
 	finalProductKg: number;
 	completedCount: number;
+}
+
+export interface CostBreakdown {
+	rawMaterial: number;
+	solvents: number;
+	reagents: number;
+	labor: number;
+	utilities: number;
+	total: number;
+}
+
+export function getCostBreakdown(): CostBreakdown {
+	const db = getDb();
+	const rows = db.prepare(`
+		SELECT cost_category, item_name, COALESCE(SUM(total_cost), 0) as total
+		FROM batch_costs
+		GROUP BY cost_category, item_name
+	`).all() as { cost_category: string; item_name: string; total: number }[];
+
+	let rawMaterial = 0, solvents = 0, reagents = 0, labor = 0, utilities = 0;
+	for (const r of rows) {
+		if (r.cost_category === 'Labor') labor += r.total;
+		else if (r.cost_category === 'Utility') utilities += r.total;
+		else if (r.cost_category === 'Material') {
+			const name = r.item_name.toLowerCase();
+			if (name.includes('leaf')) rawMaterial += r.total;
+			else if (name.includes('ethanol') || name.includes('limonene')) solvents += r.total;
+			else reagents += r.total; // HCl, NaOH, DI Water
+		}
+	}
+	const total = rawMaterial + solvents + reagents + labor + utilities;
+	return { rawMaterial, solvents, reagents, labor, utilities, total };
+}
+
+export type TimePeriod = 'daily' | '7d' | '30d' | '3m' | 'yearly';
+const ALL_PERIODS: TimePeriod[] = ['daily', '7d', '30d', '3m', 'yearly'];
+
+function dateFilter(period: TimePeriod): string {
+	switch (period) {
+		case 'daily': return "date('now')";
+		case '7d': return "date('now', '-7 days')";
+		case '30d': return "date('now', '-30 days')";
+		case '3m': return "date('now', '-3 months')";
+		case 'yearly': return "date('now', '-1 year')";
+	}
+}
+
+export function getCostBreakdownByPeriod(period: TimePeriod): CostBreakdown {
+	const db = getDb();
+	const rows = db.prepare(`
+		SELECT bc.cost_category, bc.item_name, COALESCE(SUM(bc.total_cost), 0) as total
+		FROM batch_costs bc
+		WHERE bc.created_at >= ${dateFilter(period)}
+		GROUP BY bc.cost_category, bc.item_name
+	`).all() as { cost_category: string; item_name: string; total: number }[];
+
+	let rawMaterial = 0, solvents = 0, reagents = 0, labor = 0, utilities = 0;
+	for (const r of rows) {
+		if (r.cost_category === 'Labor') labor += r.total;
+		else if (r.cost_category === 'Utility') utilities += r.total;
+		else if (r.cost_category === 'Material') {
+			const name = r.item_name.toLowerCase();
+			if (name.includes('leaf')) rawMaterial += r.total;
+			else if (name.includes('ethanol') || name.includes('limonene')) solvents += r.total;
+			else reagents += r.total;
+		}
+	}
+	const total = rawMaterial + solvents + reagents + labor + utilities;
+	return { rawMaterial, solvents, reagents, labor, utilities, total };
+}
+
+export function getAllCostBreakdownsByPeriod(): Record<TimePeriod, CostBreakdown> {
+	return Object.fromEntries(ALL_PERIODS.map(p => [p, getCostBreakdownByPeriod(p)])) as Record<TimePeriod, CostBreakdown>;
+}
+
+export interface SolventTotals {
+	ethanol_issued: number;
+	ethanol_recovered: number;
+	ethanol_lost: number;
+	limonene_issued: number;
+	limonene_recovered: number;
+	limonene_lost: number;
+}
+
+export function getSolventTotalsByPeriod(period: TimePeriod): SolventTotals {
+	const db = getDb();
+	const cutoff = dateFilter(period);
+	const ethanol = db
+		.prepare(`SELECT COALESCE(SUM(s2.ethanol_stock_used_l), 0) as issued, COALESCE(SUM(s2.total_ethanol_recovered_l), 0) as recovered, COALESCE(SUM(s2.total_ethanol_loss_l), 0) as lost FROM stage2_records s2 JOIN batches b ON b.id = s2.batch_id WHERE b.created_at >= ${cutoff}`)
+		.get() as { issued: number; recovered: number; lost: number };
+	const limonene = db
+		.prepare(`SELECT COALESCE(SUM(s3.limonene_volume_l), 0) as issued, COALESCE(SUM(s3.limonene_recovered_l), 0) as recovered, COALESCE(SUM(s3.limonene_loss_l), 0) as lost FROM stage3_records s3 JOIN batches b ON b.id = s3.batch_id WHERE b.created_at >= ${cutoff}`)
+		.get() as { issued: number; recovered: number; lost: number };
+	return {
+		ethanol_issued: ethanol.issued,
+		ethanol_recovered: ethanol.recovered,
+		ethanol_lost: ethanol.lost,
+		limonene_issued: limonene.issued,
+		limonene_recovered: limonene.recovered,
+		limonene_lost: limonene.lost
+	};
+}
+
+export function getAllSolventTotalsByPeriod(): Record<TimePeriod, SolventTotals> {
+	return Object.fromEntries(ALL_PERIODS.map(p => [p, getSolventTotalsByPeriod(p)])) as Record<TimePeriod, SolventTotals>;
+}
+
+export interface YieldByPeriod {
+	producedKg: number;
+	inputKg: number;
+	yieldPct: number;
+}
+
+export function getYieldByPeriod(period: TimePeriod): YieldByPeriod {
+	const db = getDb();
+	const cutoff = dateFilter(period);
+	const product = db
+		.prepare(`SELECT COALESCE(SUM(s4.final_product_weight_kg), 0) as total FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE s4.final_product_weight_kg IS NOT NULL AND b.created_at >= ${cutoff}`)
+		.get() as { total: number };
+	const input = db
+		.prepare(`SELECT COALESCE(SUM(b.leaf_input_kg), 0) as total FROM batches b WHERE b.status != 'Draft' AND b.created_at >= ${cutoff}`)
+		.get() as { total: number };
+	const producedKg = Number(Number(product.total).toFixed(2));
+	const inputKg = Number(Number(input.total).toFixed(2));
+	return {
+		producedKg,
+		inputKg,
+		yieldPct: inputKg > 0 ? Number(((producedKg / inputKg) * 100).toFixed(1)) : 0
+	};
+}
+
+export function getAllYieldByPeriod(): Record<TimePeriod, YieldByPeriod> {
+	return Object.fromEntries(ALL_PERIODS.map(p => [p, getYieldByPeriod(p)])) as Record<TimePeriod, YieldByPeriod>;
+}
+
+export function getEthanolRecoveryTrend(limit = 7): { batch_number: string; recoveryPct: number; date: string; filtrationReturnL: number; extractWeightKg: number }[] {
+	const db = getDb();
+	const rows = db.prepare(`
+		SELECT b.batch_number, s2.recovery_rate_pct, date(b.created_at) as date,
+			s2.total_ethanol_70_to_rotovap_l as filtration_return_l,
+			s2.extract_weight_kg
+		FROM stage2_records s2
+		JOIN batches b ON b.id = s2.batch_id
+		WHERE s2.recovery_rate_pct IS NOT NULL
+		ORDER BY b.created_at DESC LIMIT ?
+	`).all(limit) as { batch_number: string; recovery_rate_pct: number; date: string; filtration_return_l: number; extract_weight_kg: number }[];
+	return rows.reverse().map(r => ({
+		batch_number: r.batch_number,
+		recoveryPct: Number(r.recovery_rate_pct.toFixed(1)),
+		date: r.date,
+		filtrationReturnL: Number((r.filtration_return_l ?? 0).toFixed(1)),
+		extractWeightKg: Number((r.extract_weight_kg ?? 0).toFixed(2))
+	}));
+}
+
+export function getDailyCostTrend(days = 7): { day: string; total: number }[] {
+	const db = getDb();
+	return db.prepare(`
+		WITH RECURSIVE dates(d) AS (
+			VALUES(date('now', '-${days - 1} days'))
+			UNION ALL
+			SELECT date(d, '+1 day') FROM dates WHERE d < date('now')
+		)
+		SELECT dates.d as day, COALESCE(SUM(bc.total_cost), 0) as total
+		FROM dates
+		LEFT JOIN batch_costs bc ON date(bc.created_at) = dates.d
+		GROUP BY dates.d
+		ORDER BY dates.d
+	`).all() as { day: string; total: number }[];
+}
+
+export function getBatchYieldTrend(limit = 7): { batch_number: string; yieldPct: number; producedKg: number; date: string }[] {
+	const db = getDb();
+	const rows = db.prepare(`
+		SELECT b.batch_number,
+			CASE WHEN b.leaf_input_kg > 0
+				THEN (s4.final_product_weight_kg / b.leaf_input_kg * 100)
+				ELSE 0 END as yield_pct,
+			s4.final_product_weight_kg as produced_kg,
+			date(b.created_at) as date
+		FROM stage4_records s4
+		JOIN batches b ON b.id = s4.batch_id
+		WHERE s4.final_product_weight_kg IS NOT NULL
+		ORDER BY b.created_at DESC LIMIT ?
+	`).all(limit) as { batch_number: string; yield_pct: number; produced_kg: number; date: string }[];
+	return rows.reverse().map(r => ({
+		batch_number: r.batch_number,
+		yieldPct: Number(r.yield_pct.toFixed(2)),
+		producedKg: Number(r.produced_kg.toFixed(2)),
+		date: r.date
+	}));
+}
+
+export function getDailyOpCost(): number {
+	const db = getDb();
+	const row = db.prepare(`
+		SELECT COALESCE(SUM(total_cost), 0) as total,
+			COALESCE(julianday('now') - julianday(MIN(b.created_at)) + 1, 1) as days
+		FROM batch_costs bc
+		JOIN batches b ON b.id = bc.batch_id
+	`).get() as { total: number; days: number };
+	return row.days > 0 ? row.total / row.days : 0;
+}
+
+export function getAvgCostPerKg(): number {
+	const db = getDb();
+	const costs = db.prepare("SELECT COALESCE(SUM(total_cost), 0) as total FROM batch_costs").get() as { total: number };
+	const product = db.prepare("SELECT COALESCE(SUM(final_product_weight_kg), 0) as total FROM stage4_records WHERE final_product_weight_kg IS NOT NULL").get() as { total: number };
+	return product.total > 0 ? costs.total / product.total : 0;
 }
 
 export function getOperationsPipelineMetrics(): OperationsPipelineMetrics {
