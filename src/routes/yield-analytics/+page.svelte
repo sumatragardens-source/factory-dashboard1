@@ -3,12 +3,12 @@
 
 	const purity = data.hplc?.hplc_purity_pct ?? 0;
 	const alkaloids = [
-		{ name: 'Mitragynine', pct: data.hplc?.mitragynine_pct ?? 0, color: '#4a7c59' },
-		{ name: '7-Hydroxymitragynine', pct: data.hplc?.hydroxy_mitragynine_pct ?? 0, color: '#6b9e78' },
-		{ name: 'Paynantheine', pct: data.hplc?.paynantheine_pct ?? 0, color: '#93bf8d' },
-		{ name: 'Speciogynine', pct: data.hplc?.speciogynine_pct ?? 0, color: '#b5d4b0' },
-		{ name: 'Speciociliatine', pct: data.hplc?.speciociliatine_pct ?? 0, color: '#d4e8d1' },
-		{ name: 'Non-alkaloids', pct: data.hplc?.non_alkaloids_pct ?? 0, color: '#94a3b8' }
+		{ name: 'Mitragynine', pct: data.hplc?.mitragynine_pct ?? 0, color: '#4ADE80' },
+		{ name: '7-Hydroxymitragynine', pct: data.hplc?.hydroxy_mitragynine_pct ?? 0, color: '#A3E635' },
+		{ name: 'Paynantheine', pct: data.hplc?.paynantheine_pct ?? 0, color: '#86EFAC' },
+		{ name: 'Speciogynine', pct: data.hplc?.speciogynine_pct ?? 0, color: '#BEF264' },
+		{ name: 'Speciociliatine', pct: data.hplc?.speciociliatine_pct ?? 0, color: '#D9F99D' },
+		{ name: 'Non-alkaloids', pct: data.hplc?.non_alkaloids_pct ?? 0, color: '#6B7280' }
 	];
 
 	// SVG donut math
@@ -67,8 +67,8 @@
 								transform="rotate(-90 80 80)"
 							/>
 						{/each}
-						<text x="80" y="75" text-anchor="middle" class="text-2xl font-black" fill="#2e3440">{purity}%</text>
-						<text x="80" y="92" text-anchor="middle" class="text-[10px] uppercase" fill="#8fbf6f">PURITY</text>
+						<text x="80" y="75" text-anchor="middle" class="text-2xl font-black" fill="#1F2937">{purity}%</text>
+						<text x="80" y="92" text-anchor="middle" class="text-[10px] uppercase" fill="#A3E635">PURITY</text>
 					</svg>
 				</div>
 
@@ -116,7 +116,7 @@
 							<path
 								d="M {data.solventTrend.map((p: any, i: number) => `${(i / (data.solventTrend.length - 1)) * 380 + 10},${160 - ((p.recovery_rate_pct ?? 0) / 100) * 150}`).join(' L ')}"
 								fill="none"
-								stroke="#93bf8d"
+								stroke="#A3E635"
 								stroke-width="2.5"
 							/>
 							<path
@@ -126,8 +126,8 @@
 							/>
 							<defs>
 								<linearGradient id="solventGradient" x1="0" y1="0" x2="0" y2="1">
-									<stop offset="0%" stop-color="#93bf8d" />
-									<stop offset="100%" stop-color="#93bf8d" stop-opacity="0" />
+									<stop offset="0%" stop-color="#A3E635" />
+									<stop offset="100%" stop-color="#A3E635" stop-opacity="0" />
 								</linearGradient>
 							</defs>
 						{/if}

@@ -1,23 +1,23 @@
 @import 'tailwindcss';
 
 @theme {
-	/* Nord-inspired green — slightly brighter to pop on darker bg */
-	--color-primary: #8fbf6f;
-	--color-primary-dark: #7aab5c;
-	/* Darker Nord Polar Night backgrounds */
-	--color-bg-light: #e5e9f0;
-	--color-bg-dark: #242933;
-	--color-bg-page: #242933;
-	--color-bg-card: #2e3440;
-	--color-bg-card-hover: #3b4252;
-	--color-bg-input: #3b4252;
-	/* Nord Polar Night borders */
-	--color-border-card: #434c5e;
-	--color-border-subtle: #3b4252;
-	/* Nord Snow Storm text */
-	--color-text-primary: #eceff4;
-	--color-text-secondary: #d8dee9;
-	--color-text-muted: #7b88a1;
+	/* Stitch-12 palette */
+	--color-primary: #A3E635;
+	--color-primary-dark: #4ADE80;
+	/* Dark backgrounds */
+	--color-bg-light: #E5E7EB;
+	--color-bg-dark: #111827;
+	--color-bg-page: #111827;
+	--color-bg-card: #1F2937;
+	--color-bg-card-hover: #374151;
+	--color-bg-input: #374151;
+	/* Borders */
+	--color-border-card: #374151;
+	--color-border-subtle: #1F2937;
+	/* Text */
+	--color-text-primary: #FFFFFF;
+	--color-text-secondary: #E5E7EB;
+	--color-text-muted: #6B7280;
 	--font-family-display: 'Inter', sans-serif;
 }
 

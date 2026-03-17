@@ -115,7 +115,7 @@
 	</div>
 
 	<!-- Row 2: Process Pipeline -->
-	<div class="col-span-12 relative overflow-visible rounded-2xl border border-border-card z-20" style="background: linear-gradient(135deg, #242933 0%, #2e3440 40%, #2a3140 100%);">
+	<div class="col-span-12 relative overflow-visible rounded-2xl border border-border-card z-20" style="background: linear-gradient(135deg, #111827 0%, #1F2937 40%, #162032 100%);">
 		<!-- Subtle grid pattern overlay -->
 		<div class="absolute inset-0 opacity-[0.03] rounded-2xl overflow-hidden" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 24px 24px;"></div>
 		<div class="relative p-8">
@@ -163,16 +163,16 @@
 								<!-- Progress ring SVG (on top) -->
 								<svg width="72" height="72" class="absolute inset-0 z-10 pointer-events-none" style="transform: rotate(90deg);">
 									<!-- Track -->
-									<circle cx="36" cy="36" r={RING_R} fill="none" stroke="rgba(67,76,94,0.8)" stroke-width="3" />
+									<circle cx="36" cy="36" r={RING_R} fill="none" stroke="rgba(55,65,81,0.8)" stroke-width="3" />
 									<!-- Progress arc -->
-									<circle cx="36" cy="36" r={RING_R} fill="none" stroke="#8fbf6f" stroke-width="3" stroke-dasharray="{step.ringFilled} {RING_CIRC - step.ringFilled}" stroke-linecap="round" />
+									<circle cx="36" cy="36" r={RING_R} fill="none" stroke="#A3E635" stroke-width="3" stroke-dasharray="{step.ringFilled} {RING_CIRC - step.ringFilled}" stroke-linecap="round" />
 								</svg>
 							</div>
 							<p class="text-[11px] font-bold text-text-primary mt-3 tracking-wide">{step.label}</p>
 							<p class="text-[9px] text-text-muted font-mono">{step.fillPct.toFixed(0)}%</p>
 						</a>
 						<!-- Main tooltip -->
-						<div class="absolute top-full mt-1 z-50 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-4 w-56 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 {i === 0 ? 'left-0' : i === mainSteps.length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}" style="background: linear-gradient(160deg, #3b4252 0%, #2e3440 100%);">
+						<div class="absolute top-full mt-1 z-50 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-4 w-56 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 {i === 0 ? 'left-0' : i === mainSteps.length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}" style="background: linear-gradient(160deg, #374151 0%, #1F2937 100%);">
 							<div class="flex items-center justify-between mb-2">
 								<p class="text-[11px] font-bold text-text-primary">{step.label}</p>
 								<span class="text-[9px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded">{step.fillPct.toFixed(0)}%</span>
@@ -219,7 +219,7 @@
 								<div class="h-3.5 w-3.5 rounded-full bg-bg-page border-[1.5px] border-primary/50 z-10 transition-all duration-200 group-hover/notch:border-primary group-hover/notch:bg-primary/20 group-hover/notch:scale-150 cursor-default"></div>
 								<p class="text-[7px] font-medium text-text-muted/70 mt-1.5 whitespace-nowrap uppercase tracking-widest">{notchSteps[i].label}</p>
 								<!-- Notch tooltip -->
-								<div class="absolute top-full mt-5 z-50 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-3 w-44 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-all duration-200 left-1/2 -translate-x-1/2" style="background: linear-gradient(160deg, #3b4252 0%, #2e3440 100%);">
+								<div class="absolute top-full mt-5 z-50 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-3 w-44 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-all duration-200 left-1/2 -translate-x-1/2" style="background: linear-gradient(160deg, #374151 0%, #1F2937 100%);">
 									<div class="flex items-center gap-1.5 mb-2">
 										<div class="h-1.5 w-1.5 rounded-full bg-primary/60"></div>
 										<p class="text-[10px] font-bold text-text-primary">{notchSteps[i].label}</p>
