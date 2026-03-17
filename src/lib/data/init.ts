@@ -2,7 +2,7 @@ import { getDb } from './db';
 import { createSchema } from './schema';
 import { seedData } from './seed';
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 
 let initialized = false;
 

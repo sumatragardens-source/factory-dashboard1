@@ -1,22 +1,72 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { NAV_ITEMS } from '$lib/constants/navigation';
+
 	interface Props {
 		title?: string;
 	}
 
 	let { title = 'Operations' }: Props = $props();
+
+	const iconMap: Record<string, string> = {
+		activity: 'dashboard',
+		layers: 'layers',
+		package: 'inventory_2',
+		settings: 'precision_manufacturing',
+		'dollar-sign': 'payments',
+		droplet: 'water_drop',
+		'trending-up': 'trending_up',
+		'alert-triangle': 'warning',
+		clipboard: 'science'
+	};
 </script>
 
 <header class="h-14 border-b border-border-card bg-bg-card flex items-center justify-between px-6 shrink-0">
-	<a href="/operations" class="flex items-center gap-3 hover:opacity-80 transition-opacity">
-		<div class="h-7 w-7 rounded-md bg-primary flex items-center justify-center">
-			<i class="fa-solid fa-leaf text-bg-dark text-xs"></i>
+	<div class="flex items-center gap-3">
+		<!-- Leaf icon with nav flyout on hover -->
+		<div class="group/nav relative">
+			<a href="/operations" class="h-7 w-7 rounded-md bg-primary flex items-center justify-center cursor-pointer">
+				<i class="fa-solid fa-leaf text-bg-dark text-xs"></i>
+			</a>
+			<!-- Flyout nav panel -->
+			<div class="absolute left-0 top-full mt-1 w-56 bg-bg-card border border-border-card rounded-xl flex-col shadow-xl shadow-black/30 z-50 opacity-0 pointer-events-none group-hover/nav:opacity-100 group-hover/nav:pointer-events-auto transition-opacity duration-200 hidden group-hover/nav:flex">
+				<div class="p-4 border-b border-border-card">
+					<h1 class="text-sm font-black tracking-tighter text-text-primary uppercase">Sumatra Gardens</h1>
+					<p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mt-0.5">Factory Operations</p>
+				</div>
+				<nav class="flex-1 p-3 space-y-0.5 overflow-y-auto no-scrollbar">
+					{#each NAV_ITEMS as item}
+						{@const isActive = page.url.pathname === item.href || (item.href !== '/operations' && page.url.pathname.startsWith(item.href))}
+						<a
+							href={item.href}
+							class="flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors
+								{isActive
+									? 'bg-primary/20 text-text-primary font-semibold'
+									: 'text-text-muted hover:bg-bg-card-hover'}"
+						>
+							<span class="material-symbols-outlined text-primary text-[18px]">{iconMap[item.icon] ?? 'circle'}</span>
+							<span>{item.label}</span>
+						</a>
+					{/each}
+				</nav>
+				<div class="p-3 border-t border-border-card">
+					<a
+						href="/batches?action=new"
+						class="w-full bg-primary text-bg-dark font-bold py-2 rounded text-xs tracking-widest hover:brightness-105 transition-all flex items-center justify-center gap-2 uppercase"
+					>
+						<span class="material-symbols-outlined text-sm">add_box</span>
+						New Batch
+					</a>
+				</div>
+			</div>
 		</div>
+
 		<div class="flex items-center gap-2">
 			<h1 class="text-sm font-black tracking-tight text-text-primary uppercase">Sumatra Gardens</h1>
 			<span class="text-text-muted">|</span>
 			<span class="text-sm font-bold text-text-secondary uppercase tracking-wide">Ops-Command</span>
 		</div>
-	</a>
+	</div>
 
 	<div class="flex items-center gap-6">
 		<!-- System status -->

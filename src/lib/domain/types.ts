@@ -6,6 +6,7 @@ export interface Batch {
 	status: BatchState;
 	current_stage: number;
 	leaf_batch_id: string | null;
+	production_run_id: number | null;
 	supplier: string | null;
 	strain: string | null;
 	leaf_input_kg: number;
@@ -269,6 +270,65 @@ export interface Approval {
 	decision_notes: string | null;
 	requested_at: string;
 	decided_at: string | null;
+}
+
+export interface ProductionRun {
+	id: number;
+	run_number: string;
+	target_kg: number;
+	batch_size_kg: number;
+	status: 'Planning' | 'In Progress' | 'Completed' | 'On Hold';
+	started_at: string | null;
+	completed_at: string | null;
+	notes: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface ProductionRunSummary {
+	run: ProductionRun;
+	totalBatches: number;
+	completedBatches: number;
+	inProgressBatches: number;
+	totalInputKg: number;
+	totalProducedKg: number;
+	overallYieldPct: number;
+	totalCost: number;
+	costPerKg: number;
+	avgEthanolRecovery: number;
+}
+
+export interface BatchCostSummary {
+	batch_id: number;
+	batch_number: string;
+	status: string;
+	totalCost: number;
+	costPerKg: number | null;
+	final_product_weight_kg: number | null;
+}
+
+export interface BatchEthanolSummary {
+	batch_id: number;
+	batch_number: string;
+	status: string;
+	ethanol_issued_l: number | null;
+	ethanol_recovered_l: number | null;
+	ethanol_lost_l: number | null;
+	recovery_pct: number | null;
+	filtration_return_l: number | null;
+	concentration_gl: number | null;
+}
+
+export interface BatchYieldSummary {
+	batch_id: number;
+	batch_number: string;
+	status: string;
+	leaf_input_kg: number;
+	final_product_weight_kg: number | null;
+	cumulative_yield_pct: number | null;
+	hplc_purity_pct: number | null;
+	mitragynine_pct: number | null;
+	deviation_count: number;
 }
 
 export interface UnitRate {

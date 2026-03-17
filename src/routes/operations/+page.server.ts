@@ -10,11 +10,23 @@ import {
 	getEthanolRecoveryTrend,
 	getDailyCostTrend,
 	getBatchYieldTrend,
-	getLatestHplcResult
+	getLatestHplcResult,
+	getProductionRuns,
+	getProductionRunSummary,
+	getRunBatchCosts,
+	getRunCostAggregates,
+	getRunEthanolBreakdown,
+	getRunEthanolAggregates,
+	getRunYieldBreakdown,
+	getRunYieldAggregates
 } from '$lib/data/repositories/dashboardRepo';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
+	const productionRuns = getProductionRuns();
+	const activeRun = productionRuns.find(r => r.status === 'In Progress') ?? productionRuns[0];
+	const activeRunId = activeRun?.id ?? 0;
+
 	return {
 		pipeline: getOperationsPipelineMetrics(),
 		activeBatchProgress: getActiveBatchProgress(),
@@ -27,6 +39,15 @@ export const load: PageServerLoad = () => {
 		ethRecoveryTrend: getEthanolRecoveryTrend(),
 		costTrend: getDailyCostTrend(),
 		yieldTrend: getBatchYieldTrend(),
-		hplcResult: getLatestHplcResult()
+		hplcResult: getLatestHplcResult(),
+		productionRuns,
+		activeRunId,
+		runSummary: activeRunId ? getProductionRunSummary(activeRunId) : null,
+		runBatchCosts: activeRunId ? getRunBatchCosts(activeRunId) : [],
+		runCostAggregates: activeRunId ? getRunCostAggregates(activeRunId) : null,
+		runEthanolBreakdown: activeRunId ? getRunEthanolBreakdown(activeRunId) : [],
+		runEthanolAggregates: activeRunId ? getRunEthanolAggregates(activeRunId) : null,
+		runYieldBreakdown: activeRunId ? getRunYieldBreakdown(activeRunId) : [],
+		runYieldAggregates: activeRunId ? getRunYieldAggregates(activeRunId) : null
 	};
 };

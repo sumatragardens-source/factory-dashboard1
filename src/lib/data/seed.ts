@@ -25,22 +25,28 @@ export function seedData(db: Database.Database): void {
 			('MAT-LIM', 'Limonene', 'L', 250.0, 80, 'Acid/Base Extraction, Back Extraction, Precipitation');
 	`);
 
+	// --- Production Runs (must be inserted before batches) ---
+	db.exec(`
+		INSERT INTO production_runs (run_number, target_kg, batch_size_kg, status, started_at, notes, created_at)
+		VALUES ('PR-001', 1000, 100, 'In Progress', '2026-01-10 08:00:00', 'First 1-ton production run', '2026-01-10 08:00:00');
+	`);
+
 	// --- Batches (10 lots x 100 kg each = 1,000 kg total intake) ---
 	// current_stage now uses 8-stage numbering:
 	// 1=Powder, 2=EtOH Extraction, 3=Filtration, 4=Distillation,
 	// 5=A/B Extraction, 6=Back Extraction, 7=Precipitation, 8=Drying
 	db.exec(`
-		INSERT INTO batches (batch_number, status, current_stage, supplier, strain, leaf_input_kg, operator_name, notes, created_at, updated_at, started_at, completed_at) VALUES
-			('SG-LOT-001', 'Completed', 8, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, 'Ahmad R.', 'First lot - full run with HPLC', '2026-01-10 08:00:00', '2026-02-05 16:00:00', '2026-01-10 08:30:00', '2026-02-05 16:00:00'),
-			('SG-LOT-002', 'Completed', 8, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, 'Dewi S.', 'Second lot completed', '2026-01-17 08:00:00', '2026-02-12 16:00:00', '2026-01-17 08:30:00', '2026-02-12 16:00:00'),
-			('SG-LOT-003', 'Completed', 8, 'Borneo Botanicals', 'Red Borneo Select', 100.0, 'Ahmad R.', 'Third lot completed - Borneo source', '2026-01-24 08:00:00', '2026-02-20 16:00:00', '2026-01-24 08:30:00', '2026-02-20 16:00:00'),
-			('SG-LOT-004', 'Pending Review', 8, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, 'Budi P.', 'All stages done, awaiting final approval', '2026-01-31 08:00:00', '2026-03-01 15:00:00', '2026-01-31 08:30:00', NULL),
-			('SG-LOT-005', 'In Progress', 8, 'Maeng Da Farms', 'White Maeng Da', 100.0, 'Dewi S.', 'Drying in progress', '2026-02-07 08:00:00', '2026-03-10 09:00:00', '2026-02-07 09:00:00', NULL),
-			('SG-LOT-006', 'In Progress', 5, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, 'Ahmad R.', 'Mid acid/base extraction', '2026-02-14 08:00:00', '2026-03-12 10:00:00', '2026-02-14 09:00:00', NULL),
-			('SG-LOT-007', 'In Progress', 2, 'Borneo Botanicals', 'Red Borneo Select', 100.0, 'Budi P.', 'In ethanol extraction', '2026-02-21 08:00:00', '2026-03-14 11:00:00', '2026-02-21 09:00:00', NULL),
-			('SG-LOT-008', 'In Progress', 1, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, 'Dewi S.', 'Grinding in progress', '2026-03-01 08:00:00', '2026-03-15 08:00:00', '2026-03-01 09:00:00', NULL),
-			('SG-LOT-009', 'Rejected', 5, 'Maeng Da Farms', 'White Maeng Da', 100.0, 'Budi P.', 'pH deviation in acid/base extraction - rejected for review', '2026-02-10 08:00:00', '2026-03-08 10:00:00', '2026-02-10 09:00:00', NULL),
-			('SG-LOT-010', 'Draft', 1, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, NULL, 'Not started', '2026-03-14 08:00:00', '2026-03-14 08:00:00', NULL, NULL);
+		INSERT INTO batches (batch_number, status, current_stage, production_run_id, supplier, strain, leaf_input_kg, operator_name, notes, created_at, updated_at, started_at, completed_at) VALUES
+			('SG-LOT-001', 'Completed', 8, 1, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, 'Ahmad R.', 'First lot - full run with HPLC', '2026-01-10 08:00:00', '2026-02-05 16:00:00', '2026-01-10 08:30:00', '2026-02-05 16:00:00'),
+			('SG-LOT-002', 'Completed', 8, 1, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, 'Dewi S.', 'Second lot completed', '2026-01-17 08:00:00', '2026-02-12 16:00:00', '2026-01-17 08:30:00', '2026-02-12 16:00:00'),
+			('SG-LOT-003', 'Completed', 8, 1, 'Borneo Botanicals', 'Red Borneo Select', 100.0, 'Ahmad R.', 'Third lot completed - Borneo source', '2026-01-24 08:00:00', '2026-02-20 16:00:00', '2026-01-24 08:30:00', '2026-02-20 16:00:00'),
+			('SG-LOT-004', 'Pending Review', 8, 1, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, 'Budi P.', 'All stages done, awaiting final approval', '2026-01-31 08:00:00', '2026-03-01 15:00:00', '2026-01-31 08:30:00', NULL),
+			('SG-LOT-005', 'In Progress', 8, 1, 'Maeng Da Farms', 'White Maeng Da', 100.0, 'Dewi S.', 'Drying in progress', '2026-02-07 08:00:00', '2026-03-10 09:00:00', '2026-02-07 09:00:00', NULL),
+			('SG-LOT-006', 'In Progress', 5, 1, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, 'Ahmad R.', 'Mid acid/base extraction', '2026-02-14 08:00:00', '2026-03-12 10:00:00', '2026-02-14 09:00:00', NULL),
+			('SG-LOT-007', 'In Progress', 2, 1, 'Borneo Botanicals', 'Red Borneo Select', 100.0, 'Budi P.', 'In ethanol extraction', '2026-02-21 08:00:00', '2026-03-14 11:00:00', '2026-02-21 09:00:00', NULL),
+			('SG-LOT-008', 'In Progress', 1, 1, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, 'Dewi S.', 'Grinding in progress', '2026-03-01 08:00:00', '2026-03-15 08:00:00', '2026-03-01 09:00:00', NULL),
+			('SG-LOT-009', 'Rejected', 5, 1, 'Maeng Da Farms', 'White Maeng Da', 100.0, 'Budi P.', 'pH deviation in acid/base extraction - rejected for review', '2026-02-10 08:00:00', '2026-03-08 10:00:00', '2026-02-10 09:00:00', NULL),
+			('SG-LOT-010', 'Draft', 1, 1, 'Sumatra Direct', 'Green Sumatra Premium', 100.0, NULL, 'Not started', '2026-03-14 08:00:00', '2026-03-14 08:00:00', NULL, NULL);
 	`);
 
 	// --- Batch stages (8 stages per batch) ---
@@ -329,6 +335,72 @@ export function seedData(db: Database.Database): void {
 			(1, 5, 'Labor', 'Operator', 20.0, 15.00, 300.00, 'Partitioning operations'),
 			(1, 8, 'Labor', 'Operator', 16.0, 15.00, 240.00, 'Drying and final product'),
 			(1, 8, 'Utility', 'Electricity', 100.0, 0.18, 18.00, 'Drying cabinet power');
+	`);
+
+	// --- Batch Costs for batches 2-5 (similar pattern to batch 1, ±5% variation) ---
+	db.exec(`
+		INSERT INTO batch_costs (batch_id, stage_number, cost_category, item_name, quantity, unit_rate, total_cost, notes) VALUES
+			(2, 1, 'Material', 'Dried Leaf', 100.0, 45.00, 4500.00, 'Raw leaf input'),
+			(2, 1, 'Labor', 'Operator', 8.5, 15.00, 127.50, 'Grinding operation'),
+			(2, 1, 'Utility', 'Electricity', 40.0, 0.18, 7.20, 'Grinder power consumption'),
+			(2, 2, 'Material', 'Ethanol 96%', 350.0, 12.50, 4375.00, 'Ethanol stock issued'),
+			(2, 2, 'Labor', 'Operator', 42.0, 15.00, 630.00, 'Extraction operation'),
+			(2, 2, 'Utility', 'Electricity', 210.0, 0.18, 37.80, 'Reactor + rotovap power'),
+			(2, 5, 'Material', 'HCl', 8.4, 28.00, 235.20, 'Acid extraction'),
+			(2, 5, 'Material', 'NaOH', 8.8, 18.00, 158.40, 'Base extraction'),
+			(2, 5, 'Material', 'Limonene', 25.0, 35.00, 875.00, 'Partition solvent'),
+			(2, 5, 'Material', 'DI Water', 49.0, 0.15, 7.35, 'Wash water'),
+			(2, 5, 'Labor', 'Operator', 19.0, 15.00, 285.00, 'Partitioning operations'),
+			(2, 8, 'Labor', 'Operator', 15.0, 15.00, 225.00, 'Drying and final product'),
+			(2, 8, 'Utility', 'Electricity', 95.0, 0.18, 17.10, 'Drying cabinet power');
+	`);
+	db.exec(`
+		INSERT INTO batch_costs (batch_id, stage_number, cost_category, item_name, quantity, unit_rate, total_cost, notes) VALUES
+			(3, 1, 'Material', 'Dried Leaf', 100.0, 45.00, 4500.00, 'Raw leaf input'),
+			(3, 1, 'Labor', 'Operator', 8.0, 15.00, 120.00, 'Grinding operation'),
+			(3, 1, 'Utility', 'Electricity', 39.0, 0.18, 7.02, 'Grinder power consumption'),
+			(3, 2, 'Material', 'Ethanol 96%', 350.0, 12.50, 4375.00, 'Ethanol stock issued'),
+			(3, 2, 'Labor', 'Operator', 41.0, 15.00, 615.00, 'Extraction operation'),
+			(3, 2, 'Utility', 'Electricity', 205.0, 0.18, 36.90, 'Reactor + rotovap power'),
+			(3, 5, 'Material', 'HCl', 8.6, 28.00, 240.80, 'Acid extraction'),
+			(3, 5, 'Material', 'NaOH', 9.2, 18.00, 165.60, 'Base extraction'),
+			(3, 5, 'Material', 'Limonene', 25.5, 35.00, 892.50, 'Partition solvent'),
+			(3, 5, 'Material', 'DI Water', 51.0, 0.15, 7.65, 'Wash water'),
+			(3, 5, 'Labor', 'Operator', 21.0, 15.00, 315.00, 'Partitioning operations'),
+			(3, 8, 'Labor', 'Operator', 17.0, 15.00, 255.00, 'Drying and final product'),
+			(3, 8, 'Utility', 'Electricity', 105.0, 0.18, 18.90, 'Drying cabinet power');
+	`);
+	db.exec(`
+		INSERT INTO batch_costs (batch_id, stage_number, cost_category, item_name, quantity, unit_rate, total_cost, notes) VALUES
+			(4, 1, 'Material', 'Dried Leaf', 100.0, 45.00, 4500.00, 'Raw leaf input'),
+			(4, 1, 'Labor', 'Operator', 8.5, 15.00, 127.50, 'Grinding operation'),
+			(4, 1, 'Utility', 'Electricity', 42.0, 0.18, 7.56, 'Grinder power consumption'),
+			(4, 2, 'Material', 'Ethanol 96%', 350.0, 12.50, 4375.00, 'Ethanol stock issued'),
+			(4, 2, 'Labor', 'Operator', 38.0, 15.00, 570.00, 'Extraction operation'),
+			(4, 2, 'Utility', 'Electricity', 195.0, 0.18, 35.10, 'Reactor + rotovap power'),
+			(4, 5, 'Material', 'HCl', 8.2, 28.00, 229.60, 'Acid extraction'),
+			(4, 5, 'Material', 'NaOH', 8.6, 18.00, 154.80, 'Base extraction'),
+			(4, 5, 'Material', 'Limonene', 24.5, 35.00, 857.50, 'Partition solvent'),
+			(4, 5, 'Material', 'DI Water', 48.0, 0.15, 7.20, 'Wash water'),
+			(4, 5, 'Labor', 'Operator', 20.0, 15.00, 300.00, 'Partitioning operations'),
+			(4, 8, 'Labor', 'Operator', 16.0, 15.00, 240.00, 'Drying and final product'),
+			(4, 8, 'Utility', 'Electricity', 98.0, 0.18, 17.64, 'Drying cabinet power');
+	`);
+	db.exec(`
+		INSERT INTO batch_costs (batch_id, stage_number, cost_category, item_name, quantity, unit_rate, total_cost, notes) VALUES
+			(5, 1, 'Material', 'Dried Leaf', 100.0, 45.00, 4500.00, 'Raw leaf input'),
+			(5, 1, 'Labor', 'Operator', 7.5, 15.00, 112.50, 'Grinding operation'),
+			(5, 1, 'Utility', 'Electricity', 36.0, 0.18, 6.48, 'Grinder power consumption'),
+			(5, 2, 'Material', 'Ethanol 96%', 350.0, 12.50, 4375.00, 'Ethanol stock issued'),
+			(5, 2, 'Labor', 'Operator', 39.0, 15.00, 585.00, 'Extraction operation'),
+			(5, 2, 'Utility', 'Electricity', 198.0, 0.18, 35.64, 'Reactor + rotovap power'),
+			(5, 5, 'Material', 'HCl', 8.1, 28.00, 226.80, 'Acid extraction'),
+			(5, 5, 'Material', 'NaOH', 8.5, 18.00, 153.00, 'Base extraction'),
+			(5, 5, 'Material', 'Limonene', 24.5, 35.00, 857.50, 'Partition solvent'),
+			(5, 5, 'Material', 'DI Water', 48.0, 0.15, 7.20, 'Wash water'),
+			(5, 5, 'Labor', 'Operator', 19.0, 15.00, 285.00, 'Partitioning operations'),
+			(5, 8, 'Labor', 'Operator', 15.0, 15.00, 225.00, 'Drying and final product'),
+			(5, 8, 'Utility', 'Electricity', 96.0, 0.18, 17.28, 'Drying cabinet power');
 	`);
 
 	// --- Machine status events ---

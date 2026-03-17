@@ -2,12 +2,27 @@ import type Database from 'better-sqlite3';
 
 export function createSchema(db: Database.Database): void {
 	db.exec(`
+		CREATE TABLE IF NOT EXISTS production_runs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			run_number TEXT NOT NULL UNIQUE,
+			target_kg REAL NOT NULL DEFAULT 1000,
+			batch_size_kg REAL NOT NULL DEFAULT 100,
+			status TEXT NOT NULL DEFAULT 'In Progress'
+				CHECK(status IN ('Planning','In Progress','Completed','On Hold')),
+			started_at TEXT,
+			completed_at TEXT,
+			notes TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
 		CREATE TABLE IF NOT EXISTS batches (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			batch_number TEXT NOT NULL UNIQUE,
 			status TEXT NOT NULL CHECK(status IN ('Draft','In Progress','Pending Review','Completed','Rejected')),
 			current_stage INTEGER NOT NULL DEFAULT 1 CHECK(current_stage BETWEEN 1 AND 8),
 			leaf_batch_id TEXT,
+			production_run_id INTEGER REFERENCES production_runs(id),
 			supplier TEXT,
 			strain TEXT,
 			leaf_input_kg REAL NOT NULL,
