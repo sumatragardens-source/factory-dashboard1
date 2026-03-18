@@ -89,12 +89,6 @@
 				{/if}
 			</a>
 
-			<form method="POST" action="/api/auth/logout">
-				<button type="submit" class="p-1.5 text-text-muted hover:text-red-400 rounded-full transition-colors" title="Sign out">
-					<span class="material-symbols-outlined text-[20px]">logout</span>
-				</button>
-			</form>
-
 			<div class="h-8 w-8 rounded-full bg-border-card flex items-center justify-center text-text-secondary font-bold text-[10px] border border-border-subtle">SG</div>
 		</div>
 	</div>

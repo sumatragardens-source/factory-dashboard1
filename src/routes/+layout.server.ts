@@ -2,7 +2,7 @@ import { initDb } from '$lib/data/init';
 import { getAlertCounts } from '$lib/data/repositories/alertRepo';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = ({ url, locals }) => {
+export const load: LayoutServerLoad = ({ url }) => {
 	initDb();
 
 	const pathTitles: Record<string, string> = {
@@ -23,5 +23,5 @@ export const load: LayoutServerLoad = ({ url, locals }) => {
 
 	const alertCounts = getAlertCounts();
 
-	return { pageTitle, user: locals.user, alertCounts };
+	return { pageTitle, alertCounts };
 };

@@ -11,10 +11,6 @@
 	let { data, children }: Props = $props();
 </script>
 
-{#if data.user}
-	<AppShell title={data.pageTitle} alertCounts={data.alertCounts}>
-		{@render children()}
-	</AppShell>
-{:else}
+<AppShell title={data.pageTitle} alertCounts={data.alertCounts}>
 	{@render children()}
-{/if}
+</AppShell>
