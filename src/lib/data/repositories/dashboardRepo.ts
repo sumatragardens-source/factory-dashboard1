@@ -806,19 +806,20 @@ export function getProductionRunSummary(runId: number): ProductionRunSummary | n
 export function getRunBatchCosts(runId: number): BatchCostSummary[] {
 	const db = getDb();
 	return db.prepare(`
-		SELECT b.id as batch_id, b.batch_number, b.status,
+		SELECT b.id as batch_id, b.batch_number, b.status, b.supplier_lot,
 			COALESCE(SUM(bc.total_cost), 0) as totalCost,
 			s4.final_product_g / 1000.0 as final_product_kg
 		FROM batches b
 		LEFT JOIN batch_costs bc ON bc.batch_id = b.id
 		LEFT JOIN stage4_records s4 ON s4.batch_id = b.id
 		WHERE b.production_run_id = ?
-		GROUP BY b.id
+		GROUP BY b.id, b.supplier_lot
 		ORDER BY b.batch_number
 	`).all(runId).map((r: any) => ({
 		batch_id: r.batch_id,
 		batch_number: r.batch_number,
 		status: r.status,
+		supplier_lot: r.supplier_lot ?? null,
 		totalCost: Number(r.totalCost),
 		costPerKg: r.final_product_kg ? Number((r.totalCost / r.final_product_kg).toFixed(2)) : null,
 		final_product_g: r.final_product_kg ? r.final_product_kg * 1000 : null
@@ -870,10 +871,50 @@ export function getRunCostAggregates(runId: number): RunCostAggregates {
 	};
 }
 
+export interface BatchCostSegment {
+	batchId: number;
+	batchNumber: string;
+	supplierLot: string | null;
+	leaf: number;
+	solvent: number;
+	chemicals: number;
+	labor: number;
+	electricity: number;
+	testing: number;
+}
+
+export function getBatchCostBreakdown(runId: number): BatchCostSegment[] {
+	const db = getDb();
+	return db.prepare(`
+		SELECT b.id as batch_id, b.batch_number, b.supplier_lot,
+			COALESCE(SUM(CASE WHEN bc.item_name = 'Raw leaf' THEN bc.total_cost END), 0) as leaf,
+			COALESCE(SUM(CASE WHEN bc.item_name IN ('Ethanol loss', 'D-Limonene loss') THEN bc.total_cost END), 0) as solvent,
+			COALESCE(SUM(CASE WHEN bc.item_name IN ('Acetic acid', 'NaOH', 'K₂CO₃') THEN bc.total_cost END), 0) as chemicals,
+			COALESCE(SUM(CASE WHEN bc.item_name = 'Labor' THEN bc.total_cost END), 0) as labor,
+			COALESCE(SUM(CASE WHEN bc.item_name = 'Electricity' THEN bc.total_cost END), 0) as electricity,
+			COALESCE(SUM(CASE WHEN bc.item_name = 'Testing' THEN bc.total_cost END), 0) as testing
+		FROM batches b
+		LEFT JOIN batch_costs bc ON bc.batch_id = b.id
+		WHERE b.production_run_id = ?
+		GROUP BY b.id
+		ORDER BY b.batch_number
+	`).all(runId).map((r: any) => ({
+		batchId: r.batch_id,
+		batchNumber: r.batch_number,
+		supplierLot: r.supplier_lot ?? null,
+		leaf: Number(r.leaf),
+		solvent: Number(r.solvent),
+		chemicals: Number(r.chemicals),
+		labor: Number(r.labor),
+		electricity: Number(r.electricity),
+		testing: Number(r.testing)
+	})) as BatchCostSegment[];
+}
+
 export function getRunEthanolBreakdown(runId: number): BatchEthanolSummary[] {
 	const db = getDb();
 	return db.prepare(`
-		SELECT b.id as batch_id, b.batch_number, b.status,
+		SELECT b.id as batch_id, b.batch_number, b.status, b.supplier_lot,
 			s2.etoh_vol_L as ethanol_issued_l,
 			s2.etoh_recovered_L as ethanol_recovered_l,
 			s2.etoh_lost_L as ethanol_lost_l,
@@ -935,7 +976,7 @@ export function getRunEthanolAggregates(runId: number): RunEthanolAggregates {
 export function getRunYieldBreakdown(runId: number): BatchYieldSummary[] {
 	const db = getDb();
 	return db.prepare(`
-		SELECT b.id as batch_id, b.batch_number, b.status, b.leaf_input_kg,
+		SELECT b.id as batch_id, b.batch_number, b.status, b.supplier_lot, b.leaf_input_kg,
 			s4.final_product_g,
 			s4.overall_yield_pct,
 			lr.hplc_purity_pct,

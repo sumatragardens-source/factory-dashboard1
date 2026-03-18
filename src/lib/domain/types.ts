@@ -449,6 +449,7 @@ export interface BatchCostSummary {
 	batch_id: number;
 	batch_number: string;
 	status: string;
+	supplier_lot: string | null;
 	totalCost: number;
 	costPerKg: number | null;
 	final_product_g: number | null;
@@ -458,6 +459,7 @@ export interface BatchEthanolSummary {
 	batch_id: number;
 	batch_number: string;
 	status: string;
+	supplier_lot: string | null;
 	ethanol_issued_l: number | null;
 	ethanol_recovered_l: number | null;
 	ethanol_lost_l: number | null;
@@ -470,6 +472,7 @@ export interface BatchYieldSummary {
 	batch_id: number;
 	batch_number: string;
 	status: string;
+	supplier_lot: string | null;
 	leaf_input_kg: number;
 	final_product_g: number | null;
 	overall_yield_pct: number | null;

@@ -21,7 +21,8 @@ import {
 	getRunYieldAggregates,
 	getRunHistorySummaries,
 	getBatchAnomalies,
-	getQualityCorrelation
+	getQualityCorrelation,
+	getBatchCostBreakdown
 } from '$lib/data/repositories/dashboardRepo';
 import { getActiveAlerts, getAlertCounts } from '$lib/data/repositories/alertRepo';
 import type { PageServerLoad } from './$types';
@@ -54,6 +55,7 @@ export const load: PageServerLoad = () => {
 			runEthanolAggregates: activeRunId ? getRunEthanolAggregates(activeRunId) : null,
 			runYieldBreakdown: activeRunId ? getRunYieldBreakdown(activeRunId) : [],
 			runYieldAggregates: activeRunId ? getRunYieldAggregates(activeRunId) : null,
+			batchCostBreakdown: activeRunId ? getBatchCostBreakdown(activeRunId) : [],
 			runHistory: getRunHistorySummaries(),
 			batchAnomalies: activeRunId ? getBatchAnomalies(activeRunId) : [],
 			qualityCorrelation: activeRunId ? getQualityCorrelation(activeRunId) : [],
@@ -84,6 +86,7 @@ export const load: PageServerLoad = () => {
 			runEthanolAggregates: null,
 			runYieldBreakdown: [],
 			runYieldAggregates: null,
+			batchCostBreakdown: [],
 			runHistory: [],
 			batchAnomalies: [],
 			qualityCorrelation: [],
