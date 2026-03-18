@@ -31,6 +31,7 @@
 </script>
 
 <div class="min-h-screen bg-[#0d0d0d] text-white p-4">
+{#if data.batchCount > 0}
 	<!-- Header -->
 	<div class="flex items-center justify-between mb-4">
 		<div class="flex items-center gap-3">
@@ -231,4 +232,7 @@
 			</table>
 		</div>
 	</div>
+{:else}
+	<div class="text-center py-12 text-[#666666]"><p class="text-sm">No data available</p><p class="text-xs mt-1">Import data via the Admin page to get started.</p></div>
+{/if}
 </div>

@@ -35,6 +35,9 @@
 </script>
 
 <div class="p-6">
+	{#if data.labResults.length === 0}
+		<div class="text-center py-12 text-[#666666]"><p class="text-sm">No data available</p><p class="text-xs mt-1">Import data via the Admin page to get started.</p></div>
+	{:else}
 	<div class="grid grid-cols-12 gap-6">
 		<!-- Left Sidebar: Sample List -->
 		<div class="col-span-3">
@@ -269,4 +272,5 @@
 			{/if}
 		</div>
 	</div>
+	{/if}
 </div>

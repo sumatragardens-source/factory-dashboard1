@@ -16,8 +16,8 @@ export function calculateNetSolventCost(
 	return Number((netUsed * ratePerL).toFixed(2));
 }
 
-/** Spec §2 Stage 2: ethanol_mass_in = volume × density (default 0.81 for 96%) */
-export function calculateEthanolMass(volumeL: number, densityKgPerL: number = 0.81): number {
+/** Stage 2: ethanol_mass_in = volume × density (default 0.87 for 70% EtOH) */
+export function calculateEthanolMass(volumeL: number, densityKgPerL: number = 0.87): number {
 	if (volumeL <= 0) return 0;
 	return Number((volumeL * densityKgPerL).toFixed(2));
 }

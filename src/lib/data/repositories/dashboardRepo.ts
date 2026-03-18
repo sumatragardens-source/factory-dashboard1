@@ -507,7 +507,7 @@ export function getCostBreakdown(): CostBreakdown {
 			const name = r.item_name.toLowerCase();
 			if (name.includes('leaf')) rawMaterial += r.total;
 			else if (name.includes('ethanol') || name.includes('limonene')) solvents += r.total;
-			else reagents += r.total; // HCl, NaOH, DI Water
+			else reagents += r.total; // NaOH, K₂CO₃, acetic acid
 		}
 	}
 	const total = rawMaterial + solvents + reagents + labor + utilities;

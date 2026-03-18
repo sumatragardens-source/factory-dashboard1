@@ -15,7 +15,8 @@ export const load: LayoutServerLoad = ({ url }) => {
 		'/yield-analytics': 'Yield & Analytics',
 		'/deviations': 'Deviations',
 		'/lab-results': 'Lab Results',
-		'/stages': 'Stage Performance'
+		'/stages': 'Stage Performance',
+		'/admin': 'Admin'
 	};
 
 	const basePath = '/' + (url.pathname.split('/')[1] || 'operations');

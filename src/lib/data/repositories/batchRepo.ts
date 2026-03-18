@@ -44,7 +44,7 @@ export function createBatch(data: {
 	const insertStage = db.prepare(
 		`INSERT INTO batch_stages (batch_id, stage_number, status) VALUES (?, ?, 'Pending')`
 	);
-	for (let i = 1; i <= 4; i++) {
+	for (let i = 1; i <= 7; i++) {
 		insertStage.run(batchId, i);
 	}
 
@@ -82,7 +82,7 @@ export function finalizeStage(batchId: number, stageNumber: number, finalizedBy:
 			WHERE batch_id = ? AND stage_number = ?
 		`).run(finalizedBy, batchId, stageNumber);
 
-		if (stageNumber < 4) {
+		if (stageNumber < 7) {
 			const nextStage = stageNumber + 1;
 			db.prepare(`
 				UPDATE batch_stages SET status = 'In Progress', started_at = datetime('now')

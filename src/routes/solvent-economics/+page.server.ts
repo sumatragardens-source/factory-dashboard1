@@ -4,6 +4,7 @@ import { calculateRecoveryRate } from '$lib/calculations/solvent';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
+	try {
 	const db = getDb();
 
 	// Ethanol totals from stage2
@@ -127,4 +128,21 @@ export const load: PageServerLoad = () => {
 		batchPerformance,
 		batchCount: batchMatrix.length,
 	};
+	} catch (e) {
+		console.error('Failed to load solvent economics data:', e);
+		return {
+			recoveryPct: 0,
+			totalIssued: 0,
+			totalRecovered: 0,
+			totalLost: 0,
+			ssrRatio: 0,
+			totalLossValue: 0,
+			waterfall: { issued: 0, cakeRetention: 0, evaporationLoss: 0, otherLoss: 0, recovered: 0 },
+			bulletChart: { current: 0, rolling10: 0, best: 0, target: 90 },
+			lossSources: [],
+			maxLoss: 1,
+			batchPerformance: [],
+			batchCount: 0,
+		};
+	}
 };

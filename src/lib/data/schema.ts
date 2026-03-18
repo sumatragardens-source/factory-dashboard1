@@ -16,12 +16,28 @@ export function createSchema(db: Database.Database): void {
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
 
+		-- Lots: 1-ton supplier deliveries
+		CREATE TABLE IF NOT EXISTS lots (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			lot_id TEXT NOT NULL UNIQUE,
+			supplier TEXT NOT NULL,
+			delivery_date TEXT NOT NULL,
+			quantity_kg REAL NOT NULL,
+			batches_from_lot INTEGER,
+			cost_usd REAL,
+			cost_per_kg_usd REAL,
+			testing_cost_usd REAL DEFAULT 110,
+			notes TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
 		CREATE TABLE IF NOT EXISTS batches (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			batch_number TEXT NOT NULL UNIQUE,
 			status TEXT NOT NULL CHECK(status IN ('Draft','In Progress','Pending Review','Completed','Rejected')),
-			current_stage INTEGER NOT NULL DEFAULT 1 CHECK(current_stage BETWEEN 1 AND 4),
+			current_stage INTEGER NOT NULL DEFAULT 1 CHECK(current_stage BETWEEN 1 AND 7),
 			production_run_id INTEGER REFERENCES production_runs(id),
+			lot_id INTEGER REFERENCES lots(id),
 			supplier TEXT,
 			supplier_lot TEXT,
 			lot_position TEXT,
@@ -37,7 +53,7 @@ export function createSchema(db: Database.Database): void {
 		CREATE TABLE IF NOT EXISTS batch_stages (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			batch_id INTEGER NOT NULL REFERENCES batches(id),
-			stage_number INTEGER NOT NULL CHECK(stage_number BETWEEN 1 AND 4),
+			stage_number INTEGER NOT NULL CHECK(stage_number BETWEEN 1 AND 7),
 			status TEXT NOT NULL DEFAULT 'Pending' CHECK(status IN ('Pending','In Progress','Finalized')),
 			started_at TEXT,
 			finalized_at TEXT,
@@ -46,7 +62,7 @@ export function createSchema(db: Database.Database): void {
 			UNIQUE(batch_id, stage_number)
 		);
 
-		-- Step 1: Raw Leaf to Powder (grinding, sieving)
+		-- Stage 1: Raw Leaf & Grinding
 		CREATE TABLE IF NOT EXISTS stage1_records (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			batch_id INTEGER NOT NULL UNIQUE REFERENCES batches(id),
@@ -71,11 +87,10 @@ export function createSchema(db: Database.Database): void {
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
 
-		-- Steps 2+3: Ethanol 70% Extraction + Water Extraction
+		-- Stage 2: Ethanol Extraction (70% EtOH, 1:5 ratio)
 		CREATE TABLE IF NOT EXISTS stage2_records (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			batch_id INTEGER NOT NULL UNIQUE REFERENCES batches(id),
-			-- Step 2: Ethanol extraction
 			etoh_vol_L REAL,
 			etoh_purity_pct REAL,
 			extract_temp_C REAL,
@@ -94,7 +109,6 @@ export function createSchema(db: Database.Database): void {
 			rotovap_bath_C REAL,
 			crude_aqueous_vol_L REAL,
 			crude_extract_wt_kg REAL,
-			-- Step 3: Water extraction
 			water_vol_L REAL,
 			water_temp_C REAL,
 			water_time_min REAL,
@@ -107,11 +121,66 @@ export function createSchema(db: Database.Database): void {
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
 
-		-- Steps 4+5: Basification (NaOH) + D-Limonene + Acetic Acid Back-Extraction
-		CREATE TABLE IF NOT EXISTS stage3_records (
+		-- Reactor loads: 10 kg loads within Stage 2
+		CREATE TABLE IF NOT EXISTS reactor_loads (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			batch_id INTEGER NOT NULL REFERENCES batches(id),
+			reactor_id TEXT,
+			load_number INTEGER,
+			powder_kg REAL,
+			etoh_vol_L REAL,
+			agitation_rpm REAL,
+			stir_time_min REAL,
+			settle_time_hr REAL,
+			filtrate_vol_L REAL,
+			spent_cake_kg REAL,
+			operator_name TEXT,
+			notes TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
+		-- Stage 3: Filtration & Washing
+		CREATE TABLE IF NOT EXISTS stage3_filtration (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			batch_id INTEGER NOT NULL UNIQUE REFERENCES batches(id),
-			-- Step 4: Basification + D-Limonene partition
+			filter_press_cycles INTEGER,
+			centrifuge_batches INTEGER,
+			screw_press_used INTEGER DEFAULT 0,
+			de_used INTEGER DEFAULT 0,
+			wash_volume_L REAL,
+			cake_weight_kg REAL,
+			filtrate_volume_L REAL,
+			filtrate_clarity TEXT,
+			operator_name TEXT,
+			notes TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
+		-- Stage 4: Ethanol Distillation/Recovery
+		CREATE TABLE IF NOT EXISTS stage4_distillation (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			batch_id INTEGER NOT NULL UNIQUE REFERENCES batches(id),
+			distillation_temp_C REAL,
+			vacuum_mbar REAL,
+			bath_temp_C REAL,
+			distill_time_min REAL,
+			recovered_etoh_L REAL,
+			recovered_abv_pct REAL,
+			recovery_pct REAL,
+			crude_aqueous_vol_L REAL,
+			crude_aqueous_wt_kg REAL,
+			residual_alcohol_pct REAL,
+			operator_name TEXT,
+			notes TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
+		-- Stage 5: Acid/Base Extraction and Partitioning (d-Limonene + NaOH)
+		CREATE TABLE IF NOT EXISTS stage5_acid_base (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			batch_id INTEGER NOT NULL UNIQUE REFERENCES batches(id),
 			initial_ph REAL,
 			naoh_added_g REAL,
 			basified_ph REAL,
@@ -120,7 +189,17 @@ export function createSchema(db: Database.Database): void {
 			settling_min REAL,
 			organic_phase_mL REAL,
 			aqueous_waste_L REAL,
-			-- Step 5: Acetic acid back-extraction
+			emulsion_events INTEGER DEFAULT 0,
+			operator_name TEXT,
+			notes TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
+		-- Stage 6: Back-Extraction & Precipitation
+		CREATE TABLE IF NOT EXISTS stage6_backext_precip (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			batch_id INTEGER NOT NULL UNIQUE REFERENCES batches(id),
 			acetic_conc TEXT,
 			acetic_water_vol_L REAL,
 			acetic_pure_vol_L REAL,
@@ -131,35 +210,106 @@ export function createSchema(db: Database.Database): void {
 			dlimo_loss_pct REAL,
 			acidic_aq_vol_L REAL,
 			acidic_ph REAL,
-			operator_name TEXT,
-			notes TEXT,
-			created_at TEXT NOT NULL DEFAULT (datetime('now')),
-			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-		);
-
-		-- Step 6: K₂CO₃ Precipitation + Drying → Final Product
-		CREATE TABLE IF NOT EXISTS stage4_records (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			batch_id INTEGER NOT NULL UNIQUE REFERENCES batches(id),
 			k2co3_added_g REAL,
 			precip_ph REAL,
 			precip_temp_C REAL,
 			wet_precipitate_g REAL,
 			wash_vol_mL REAL,
 			wash_cycles INTEGER,
-			dry_method TEXT,
-			dry_temp_C REAL,
-			dry_time_hr REAL,
-			final_product_g REAL,
-			final_moisture_pct REAL,
-			overall_yield_pct REAL,
-			batch_duration_hr REAL,
+			centrifuge_rpm REAL,
+			supernatant_vol_L REAL,
 			operator_name TEXT,
 			notes TEXT,
 			created_at TEXT NOT NULL DEFAULT (datetime('now')),
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
 
+		-- Stage 7: Drying & Final Product
+		CREATE TABLE IF NOT EXISTS stage7_drying_final (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			batch_id INTEGER NOT NULL UNIQUE REFERENCES batches(id),
+			dry_method TEXT,
+			dry_temp_C REAL,
+			dry_time_h REAL,
+			final_product_g REAL,
+			final_moisture_pct REAL,
+			overall_yield_pct REAL,
+			batch_duration_hr REAL,
+			storage_location TEXT,
+			operator_name TEXT,
+			notes TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
+		-- Price references: material price history
+		CREATE TABLE IF NOT EXISTS price_references (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			material TEXT NOT NULL,
+			unit TEXT NOT NULL,
+			price_per_unit REAL NOT NULL,
+			effective_date TEXT NOT NULL DEFAULT (date('now')),
+			source TEXT,
+			notes TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+		);
+
+		-- Backward-compat VIEWs: stage3_records reconstructs old stage3 interface
+		CREATE VIEW IF NOT EXISTS stage3_records AS
+		SELECT
+			s5.id,
+			s5.batch_id,
+			s5.initial_ph,
+			s5.naoh_added_g,
+			s5.basified_ph,
+			s5.dlimo_vol_L,
+			s5.partition_cycles,
+			s5.settling_min,
+			s5.organic_phase_mL,
+			s5.aqueous_waste_L,
+			s6.acetic_conc,
+			s6.acetic_water_vol_L,
+			s6.acetic_pure_vol_L,
+			s6.backext_cycles,
+			s6.backext_settle_min,
+			s6.dlimo_recovered_L,
+			s6.dlimo_lost_L,
+			s6.dlimo_loss_pct,
+			s6.acidic_aq_vol_L,
+			s6.acidic_ph,
+			s5.operator_name,
+			s5.notes,
+			s5.created_at,
+			s5.updated_at
+		FROM stage5_acid_base s5
+		LEFT JOIN stage6_backext_precip s6 ON s5.batch_id = s6.batch_id;
+
+		-- Backward-compat VIEW: stage4_records reconstructs old stage4 interface
+		CREATE VIEW IF NOT EXISTS stage4_records AS
+		SELECT
+			s6.id,
+			s7.batch_id,
+			s6.k2co3_added_g,
+			s6.precip_ph,
+			s6.precip_temp_C,
+			s6.wet_precipitate_g,
+			s6.wash_vol_mL,
+			s6.wash_cycles,
+			s7.dry_method,
+			s7.dry_temp_C,
+			s7.dry_time_h AS dry_time_hr,
+			s7.final_product_g,
+			s7.final_moisture_pct,
+			s7.overall_yield_pct,
+			s7.batch_duration_hr,
+			s7.operator_name,
+			s7.notes,
+			s7.created_at,
+			s7.updated_at
+		FROM stage7_drying_final s7
+		LEFT JOIN stage6_backext_precip s6 ON s7.batch_id = s6.batch_id;
+
+		-- Keep existing supplier_deliveries for backward compat
 		CREATE TABLE IF NOT EXISTS supplier_deliveries (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			lot_id TEXT NOT NULL UNIQUE,

@@ -1,11 +1,26 @@
 import type { BatchState } from '$lib/constants/batchStates';
 
+export interface Lot {
+	id: number;
+	lot_id: string;
+	supplier: string;
+	delivery_date: string;
+	quantity_kg: number;
+	batches_from_lot: number | null;
+	cost_usd: number | null;
+	cost_per_kg_usd: number | null;
+	testing_cost_usd: number | null;
+	notes: string | null;
+	created_at: string;
+}
+
 export interface Batch {
 	id: number;
 	batch_number: string;
 	status: BatchState;
 	current_stage: number;
 	production_run_id: number | null;
+	lot_id: number | null;
 	supplier: string | null;
 	supplier_lot: string | null;
 	lot_position: string | null;
@@ -16,6 +31,23 @@ export interface Batch {
 	updated_at: string;
 	started_at: string | null;
 	completed_at: string | null;
+}
+
+export interface ReactorLoad {
+	id: number;
+	batch_id: number;
+	reactor_id: string | null;
+	load_number: number | null;
+	powder_kg: number | null;
+	etoh_vol_L: number | null;
+	agitation_rpm: number | null;
+	stir_time_min: number | null;
+	settle_time_hr: number | null;
+	filtrate_vol_L: number | null;
+	spent_cake_kg: number | null;
+	operator_name: string | null;
+	notes: string | null;
+	created_at: string;
 }
 
 export interface BatchStage {
@@ -90,6 +122,122 @@ export interface Stage2Record {
 	updated_at: string;
 }
 
+// Stage 3: Filtration & Washing
+export interface Stage3Filtration {
+	id: number;
+	batch_id: number;
+	filter_press_cycles: number | null;
+	centrifuge_batches: number | null;
+	screw_press_used: number | null;
+	de_used: number | null;
+	wash_volume_L: number | null;
+	cake_weight_kg: number | null;
+	filtrate_volume_L: number | null;
+	filtrate_clarity: string | null;
+	operator_name: string | null;
+	notes: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Stage 4: Ethanol Distillation/Recovery
+export interface Stage4Distillation {
+	id: number;
+	batch_id: number;
+	distillation_temp_C: number | null;
+	vacuum_mbar: number | null;
+	bath_temp_C: number | null;
+	distill_time_min: number | null;
+	recovered_etoh_L: number | null;
+	recovered_abv_pct: number | null;
+	recovery_pct: number | null;
+	crude_aqueous_vol_L: number | null;
+	crude_aqueous_wt_kg: number | null;
+	residual_alcohol_pct: number | null;
+	operator_name: string | null;
+	notes: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Stage 5: Acid/Base Extraction and Partitioning
+export interface Stage5AcidBase {
+	id: number;
+	batch_id: number;
+	initial_ph: number | null;
+	naoh_added_g: number | null;
+	basified_ph: number | null;
+	dlimo_vol_L: number | null;
+	partition_cycles: number | null;
+	settling_min: number | null;
+	organic_phase_mL: number | null;
+	aqueous_waste_L: number | null;
+	emulsion_events: number | null;
+	operator_name: string | null;
+	notes: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Stage 6: Back-Extraction & Precipitation
+export interface Stage6BackextPrecip {
+	id: number;
+	batch_id: number;
+	acetic_conc: string | null;
+	acetic_water_vol_L: number | null;
+	acetic_pure_vol_L: number | null;
+	backext_cycles: number | null;
+	backext_settle_min: number | null;
+	dlimo_recovered_L: number | null;
+	dlimo_lost_L: number | null;
+	dlimo_loss_pct: number | null;
+	acidic_aq_vol_L: number | null;
+	acidic_ph: number | null;
+	k2co3_added_g: number | null;
+	precip_ph: number | null;
+	precip_temp_C: number | null;
+	wet_precipitate_g: number | null;
+	wash_vol_mL: number | null;
+	wash_cycles: number | null;
+	centrifuge_rpm: number | null;
+	supernatant_vol_L: number | null;
+	operator_name: string | null;
+	notes: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Stage 7: Drying & Final Product
+export interface Stage7DryingFinal {
+	id: number;
+	batch_id: number;
+	dry_method: string | null;
+	dry_temp_C: number | null;
+	dry_time_h: number | null;
+	final_product_g: number | null;
+	final_moisture_pct: number | null;
+	overall_yield_pct: number | null;
+	batch_duration_hr: number | null;
+	storage_location: string | null;
+	operator_name: string | null;
+	notes: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+// Price reference for materials
+export interface PriceReference {
+	id: number;
+	material: string;
+	unit: string;
+	price_per_unit: number;
+	effective_date: string;
+	source: string | null;
+	notes: string | null;
+	created_at: string;
+}
+
+// Backward-compat: Stage3Record matches the VIEW output (stage5 + stage6 joined)
 // Steps 4+5: Basification + D-Limonene + Acetic Acid Back-Extraction
 export interface Stage3Record {
 	id: number;
@@ -120,6 +268,7 @@ export interface Stage3Record {
 	updated_at: string;
 }
 
+// Backward-compat: Stage4Record matches the VIEW output (stage6 + stage7 joined)
 // Step 6: K₂CO₃ Precipitation + Drying → Final Product
 export interface Stage4Record {
 	id: number;

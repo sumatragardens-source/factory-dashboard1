@@ -506,6 +506,7 @@
 	}
 </script>
 
+{#if data.pipeline && data.activeBatchProgress?.length > 0}
 <div class="flex-1 p-3 grid grid-cols-12 gap-3 overflow-auto content-start">
 	<!-- Row 1: 7 Alert KPI Cards -->
 	<div class="col-span-12 grid grid-cols-7 gap-3">
@@ -1988,6 +1989,9 @@
 	</div>
 
 </div>
+{:else}
+<div class="text-center py-12 text-[#666666]"><p class="text-sm">No data available</p><p class="text-xs mt-1">Import data via the Admin page to get started.</p></div>
+{/if}
 
 <!-- Batch Detail Drawer -->
 <BatchDrawer batchId={drawerBatchId} runId={data.activeRunId} onclose={() => drawerBatchId = null} />

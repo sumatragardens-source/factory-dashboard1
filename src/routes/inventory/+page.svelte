@@ -9,6 +9,9 @@
 </script>
 
 <div class="p-6">
+	{#if data.materials.length === 0 && data.recentMovements.length === 0}
+		<div class="text-center py-12 text-[#666666]"><p class="text-sm">No data available</p><p class="text-xs mt-1">Import data via the Admin page to get started.</p></div>
+	{:else}
 	<div class="flex items-center justify-between mb-6">
 		<div>
 			<h1 class="text-2xl font-black text-text-primary">Material Inventory & Traceability</h1>
@@ -95,4 +98,5 @@
 			</tbody>
 		</table>
 	</div>
+	{/if}
 </div>

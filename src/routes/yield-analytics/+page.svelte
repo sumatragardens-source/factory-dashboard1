@@ -3,6 +3,8 @@
 
 	let activeTab = $state('production');
 
+	const hasData = data.batchTable.length > 0;
+
 	const maxYield = Math.max(...data.batchTable.map((b: any) => b.overall_yield_pct ?? 0), 1);
 
 	// Scatter plot scaling
@@ -36,6 +38,9 @@
 </script>
 
 <div class="min-h-screen bg-[#0d0d0d] text-white p-4">
+	{#if !hasData}
+		<div class="text-center py-12 text-[#666666]"><p class="text-sm">No data available</p><p class="text-xs mt-1">Import data via the Admin page to get started.</p></div>
+	{:else}
 	<!-- Header -->
 	<div class="flex items-center justify-between mb-2">
 		<div class="flex items-center gap-3">
@@ -370,4 +375,5 @@
 			{/if}
 		</div>
 	</div>
+	{/if}
 </div>

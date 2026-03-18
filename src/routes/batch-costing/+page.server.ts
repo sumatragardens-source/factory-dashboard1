@@ -19,6 +19,7 @@ function itemToStage(itemName: string): string {
 const STAGE_ORDER = ['STG_01 Leaf Prep', 'STG_02 Extraction', 'STG_03 AB Phase', 'STG_04 Drying'];
 
 export const load: PageServerLoad = () => {
+	try {
 	const db = getDb();
 	const batches = getAllBatches();
 
@@ -184,4 +185,22 @@ export const load: PageServerLoad = () => {
 		batchCount,
 		avgCostPerKg
 	};
+	} catch (e) {
+		console.error('Failed to load batch costing data:', e);
+		return {
+			totalOpEx: 0,
+			avgPerBatch: 0,
+			overallCostPerKg: 0,
+			projectedDaily: 0,
+			materialPct: 0,
+			laborPct: 0,
+			energyPct: 0,
+			margin: 0,
+			stageAccumulation: [],
+			paretoDrivers: [],
+			batches: [],
+			batchCount: 0,
+			avgCostPerKg: 0
+		};
+	}
 };

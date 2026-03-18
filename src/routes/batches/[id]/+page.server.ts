@@ -10,35 +10,56 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params }) => {
-	const batch = getBatchById(Number(params.id));
-	if (!batch) error(404, 'Batch not found');
+	try {
+		const batch = getBatchById(Number(params.id));
+		if (!batch) error(404, 'Batch not found');
 
-	const stages = getBatchStages(batch.id);
-	const costs = getBatchCosts(batch.id);
-	const totalCost = calculateTotalBatchCost(costs);
-	const deviations = getDeviationsByBatch(batch.id);
-	const labResults = getLabResultsByBatch(batch.id);
-	const approvals = getApprovalsByBatch(batch.id);
-	const machineEvents = getMachineEventsByBatch(batch.id);
+		const stages = getBatchStages(batch.id);
+		const costs = getBatchCosts(batch.id);
+		const totalCost = calculateTotalBatchCost(costs);
+		const deviations = getDeviationsByBatch(batch.id);
+		const labResults = getLabResultsByBatch(batch.id);
+		const approvals = getApprovalsByBatch(batch.id);
+		const machineEvents = getMachineEventsByBatch(batch.id);
 
-	const stage4 = getStage4Record(batch.id);
-	const costPerKg = stage4?.final_product_g
-		? calculateCostPerKg(totalCost, stage4.final_product_g / 1000)
-		: null;
+		const stage4 = getStage4Record(batch.id);
+		const costPerKg = stage4?.final_product_g
+			? calculateCostPerKg(totalCost, stage4.final_product_g / 1000)
+			: null;
 
-	return {
-		batch,
-		stages,
-		costs,
-		totalCost,
-		costPerKg,
-		deviations,
-		labResults,
-		approvals,
-		machineEvents,
-		stage1: getStage1Record(batch.id) ?? null,
-		stage2: getStage2Record(batch.id) ?? null,
-		stage3: getStage3Record(batch.id) ?? null,
-		stage4: stage4 ?? null
-	};
+		return {
+			batch,
+			stages,
+			costs,
+			totalCost,
+			costPerKg,
+			deviations,
+			labResults,
+			approvals,
+			machineEvents,
+			stage1: getStage1Record(batch.id) ?? null,
+			stage2: getStage2Record(batch.id) ?? null,
+			stage3: getStage3Record(batch.id) ?? null,
+			stage4: stage4 ?? null
+		};
+	} catch (e) {
+		// Re-throw HTTP errors (like 404)
+		if (e && typeof e === 'object' && 'status' in e) throw e;
+		console.error('Failed to load batch detail:', e);
+		return {
+			batch: null,
+			stages: [],
+			costs: [],
+			totalCost: 0,
+			costPerKg: null,
+			deviations: [],
+			labResults: [],
+			approvals: [],
+			machineEvents: [],
+			stage1: null,
+			stage2: null,
+			stage3: null,
+			stage4: null
+		};
+	}
 };

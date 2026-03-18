@@ -2,7 +2,7 @@ import { getDb } from './db';
 import { createSchema } from './schema';
 import { seedData } from './seed';
 
-const SCHEMA_VERSION = 12;
+const SCHEMA_VERSION = 13;
 
 let initialized = false;
 
@@ -34,8 +34,14 @@ export function initDb(): void {
 	}
 
 	if (needsReseed) {
-		// Drop all existing tables and re-create from scratch
+		// Drop VIEWs first (they depend on tables)
 		db.pragma('foreign_keys = OFF');
+		const views = db
+			.prepare("SELECT name FROM sqlite_master WHERE type='view'")
+			.all() as { name: string }[];
+		for (const { name } of views) {
+			db.exec(`DROP VIEW IF EXISTS "${name}"`);
+		}
 		const tables = db
 			.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name != 'sqlite_sequence'")
 			.all() as { name: string }[];

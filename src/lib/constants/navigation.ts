@@ -13,5 +13,6 @@ export const NAV_ITEMS: NavItem[] = [
 	{ label: 'Solvent Economics', href: '/solvent-economics', icon: 'droplet' },
 	{ label: 'Yield & Analytics', href: '/yield-analytics', icon: 'trending-up' },
 	{ label: 'Deviations', href: '/deviations', icon: 'alert-triangle' },
-	{ label: 'Lab Results', href: '/lab-results', icon: 'clipboard' }
+	{ label: 'Lab Results', href: '/lab-results', icon: 'clipboard' },
+	{ label: 'Admin', href: '/admin', icon: 'upload' }
 ];

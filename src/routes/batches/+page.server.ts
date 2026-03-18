@@ -3,8 +3,13 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = () => {
-	const batches = getAllBatches();
-	return { batches };
+	try {
+		const batches = getAllBatches();
+		return { batches };
+	} catch (e) {
+		console.error('Failed to load batches:', e);
+		return { batches: [] };
+	}
 };
 
 export const actions: Actions = {

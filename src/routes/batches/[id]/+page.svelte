@@ -14,6 +14,7 @@
 	].sort((a: any, b: any) => new Date(b.ts).getTime() - new Date(a.ts).getTime()));
 </script>
 
+{#if data.batch}
 <div class="flex flex-col h-full overflow-hidden">
 	<!-- Batch Header -->
 	<div class="bg-bg-card border-b border-border-card px-8 py-4 shrink-0">
@@ -471,3 +472,6 @@
 		{/if}
 	</div>
 </div>
+{:else}
+<div class="text-center py-12 text-[#666666]"><p class="text-sm">No data available</p><p class="text-xs mt-1">Import data via the Admin page to get started.</p></div>
+{/if}
