@@ -3,7 +3,7 @@ import type { Batch, BatchStage } from '$lib/domain/types';
 
 export function getAllBatches(): Batch[] {
 	const db = getDb();
-	return db.prepare('SELECT * FROM batches ORDER BY created_at DESC').all() as Batch[];
+	return db.prepare('SELECT * FROM batches ORDER BY created_at ASC').all() as Batch[];
 }
 
 export function getBatchById(id: number): Batch | undefined {
@@ -19,8 +19,8 @@ export function getBatchByNumber(batchNumber: string): Batch | undefined {
 }
 
 export function createBatch(data: {
-	strain: string;
 	supplier: string;
+	supplier_lot: string | null;
 	leaf_input_kg: number;
 	operator_name: string;
 }): number {
@@ -28,23 +28,23 @@ export function createBatch(data: {
 	const year = new Date().getFullYear();
 	const row = db
 		.prepare("SELECT COUNT(*) as count FROM batches WHERE batch_number LIKE ?")
-		.get(`SG-${year}-%`) as { count: number };
+		.get(`SG-${year}%`) as { count: number };
 	const seq = String(row.count + 1).padStart(3, '0');
-	const batchNumber = `SG-${year}-${seq}`;
+	const batchNumber = `SG-${year}${seq}`;
 
 	const result = db
 		.prepare(
-			`INSERT INTO batches (batch_number, status, current_stage, strain, supplier, leaf_input_kg, operator_name)
+			`INSERT INTO batches (batch_number, status, current_stage, supplier, supplier_lot, leaf_input_kg, operator_name)
 			 VALUES (?, 'Draft', 1, ?, ?, ?, ?)`
 		)
-		.run(batchNumber, data.strain, data.supplier, data.leaf_input_kg, data.operator_name);
+		.run(batchNumber, data.supplier, data.supplier_lot, data.leaf_input_kg, data.operator_name);
 
 	const batchId = result.lastInsertRowid as number;
 
 	const insertStage = db.prepare(
 		`INSERT INTO batch_stages (batch_id, stage_number, status) VALUES (?, ?, 'Pending')`
 	);
-	for (let i = 1; i <= 8; i++) {
+	for (let i = 1; i <= 4; i++) {
 		insertStage.run(batchId, i);
 	}
 
@@ -82,7 +82,7 @@ export function finalizeStage(batchId: number, stageNumber: number, finalizedBy:
 			WHERE batch_id = ? AND stage_number = ?
 		`).run(finalizedBy, batchId, stageNumber);
 
-		if (stageNumber < 8) {
+		if (stageNumber < 4) {
 			const nextStage = stageNumber + 1;
 			db.prepare(`
 				UPDATE batch_stages SET status = 'In Progress', started_at = datetime('now')

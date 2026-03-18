@@ -1,7 +1,8 @@
 import { initDb } from '$lib/data/init';
+import { getAlertCounts } from '$lib/data/repositories/alertRepo';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = ({ url }) => {
+export const load: LayoutServerLoad = ({ url, locals }) => {
 	initDb();
 
 	const pathTitles: Record<string, string> = {
@@ -20,5 +21,7 @@ export const load: LayoutServerLoad = ({ url }) => {
 	const basePath = '/' + (url.pathname.split('/')[1] || 'operations');
 	const pageTitle = pathTitles[basePath] ?? 'Sumatra Gardens';
 
-	return { pageTitle };
+	const alertCounts = getAlertCounts();
+
+	return { pageTitle, user: locals.user, alertCounts };
 };

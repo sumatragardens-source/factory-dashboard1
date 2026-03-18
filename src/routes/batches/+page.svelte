@@ -7,7 +7,7 @@
 	let statusFilter = $state('All');
 	let showNewForm = $state(false);
 	const statuses = ['All', 'Draft', 'In Progress', 'Pending Review', 'Completed', 'Rejected'];
-	const strainOptions = ['Green Sumatra Premium', 'Red Borneo Select', 'White Maeng Da'];
+	const supplierOptions = ['Supplier A - Kalimantan', 'Supplier B - Kalimantan'];
 
 	const filteredBatches = $derived(
 		statusFilter === 'All' ? data.batches : data.batches.filter((b: any) => b.status === statusFilter)
@@ -54,17 +54,17 @@
 			</h3>
 			<div class="grid grid-cols-4 gap-4">
 				<div class="space-y-1">
-					<label class="text-[10px] font-bold uppercase text-text-muted">Strain</label>
-					<select name="strain" required class="w-full bg-bg-card-hover border-border-card rounded-lg text-sm focus:ring-primary">
-						<option value="">Select strain...</option>
-						{#each strainOptions as strain}
-							<option value={strain}>{strain}</option>
+					<label class="text-[10px] font-bold uppercase text-text-muted">Supplier</label>
+					<select name="supplier" required class="w-full bg-bg-card-hover border-border-card rounded-lg text-sm focus:ring-primary">
+						<option value="">Select supplier...</option>
+						{#each supplierOptions as supplier}
+							<option value={supplier}>{supplier}</option>
 						{/each}
 					</select>
 				</div>
 				<div class="space-y-1">
-					<label class="text-[10px] font-bold uppercase text-text-muted">Supplier</label>
-					<input name="supplier" type="text" required placeholder="e.g. Sumatra Direct" class="w-full bg-bg-card-hover border-border-card rounded-lg text-sm focus:ring-primary" />
+					<label class="text-[10px] font-bold uppercase text-text-muted">Supplier Lot</label>
+					<input name="supplier_lot" type="text" placeholder="e.g. LOT-01" class="w-full bg-bg-card-hover border-border-card rounded-lg text-sm focus:ring-primary" />
 				</div>
 				<div class="space-y-1">
 					<label class="text-[10px] font-bold uppercase text-text-muted">Leaf Input (kg)</label>
@@ -105,7 +105,7 @@
 					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Batch #</th>
 					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Status</th>
 					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Current Stage</th>
-					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Strain</th>
+					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Supplier</th>
 					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Leaf (kg)</th>
 					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Operator</th>
 					<th class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Days</th>
@@ -125,7 +125,7 @@
 							</div>
 						</td>
 						<td class="px-4 py-3 text-xs text-text-secondary max-w-48">{getStageName(batch.current_stage)}</td>
-						<td class="px-4 py-3 text-xs text-text-secondary">{batch.strain ?? '—'}</td>
+						<td class="px-4 py-3 text-xs text-text-secondary">{batch.supplier ?? '—'}</td>
 						<td class="px-4 py-3 text-xs font-mono text-text-secondary">{batch.leaf_input_kg}</td>
 						<td class="px-4 py-3 text-xs text-text-secondary">{batch.operator_name ?? '—'}</td>
 						<td class="px-4 py-3 text-xs font-mono text-text-secondary">{daysSince(batch.created_at)}d</td>

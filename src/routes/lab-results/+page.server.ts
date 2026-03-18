@@ -7,7 +7,7 @@ export const load: PageServerLoad = () => {
 
 	// Enrich lab results with batch number
 	const labResults = db.prepare(`
-		SELECT lr.*, b.batch_number, b.strain
+		SELECT lr.*, b.batch_number, b.supplier
 		FROM lab_results lr
 		JOIN batches b ON b.id = lr.batch_id
 		ORDER BY lr.created_at DESC

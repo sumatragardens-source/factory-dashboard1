@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fmt } from '$lib/config/costs';
 	let { data } = $props();
 </script>
 
@@ -18,7 +19,7 @@
 	<div class="grid grid-cols-4 gap-4 mb-6">
 		<div class="bg-bg-card border border-border-card p-4 rounded">
 			<p class="text-[10px] uppercase tracking-wider text-primary font-bold">Total Loss Value</p>
-			<p class="text-2xl font-black text-text-primary">${data.totalLossValue.toLocaleString()}</p>
+			<p class="text-2xl font-black text-text-primary">{fmt(data.totalLossValue)}</p>
 		</div>
 		<div class="bg-bg-card border border-border-card p-4 rounded">
 			<p class="text-[10px] uppercase tracking-wider text-primary font-bold">Current Recovery</p>
@@ -27,7 +28,7 @@
 		</div>
 		<div class="bg-bg-card border border-border-card p-4 rounded">
 			<p class="text-[10px] uppercase tracking-wider text-primary font-bold">Net Ethanol Cost</p>
-			<p class="text-2xl font-black text-text-primary">${data.netEthanolCost.toLocaleString()}</p>
+			<p class="text-2xl font-black text-text-primary">{fmt(data.netEthanolCost)}</p>
 			<p class="text-[10px] text-text-muted">Lost solvent value</p>
 		</div>
 		<div class="bg-bg-card border border-border-card p-4 rounded">
@@ -95,10 +96,10 @@
 				{#each data.ethanolByBatch as row}
 					<tr class="border-b border-border-subtle">
 						<td class="py-3 text-sm font-bold text-text-primary">{row.batch_number}</td>
-						<td class="py-3 text-sm text-text-secondary text-right font-mono">{row.ethanol_stock_used_l}</td>
-						<td class="py-3 text-sm text-primary text-right font-mono font-bold">{row.total_ethanol_recovered_l}</td>
-						<td class="py-3 text-sm text-red-500 text-right font-mono">{row.total_ethanol_loss_l}</td>
-						<td class="py-3 text-sm font-bold text-right font-mono {row.recovery_rate_pct >= 95 ? 'text-primary' : 'text-amber-400'}">{row.recovery_rate_pct}%</td>
+						<td class="py-3 text-sm text-text-secondary text-right font-mono">{row.etoh_vol_L}</td>
+						<td class="py-3 text-sm text-primary text-right font-mono font-bold">{row.etoh_recovered_L}</td>
+						<td class="py-3 text-sm text-red-500 text-right font-mono">{row.etoh_lost_L}</td>
+						<td class="py-3 text-sm font-bold text-right font-mono {row.etoh_recovery_pct >= 95 ? 'text-primary' : 'text-amber-400'}">{row.etoh_recovery_pct}%</td>
 					</tr>
 				{/each}
 			</tbody>

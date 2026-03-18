@@ -18,8 +18,12 @@ import {
 	getRunEthanolBreakdown,
 	getRunEthanolAggregates,
 	getRunYieldBreakdown,
-	getRunYieldAggregates
+	getRunYieldAggregates,
+	getRunHistorySummaries,
+	getBatchAnomalies,
+	getQualityCorrelation
 } from '$lib/data/repositories/dashboardRepo';
+import { getActiveAlerts, getAlertCounts } from '$lib/data/repositories/alertRepo';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
@@ -48,6 +52,11 @@ export const load: PageServerLoad = () => {
 		runEthanolBreakdown: activeRunId ? getRunEthanolBreakdown(activeRunId) : [],
 		runEthanolAggregates: activeRunId ? getRunEthanolAggregates(activeRunId) : null,
 		runYieldBreakdown: activeRunId ? getRunYieldBreakdown(activeRunId) : [],
-		runYieldAggregates: activeRunId ? getRunYieldAggregates(activeRunId) : null
+		runYieldAggregates: activeRunId ? getRunYieldAggregates(activeRunId) : null,
+		runHistory: getRunHistorySummaries(),
+		batchAnomalies: activeRunId ? getBatchAnomalies(activeRunId) : [],
+		qualityCorrelation: activeRunId ? getQualityCorrelation(activeRunId) : [],
+		alertCounts: getAlertCounts(),
+		activeAlerts: getActiveAlerts().slice(0, 5)
 	};
 };

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fmt, TARGETS } from '$lib/config/costs';
 	let { data } = $props();
 </script>
 
@@ -19,14 +20,14 @@
 	<div class="grid grid-cols-3 gap-4 mb-6">
 		<div class="bg-bg-card border border-border-card p-4 rounded">
 			<p class="text-[10px] uppercase tracking-wider text-primary font-bold">Cumulative Cost</p>
-			<p class="text-2xl font-black text-text-primary">${data.totalCost.toFixed(2)}</p>
+			<p class="text-2xl font-black text-text-primary">{fmt(data.totalCost)}</p>
 			<div class="w-full bg-primary/20 h-1 rounded-full mt-2">
 				<div class="bg-primary h-full rounded-full" style="width: 65%"></div>
 			</div>
 		</div>
 		<div class="bg-bg-card border border-border-card p-4 rounded">
 			<p class="text-[10px] uppercase tracking-wider text-primary font-bold">Cost Per KG</p>
-			<p class="text-2xl font-black text-text-primary">{data.costPerKg ? `$${data.costPerKg.toFixed(2)}` : '—'}</p>
+			<p class="text-2xl font-black text-text-primary">{data.costPerKg ? fmt(data.costPerKg) : '—'}</p>
 			<p class="text-[10px] text-text-muted">Based on final product output</p>
 		</div>
 		<div class="bg-bg-card border border-border-card p-4 rounded">
@@ -34,11 +35,11 @@
 			<div class="grid grid-cols-2 gap-4 mt-2">
 				<div>
 					<p class="text-[10px] uppercase text-text-muted font-bold">GP per KG</p>
-					<p class="text-sm font-black text-primary">{data.costPerKg ? `$${(4800 - data.costPerKg).toFixed(2)}` : '—'}</p>
+					<p class="text-sm font-black text-primary">{data.costPerKg ? fmt(TARGETS.sellingPricePerKg - data.costPerKg) : '—'}</p>
 				</div>
 				<div>
 					<p class="text-[10px] uppercase text-text-muted font-bold">Min Profitable</p>
-					<p class="text-sm font-black">{data.costPerKg ? `$${data.costPerKg.toFixed(0)}` : '—'}</p>
+					<p class="text-sm font-black">{data.costPerKg ? fmt(data.costPerKg) : '—'}</p>
 				</div>
 			</div>
 		</div>
@@ -49,28 +50,32 @@
 		<div class="col-span-8 bg-bg-card border border-border-card rounded p-6">
 			<h3 class="text-sm font-black text-text-primary mb-4 flex items-center gap-2">
 				<span class="material-symbols-outlined text-primary">payments</span>
-				Stage-by-Stage Cost Accumulation
+				Cost Line Items
 			</h3>
 			<table class="w-full text-left">
 				<thead>
 					<tr class="border-b border-border-card">
-						<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Production Stage</th>
-						<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Labor</th>
-						<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Materials</th>
-						<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Utility</th>
-						<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Running Total</th>
+						<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Category</th>
+						<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Item</th>
+						<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Qty</th>
+						<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Unit Rate</th>
+						<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Total</th>
 					</tr>
 				</thead>
 				<tbody>
-					{#each data.stageCosts as sc, i}
-						<tr class="border-b border-border-subtle {i === data.stageCosts.length - 1 ? 'bg-primary/5' : ''}">
-							<td class="py-3 text-sm text-text-primary">{sc.stageNumber}. {sc.stageName}</td>
-							<td class="py-3 text-sm text-text-secondary text-right font-mono">${sc.labor.toFixed(2)}</td>
-							<td class="py-3 text-sm text-text-secondary text-right font-mono">${sc.materials.toFixed(2)}</td>
-							<td class="py-3 text-sm text-text-secondary text-right font-mono">${sc.utility.toFixed(2)}</td>
-							<td class="py-3 text-sm font-bold text-right font-mono {i === data.stageCosts.length - 1 ? 'text-primary' : 'text-text-primary'}">${(sc as any).runningTotal.toFixed(2)}</td>
+					{#each data.batch1Costs as cost, i}
+						<tr class="border-b border-border-subtle">
+							<td class="py-2 text-xs text-text-muted">{cost.cost_category}</td>
+							<td class="py-2 text-sm text-text-primary">{cost.item_name}</td>
+							<td class="py-2 text-sm text-text-secondary text-right font-mono">{cost.quantity != null ? cost.quantity.toFixed(1) : '—'}</td>
+							<td class="py-2 text-sm text-text-secondary text-right font-mono">{cost.unit_rate != null ? fmt(cost.unit_rate) : '—'}</td>
+							<td class="py-2 text-sm font-bold text-right font-mono text-text-primary">{fmt(cost.total_cost)}</td>
 						</tr>
 					{/each}
+					<tr class="border-t-2 border-border-card bg-primary/5">
+						<td colspan="4" class="py-3 text-sm font-bold text-text-primary">Total</td>
+						<td class="py-3 text-sm font-bold text-right font-mono text-primary">{fmt(data.totalCost)}</td>
+					</tr>
 				</tbody>
 			</table>
 		</div>
@@ -83,7 +88,7 @@
 					{#each Object.entries(data.costBreakdown) as [cat, amount]}
 						<div class="flex justify-between items-center">
 							<span class="text-sm text-text-secondary">{cat}</span>
-							<span class="text-sm font-bold text-text-primary font-mono">${(amount as number).toFixed(2)}</span>
+							<span class="text-sm font-bold text-text-primary font-mono">{fmt(amount as number)}</span>
 						</div>
 					{/each}
 				</div>
@@ -96,7 +101,7 @@
 					{#each data.unitRates as rate}
 						<div class="flex justify-between items-center py-1 border-b border-border-subtle">
 							<span class="text-xs text-text-secondary">{rate.item_name}</span>
-							<span class="text-xs font-bold text-text-primary font-mono">${rate.rate_per_unit.toFixed(2)}/{rate.unit}</span>
+							<span class="text-xs font-bold text-text-primary font-mono">{fmt(rate.rate_per_unit)}/{rate.unit}</span>
 						</div>
 					{/each}
 				</div>

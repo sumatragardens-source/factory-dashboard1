@@ -1,5 +1,5 @@
 import { getDb } from '$lib/data/db';
-import { getAllBatches } from '$lib/data/repositories/batchRepo';
+import { UNIT_RATES } from '$lib/config/costs';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
@@ -8,19 +8,19 @@ export const load: PageServerLoad = () => {
 	// Ethanol totals from stage2
 	const ethanol = db.prepare(`
 		SELECT
-			COALESCE(SUM(ethanol_stock_used_l), 0) as total_issued,
-			COALESCE(SUM(total_ethanol_recovered_l), 0) as total_recovered,
-			COALESCE(SUM(total_ethanol_loss_l), 0) as total_lost,
-			COALESCE(AVG(recovery_rate_pct), 0) as avg_recovery
+			COALESCE(SUM(etoh_vol_L), 0) as total_issued,
+			COALESCE(SUM(etoh_recovered_L), 0) as total_recovered,
+			COALESCE(SUM(etoh_lost_L), 0) as total_lost,
+			COALESCE(AVG(etoh_recovery_pct), 0) as avg_recovery
 		FROM stage2_records
 	`).get() as any;
 
 	// Limonene totals from stage3
 	const limonene = db.prepare(`
 		SELECT
-			COALESCE(SUM(limonene_volume_l), 0) as total_issued,
-			COALESCE(SUM(limonene_recovered_l), 0) as total_recovered,
-			COALESCE(SUM(limonene_loss_l), 0) as total_lost
+			COALESCE(SUM(dlimo_vol_L), 0) as total_issued,
+			COALESCE(SUM(dlimo_recovered_L), 0) as total_recovered,
+			COALESCE(SUM(dlimo_lost_L), 0) as total_lost
 		FROM stage3_records
 	`).get() as any;
 
@@ -30,16 +30,17 @@ export const load: PageServerLoad = () => {
 
 	// Per-batch ethanol ledger
 	const ethanolByBatch = db.prepare(`
-		SELECT b.batch_number, s2.ethanol_stock_used_l, s2.total_ethanol_recovered_l, s2.total_ethanol_loss_l, s2.recovery_rate_pct
+		SELECT b.batch_number, s2.etoh_vol_L, s2.etoh_recovered_L, s2.etoh_lost_L, s2.etoh_recovery_pct
 		FROM stage2_records s2
 		JOIN batches b ON b.id = s2.batch_id
 		ORDER BY b.created_at DESC
 	`).all() as any[];
 
 	// Net ethanol cost
-	const ethanolRate = 12.50;
+	const ethanolRate = UNIT_RATES.ethanol70.rate;
+	const limoneneRate = UNIT_RATES.dLimonene.rate;
 	const netEthanolCost = ethanol.total_lost * ethanolRate;
-	const totalLossValue = netEthanolCost + (limonene.total_lost * 35);
+	const totalLossValue = netEthanolCost + (limonene.total_lost * limoneneRate);
 
 	return {
 		ethanol: { ...ethanol, avg_recovery: Number(ethanol.avg_recovery.toFixed(1)) },

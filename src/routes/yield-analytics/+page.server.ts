@@ -8,9 +8,8 @@ export const load: PageServerLoad = () => {
 	// Per-batch yield data (completed batches with stage4 records)
 	const batchYields = db.prepare(`
 		SELECT b.batch_number, b.leaf_input_kg,
-			s1.powder_yield_pct,
-			s4.cumulative_yield_pct, s4.final_product_weight_kg,
-			s4.stage_yield_pct
+			CASE WHEN s1.net_leaf_kg > 0 THEN (s1.powder_output_kg / s1.net_leaf_kg * 100) END as powder_yield_pct,
+			s4.overall_yield_pct, s4.final_product_g / 1000.0 as final_product_weight_kg
 		FROM batches b
 		JOIN stage4_records s4 ON s4.batch_id = b.id
 		LEFT JOIN stage1_records s1 ON s1.batch_id = b.id
@@ -19,12 +18,12 @@ export const load: PageServerLoad = () => {
 
 	// Average cumulative yield
 	const avgYield = batchYields.length > 0
-		? Number((batchYields.reduce((s: number, b: any) => s + (b.cumulative_yield_pct ?? 0), 0) / batchYields.length).toFixed(1))
+		? Number((batchYields.reduce((s: number, b: any) => s + (b.overall_yield_pct ?? 0), 0) / batchYields.length).toFixed(1))
 		: 0;
 
 	// Ethanol recovery average (solvent efficiency)
 	const solventEff = db.prepare(`
-		SELECT COALESCE(AVG(recovery_rate_pct), 0) as avg_recovery
+		SELECT COALESCE(AVG(etoh_recovery_pct), 0) as avg_recovery
 		FROM stage2_records
 	`).get() as any;
 
@@ -38,16 +37,16 @@ export const load: PageServerLoad = () => {
 	`).get() as any;
 
 	// Stage yield averages across all batches
-	const stage1Avg = db.prepare(`SELECT COALESCE(AVG(powder_yield_pct), 0) as avg FROM stage1_records`).get() as any;
+	const stage1Avg = db.prepare(`SELECT COALESCE(AVG(CASE WHEN s1.net_leaf_kg > 0 THEN (s1.powder_output_kg / s1.net_leaf_kg * 100) END), 0) as avg FROM stage1_records s1`).get() as any;
 	const stage2Avg = db.prepare(`
-		SELECT COALESCE(AVG(CASE WHEN s2.dry_mass_kg > 0 THEN (s2.extract_weight_kg / s2.dry_mass_kg * 100) END), 0) as avg
-		FROM stage2_records s2
+		SELECT COALESCE(AVG(etoh_recovery_pct), 0) as avg
+		FROM stage2_records
 	`).get() as any;
 	const stage3Avg = db.prepare(`
-		SELECT COALESCE(AVG(CASE WHEN s3.feed_weight_kg > 0 THEN (s3.alkaloid_precipitate_kg / s3.feed_weight_kg * 100) END), 0) as avg
+		SELECT COALESCE(AVG(CASE WHEN s3.dlimo_vol_L > 0 THEN ((s3.dlimo_vol_L - COALESCE(s3.dlimo_lost_L, 0)) / s3.dlimo_vol_L * 100) END), 0) as avg
 		FROM stage3_records s3
 	`).get() as any;
-	const stage4Avg = db.prepare(`SELECT COALESCE(AVG(stage_yield_pct), 0) as avg FROM stage4_records`).get() as any;
+	const stage4Avg = db.prepare(`SELECT COALESCE(AVG(overall_yield_pct), 0) as avg FROM stage4_records`).get() as any;
 
 	const stageYields = [
 		{ stage: getStageName(1), pct: Number(stage1Avg.avg.toFixed(1)) },
@@ -58,7 +57,7 @@ export const load: PageServerLoad = () => {
 
 	// Cost per kg for completed batches
 	const costPerKg = db.prepare(`
-		SELECT b.batch_number, SUM(bc.total_cost) as total_cost, s4.final_product_weight_kg
+		SELECT b.batch_number, SUM(bc.total_cost) as total_cost, s4.final_product_g / 1000.0 as final_product_weight_kg
 		FROM batch_costs bc
 		JOIN batches b ON b.id = bc.batch_id
 		JOIN stage4_records s4 ON s4.batch_id = bc.batch_id
@@ -86,7 +85,7 @@ export const load: PageServerLoad = () => {
 
 	// Solvent performance trend (per-batch ethanol recovery)
 	const solventTrend = db.prepare(`
-		SELECT b.batch_number, s2.recovery_rate_pct
+		SELECT b.batch_number, s2.etoh_recovery_pct
 		FROM stage2_records s2
 		JOIN batches b ON b.id = s2.batch_id
 		ORDER BY b.created_at ASC

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { fmt } from '$lib/config/costs';
 	let { data } = $props();
 
 	const purity = data.hplc?.hplc_purity_pct ?? 0;
@@ -26,7 +27,7 @@
 	const segments = getDonutSegments(alkaloids);
 
 	// Max bar values
-	const maxYield = Math.max(...data.batchYields.map((b: any) => b.cumulative_yield_pct ?? 0), 15);
+	const maxYield = Math.max(...data.batchYields.map((b: any) => b.overall_yield_pct ?? 0), 15);
 	const maxCycleTime = Math.max(...data.cycleTimes.map((c: any) => c.hours ?? 0), 1);
 </script>
 
@@ -97,7 +98,7 @@
 				<div class="flex items-end gap-3 h-48">
 					{#each data.batchYields as batch}
 						<div class="flex-1 flex flex-col items-center gap-1">
-							<div class="w-full bg-primary/20 rounded-t relative" style="height: {((batch.cumulative_yield_pct ?? 0) / maxYield) * 100}%">
+							<div class="w-full bg-primary/20 rounded-t relative" style="height: {((batch.overall_yield_pct ?? 0) / maxYield) * 100}%">
 								<div class="absolute inset-0 bg-primary/40 rounded-t"></div>
 							</div>
 							<span class="text-[10px] text-text-muted font-mono">{batch.batch_number.replace('SG-2026-', 'B-')}</span>
@@ -114,13 +115,13 @@
 					<svg viewBox="0 0 400 160" class="w-full h-full" preserveAspectRatio="none">
 						{#if data.solventTrend.length > 1}
 							<path
-								d="M {data.solventTrend.map((p: any, i: number) => `${(i / (data.solventTrend.length - 1)) * 380 + 10},${160 - ((p.recovery_rate_pct ?? 0) / 100) * 150}`).join(' L ')}"
+								d="M {data.solventTrend.map((p: any, i: number) => `${(i / (data.solventTrend.length - 1)) * 380 + 10},${160 - ((p.etoh_recovery_pct ?? 0) / 100) * 150}`).join(' L ')}"
 								fill="none"
 								stroke="#A3E635"
 								stroke-width="2.5"
 							/>
 							<path
-								d="M {data.solventTrend.map((p: any, i: number) => `${(i / (data.solventTrend.length - 1)) * 380 + 10},${160 - ((p.recovery_rate_pct ?? 0) / 100) * 150}`).join(' L ')} L {380 + 10},160 L 10,160 Z"
+								d="M {data.solventTrend.map((p: any, i: number) => `${(i / (data.solventTrend.length - 1)) * 380 + 10},${160 - ((p.etoh_recovery_pct ?? 0) / 100) * 150}`).join(' L ')} L {380 + 10},160 L 10,160 Z"
 								fill="url(#solventGradient)"
 								opacity="0.2"
 							/>
@@ -160,7 +161,7 @@
 			<div class="bg-bg-card border border-border-card rounded p-4">
 				<div class="flex items-center justify-between mb-4">
 					<h3 class="text-[10px] font-black uppercase tracking-widest text-text-muted">Cost Per KG Trend</h3>
-					<span class="text-sm font-black text-text-primary">${data.latestCostPerKg.toLocaleString()}</span>
+					<span class="text-sm font-black text-text-primary">{fmt(data.latestCostPerKg)}</span>
 				</div>
 				<div class="h-24 flex items-end gap-1">
 					{#each data.costPerKgData as cpk}

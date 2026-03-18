@@ -9,7 +9,7 @@ export function getAllUnitRates(): UnitRate[] {
 export function getBatchCosts(batchId: number): BatchCost[] {
 	const db = getDb();
 	return db
-		.prepare('SELECT * FROM batch_costs WHERE batch_id = ? ORDER BY stage_number, cost_category')
+		.prepare('SELECT * FROM batch_costs WHERE batch_id = ? ORDER BY cost_category')
 		.all(batchId) as BatchCost[];
 }
 

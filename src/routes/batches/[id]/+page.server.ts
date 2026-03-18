@@ -22,8 +22,8 @@ export const load: PageServerLoad = ({ params }) => {
 	const machineEvents = getMachineEventsByBatch(batch.id);
 
 	const stage4 = getStage4Record(batch.id);
-	const costPerKg = stage4?.final_product_weight_kg
-		? calculateCostPerKg(totalCost, stage4.final_product_weight_kg)
+	const costPerKg = stage4?.final_product_g
+		? calculateCostPerKg(totalCost, stage4.final_product_g / 1000)
 		: null;
 
 	return {

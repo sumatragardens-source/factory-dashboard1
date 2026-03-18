@@ -4,14 +4,15 @@
 
 	interface Props {
 		title?: string;
+		alertCounts?: { high: number; medium: number; low: number; total: number };
 		children: Snippet;
 	}
 
-	let { title = 'Operations', children }: Props = $props();
+	let { title = 'Operations', alertCounts, children }: Props = $props();
 </script>
 
 <div class="flex flex-col h-screen w-full overflow-hidden bg-bg-page">
-	<Header {title} />
+	<Header {title} {alertCounts} />
 	<div class="flex-1 overflow-auto">
 		{@render children()}
 	</div>

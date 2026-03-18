@@ -54,7 +54,7 @@
 								{selectedId === result.id ? 'CURRENT' : result.status.toUpperCase()}
 							</span>
 						</div>
-						<p class="text-[10px] text-text-muted mt-1">{result.strain} · {result.test_type}</p>
+						<p class="text-[10px] text-text-muted mt-1">{result.supplier} · {result.test_type}</p>
 						<p class="text-[10px] text-text-muted">Received: {result.test_date ? new Date(result.test_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</p>
 					</button>
 				{/each}
@@ -74,7 +74,7 @@
 							</span>
 						</div>
 						<h1 class="text-2xl font-black text-text-primary">Sample Analysis: {selected.batch_number}</h1>
-						<p class="text-sm text-text-muted mt-1">{selected.strain}. {selected.test_type} alkaloid profile and purity verification.</p>
+						<p class="text-sm text-text-muted mt-1">{selected.supplier}. {selected.test_type} alkaloid profile and purity verification.</p>
 					</div>
 					<button disabled title="Coming soon" class="bg-primary text-text-primary px-4 py-2 rounded font-bold text-xs uppercase tracking-tighter flex items-center gap-2 opacity-50 cursor-not-allowed">
 						<span class="material-symbols-outlined text-sm">download</span>

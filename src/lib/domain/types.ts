@@ -5,10 +5,10 @@ export interface Batch {
 	batch_number: string;
 	status: BatchState;
 	current_stage: number;
-	leaf_batch_id: string | null;
 	production_run_id: number | null;
 	supplier: string | null;
-	strain: string | null;
+	supplier_lot: string | null;
+	lot_position: string | null;
 	leaf_input_kg: number;
 	operator_name: string | null;
 	notes: string | null;
@@ -29,142 +29,140 @@ export interface BatchStage {
 	notes: string | null;
 }
 
+// Step 1: Raw Leaf to Powder
 export interface Stage1Record {
 	id: number;
 	batch_id: number;
-	receipt_date: string | null;
-	processing_date: string | null;
-	gross_weight_kg: number | null;
-	tare_weight_kg: number | null;
-	net_weight_kg: number | null;
-	moisture_content_pct: number | null;
-	grinder_id: number | null;
-	screen_mesh_mm: number | null;
-	feed_rate_setting: string | null;
-	machine_temp_c: number | null;
-	rpm: number | null;
-	run_duration_min: number | null;
-	powder_weight_kg: number | null;
+	gross_leaf_kg: number | null;
+	container_kg: number | null;
+	net_leaf_kg: number | null;
+	moisture_pct: number | null;
+	dry_mass_kg: number | null;
+	grinder_id: string | null;
+	screen_microns: number | null;
+	grind_start: string | null;
+	grind_end: string | null;
+	runtime_min: number | null;
+	powder_output_kg: number | null;
 	dust_loss_kg: number | null;
-	powder_yield_pct: number | null;
-	mass_balance_error_pct: number | null;
+	retained_kg: number | null;
+	mass_balance_err_pct: number | null;
+	throughput_kg_hr: number | null;
 	operator_name: string | null;
 	notes: string | null;
 	created_at: string;
 	updated_at: string;
 }
 
+// Steps 2+3: Ethanol Extraction + Water Extraction
 export interface Stage2Record {
 	id: number;
 	batch_id: number;
-	ethanol_stock_grade_pct: number | null;
-	target_ethanol_pct: number | null;
-	ethanol_stock_used_l: number | null;
-	water_added_l: number | null;
-	ethanol_70_volume_l: number | null;
+	// Step 2: Ethanol extraction
+	etoh_vol_L: number | null;
+	etoh_purity_pct: number | null;
+	extract_temp_C: number | null;
+	extract_time_min: number | null;
+	extract_cycles: number | null;
+	agitation_rpm: number | null;
+	stir_time_min: number | null;
 	settle_time_min: number | null;
-	bag_filter_input_l: number | null;
-	bag_filter_output_l: number | null;
-	centrifuge_input_l: number | null;
-	centrifuge_output_l: number | null;
-	screw_press_input_l: number | null;
-	screw_press_output_l: number | null;
-	total_ethanol_70_to_rotovap_l: number | null;
-	total_ethanol_distilled_l: number | null;
-	water_mother_liquid_l: number | null;
-	total_ethanol_recovered_l: number | null;
-	total_ethanol_loss_l: number | null;
-	recovery_rate_pct: number | null;
-	extract_weight_kg: number | null;
+	filtrate_vol_L: number | null;
+	spent_cake_kg: number | null;
+	etoh_recovered_L: number | null;
+	etoh_recovery_pct: number | null;
+	etoh_lost_L: number | null;
+	distill_time_min: number | null;
+	rotovap_vacuum_mbar: number | null;
+	rotovap_bath_C: number | null;
+	crude_aqueous_vol_L: number | null;
+	crude_extract_wt_kg: number | null;
+	// Step 3: Water extraction
+	water_vol_L: number | null;
+	water_temp_C: number | null;
+	water_time_min: number | null;
+	water_cycles: number | null;
+	water_filtrate_L: number | null;
+	water_spent_cake_kg: number | null;
 	operator_name: string | null;
 	notes: string | null;
 	created_at: string;
 	updated_at: string;
 }
 
-export interface Stage2Reactor {
-	id: number;
-	batch_id: number;
-	reactor_number: number;
-	machine_id: number | null;
-	temperature_c: number | null;
-	rpm: number | null;
-	soak_time_min: number | null;
-	powder_mass_kg: number | null;
-	ethanol_70_volume_l: number | null;
-	solvent_ratio: number | null;
-}
-
-export interface Stage2RotovapDay {
-	id: number;
-	batch_id: number;
-	rotovap_number: number;
-	machine_id: number | null;
-	day_number: number;
-	water_bath_temp_c: number | null;
-	vacuum_mbar: number | null;
-	chiller_temp_c: number | null;
-	rpm: number | null;
-	run_time_hours: number | null;
-	ethanol_recovered_l: number | null;
-	recovery_per_hour_l: number | null;
-}
-
+// Steps 4+5: Basification + D-Limonene + Acetic Acid Back-Extraction
 export interface Stage3Record {
 	id: number;
 	batch_id: number;
-	feed_weight_kg: number | null;
-	acid_type: string | null;
-	acid_volume_l: number | null;
-	acid_concentration_pct: number | null;
-	water_volume_l: number | null;
-	target_ph_acid: number | null;
-	actual_ph_acid: number | null;
-	limonene_volume_l: number | null;
-	partition_vessel_id: number | null;
-	num_washes: number | null;
-	aqueous_phase_volume_l: number | null;
-	organic_phase_volume_l: number | null;
-	base_type: string | null;
-	base_weight_kg: number | null;
-	target_ph_base: number | null;
-	actual_ph_base: number | null;
-	limonene_recovered_l: number | null;
-	limonene_loss_l: number | null;
-	partition_loss_kg: number | null;
-	alkaloid_precipitate_kg: number | null;
+	// Step 4: Basification + D-Limonene partition
+	initial_ph: number | null;
+	naoh_added_g: number | null;
+	basified_ph: number | null;
+	dlimo_vol_L: number | null;
+	partition_cycles: number | null;
+	settling_min: number | null;
+	organic_phase_mL: number | null;
+	aqueous_waste_L: number | null;
+	// Step 5: Acetic acid back-extraction
+	acetic_conc: string | null;
+	acetic_water_vol_L: number | null;
+	acetic_pure_vol_L: number | null;
+	backext_cycles: number | null;
+	backext_settle_min: number | null;
+	dlimo_recovered_L: number | null;
+	dlimo_lost_L: number | null;
+	dlimo_loss_pct: number | null;
+	acidic_aq_vol_L: number | null;
+	acidic_ph: number | null;
 	operator_name: string | null;
 	notes: string | null;
 	created_at: string;
 	updated_at: string;
 }
 
+// Step 6: K₂CO₃ Precipitation + Drying → Final Product
 export interface Stage4Record {
 	id: number;
 	batch_id: number;
-	feed_weight_kg: number | null;
-	back_extraction_solvent: string | null;
-	back_extraction_volume_l: number | null;
-	back_extraction_temp_c: number | null;
-	back_extraction_time_min: number | null;
-	limonene_retained_product_kg: number | null;
-	limonene_process_loss_kg: number | null;
-	precipitation_method: string | null;
-	precipitation_ph: number | null;
-	precipitate_weight_kg: number | null;
-	drying_cabinet_id: number | null;
-	drying_temp_c: number | null;
-	drying_time_hours: number | null;
-	drying_humidity_pct: number | null;
-	final_product_weight_kg: number | null;
-	product_appearance: string | null;
-	cumulative_yield_pct: number | null;
-	stage_yield_pct: number | null;
-	mass_balance_error_pct: number | null;
+	k2co3_added_g: number | null;
+	precip_ph: number | null;
+	precip_temp_C: number | null;
+	wet_precipitate_g: number | null;
+	wash_vol_mL: number | null;
+	wash_cycles: number | null;
+	dry_method: string | null;
+	dry_temp_C: number | null;
+	dry_time_hr: number | null;
+	final_product_g: number | null;
+	final_moisture_pct: number | null;
+	overall_yield_pct: number | null;
+	batch_duration_hr: number | null;
 	operator_name: string | null;
 	notes: string | null;
 	created_at: string;
 	updated_at: string;
+}
+
+export interface SupplierDelivery {
+	id: number;
+	lot_id: string;
+	supplier: string;
+	delivery_date: string;
+	quantity_kg: number;
+	batches_from_lot: number;
+	cost_usd: number;
+	cost_per_kg_usd: number;
+}
+
+export interface SolventLedgerEntry {
+	id: number;
+	date: string;
+	event: string;
+	material: string;
+	volume_L: number;
+	batch_id: string | null;
+	running_balance_L: number | null;
+	notes: string | null;
 }
 
 export interface Material {
@@ -304,7 +302,7 @@ export interface BatchCostSummary {
 	status: string;
 	totalCost: number;
 	costPerKg: number | null;
-	final_product_weight_kg: number | null;
+	final_product_g: number | null;
 }
 
 export interface BatchEthanolSummary {
@@ -324,11 +322,72 @@ export interface BatchYieldSummary {
 	batch_number: string;
 	status: string;
 	leaf_input_kg: number;
-	final_product_weight_kg: number | null;
-	cumulative_yield_pct: number | null;
+	final_product_g: number | null;
+	overall_yield_pct: number | null;
 	hplc_purity_pct: number | null;
 	mitragynine_pct: number | null;
 	deviation_count: number;
+}
+
+export interface RunHistorySummary {
+	runId: number;
+	runNumber: string;
+	status: string;
+	startedAt: string | null;
+	completedAt: string | null;
+	totalBatches: number;
+	completedBatches: number;
+	totalInputKg: number;
+	totalProducedKg: number;
+	overallYieldPct: number;
+	totalCost: number;
+	costPerKg: number;
+	avgCostPerBatch: number;
+	avgEthanolRecovery: number;
+	totalEthanolIssued: number;
+	totalEthanolRecovered: number;
+	totalEthanolLost: number;
+	avgPurity: number | null;
+	deviationCount: number;
+}
+
+export interface AnomalyFlag {
+	batchId: number;
+	batchNumber: string;
+	metric: string;
+	value: number;
+	runAvg: number;
+	deviation: number;
+	severity: 'warning' | 'critical';
+}
+
+export interface QualityCorrelationPoint {
+	batchId: number;
+	batchNumber: string;
+	yieldPct: number;
+	purityPct: number | null;
+	mitragynine: number | null;
+	hydroxymitragynine: number | null;
+	paynantheine: number | null;
+	speciogynine: number | null;
+	speciociliatine: number | null;
+	supplier: string | null;
+}
+
+export interface Alert {
+	id: number;
+	batch_id: number | null;
+	stage_number: number | null;
+	alert_type: string;
+	severity: 'Low' | 'Medium' | 'High';
+	metric: string;
+	threshold: number;
+	actual_value: number;
+	message: string;
+	acknowledged: number;
+	acknowledged_by: string | null;
+	created_at: string;
+	acknowledged_at: string | null;
 }
 
 export interface UnitRate {
@@ -344,11 +403,10 @@ export interface UnitRate {
 export interface BatchCost {
 	id: number;
 	batch_id: number;
-	stage_number: number;
 	cost_category: string;
 	item_name: string;
-	quantity: number;
-	unit_rate: number;
+	quantity: number | null;
+	unit_rate: number | null;
 	total_cost: number;
 	notes: string | null;
 	created_at: string;

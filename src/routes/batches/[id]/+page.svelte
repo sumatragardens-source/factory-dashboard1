@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { getStageName } from '$lib/constants/stageNames';
+	import { fmt } from '$lib/config/costs';
 
 	let { data } = $props();
 	let activeTab = $state('overview');
 
-	const stageIcons = ['eco', 'science', 'filter_alt', 'local_fire_department', 'sync_alt', 'swap_horiz', 'water_drop', 'air'];
-	const progress = $derived((data.stages.filter((s: any) => s.status === 'Finalized').length / 8) * 100);
+	const stageIcons = ['eco', 'science', 'swap_horiz', 'air'];
+	const progress = $derived((data.stages.filter((s: any) => s.status === 'Finalized').length / 4) * 100);
 	const activityEvents = $derived([
 		...data.deviations.map((d: any) => ({ type: 'deviation', icon: 'warning', desc: `${d.deviation_type}: ${d.parameter} (${d.severity})`, ts: d.created_at })),
 		...data.approvals.map((a: any) => ({ type: 'approval', icon: 'verified', desc: `${a.approval_type.replace(/_/g, ' ')} — ${a.status}`, ts: a.requested_at })),
@@ -51,7 +52,7 @@
 		</div>
 
 		<!-- Stage Workflow Tracker -->
-		<div class="grid grid-cols-8 gap-2 relative">
+		<div class="grid grid-cols-4 gap-2 relative">
 			<div class="absolute top-4 left-0 right-0 h-0.5 bg-border-card -z-10 mx-6"></div>
 			{#each data.stages as stage, i}
 				{@const isCurrent = stage.stage_number === data.batch.current_stage}
@@ -95,24 +96,24 @@
 		{#if activeTab === 'overview'}
 			<div class="grid grid-cols-12 gap-6">
 				<!-- Left Column: Summary Cards -->
-				<div class="col-span-3 flex flex-col gap-4">
+				<div class="col-span-3 flex flex-col gap-4 self-start">
 					<div class="bg-bg-card p-4 rounded-xl shadow-sm border border-primary/5">
 						<div class="flex justify-between items-start mb-2">
 							<span class="text-xs font-bold text-text-muted uppercase tracking-wider">Input Mass</span>
 							<span class="material-symbols-outlined text-primary/40">scale</span>
 						</div>
 						<p class="text-2xl font-black text-text-primary">{data.batch.leaf_input_kg} <span class="text-base font-medium text-text-muted">kg</span></p>
-						<p class="text-xs text-text-muted mt-1">{data.batch.strain}</p>
+						<p class="text-xs text-text-muted mt-1">{data.batch.supplier ?? '—'}</p>
 					</div>
 
-					{#if data.stage4?.final_product_weight_kg}
+					{#if data.stage4?.final_product_g}
 						<div class="bg-bg-card p-4 rounded-xl shadow-sm border border-primary/5">
 							<div class="flex justify-between items-start mb-2">
 								<span class="text-xs font-bold text-text-muted uppercase tracking-wider">Final Product</span>
 								<span class="material-symbols-outlined text-primary/40">inventory_2</span>
 							</div>
-							<p class="text-2xl font-black text-text-primary">{data.stage4.final_product_weight_kg} <span class="text-base font-medium text-text-muted">kg</span></p>
-							<p class="text-xs text-primary font-bold mt-1">{data.stage4.cumulative_yield_pct}% cumulative yield</p>
+							<p class="text-2xl font-black text-text-primary">{(data.stage4.final_product_g / 1000).toFixed(2)} <span class="text-base font-medium text-text-muted">kg</span></p>
+							<p class="text-xs text-primary font-bold mt-1">{data.stage4.overall_yield_pct}% overall yield</p>
 						</div>
 					{:else if data.stage1}
 						<div class="bg-bg-card p-4 rounded-xl shadow-sm border border-primary/5">
@@ -120,8 +121,10 @@
 								<span class="text-xs font-bold text-text-muted uppercase tracking-wider">Powder Output</span>
 								<span class="material-symbols-outlined text-primary/40">inventory_2</span>
 							</div>
-							<p class="text-2xl font-black text-text-primary">{data.stage1.powder_weight_kg} <span class="text-base font-medium text-text-muted">kg</span></p>
-							<p class="text-xs text-primary font-bold mt-1">{data.stage1.powder_yield_pct}% stage yield</p>
+							<p class="text-2xl font-black text-text-primary">{data.stage1.powder_output_kg} <span class="text-base font-medium text-text-muted">kg</span></p>
+							{#if data.stage1.net_leaf_kg && data.stage1.powder_output_kg}
+								<p class="text-xs text-primary font-bold mt-1">{(data.stage1.powder_output_kg / data.stage1.net_leaf_kg * 100).toFixed(1)}% stage yield</p>
+							{/if}
 						</div>
 					{/if}
 
@@ -131,9 +134,9 @@
 								<span class="text-xs font-bold text-text-muted uppercase tracking-wider">Solvent Recovery %</span>
 								<span class="material-symbols-outlined text-primary/40">restart_alt</span>
 							</div>
-							<p class="text-2xl font-black text-text-primary">{data.stage2.recovery_rate_pct} <span class="text-base font-medium text-text-muted">%</span></p>
+							<p class="text-2xl font-black text-text-primary">{data.stage2.etoh_recovery_pct} <span class="text-base font-medium text-text-muted">%</span></p>
 							<div class="w-full bg-bg-input h-1.5 rounded-full mt-3 overflow-hidden">
-								<div class="bg-primary h-full" style="width: {data.stage2.recovery_rate_pct}%"></div>
+								<div class="bg-primary h-full" style="width: {data.stage2.etoh_recovery_pct}%"></div>
 							</div>
 						</div>
 					{/if}
@@ -144,9 +147,9 @@
 								<span class="text-xs font-bold text-text-muted uppercase tracking-wider">Cumulative Cost</span>
 								<span class="material-symbols-outlined text-primary/40">payments</span>
 							</div>
-							<p class="text-2xl font-black text-text-primary">${data.totalCost.toFixed(2)}</p>
+							<p class="text-2xl font-black text-text-primary">{fmt(data.totalCost)}</p>
 							{#if data.costPerKg}
-								<p class="text-xs text-text-muted mt-1">${data.costPerKg.toFixed(2)} per kg</p>
+								<p class="text-xs text-text-muted mt-1">{fmt(data.costPerKg)} per kg</p>
 							{/if}
 						</div>
 					{/if}
@@ -158,7 +161,7 @@
 						<div class="p-6 border-b border-primary/5 flex justify-between items-center">
 							<div>
 								<h3 class="text-xl font-bold text-text-primary">{data.batch.status === 'Completed' ? 'All Stages Complete' : `Active Stage: ${getStageName(data.batch.current_stage)}`}</h3>
-								<p class="text-sm text-text-muted">{data.stages.filter((s: any) => s.status === 'Finalized').length} of 8 stages complete</p>
+								<p class="text-sm text-text-muted">{data.stages.filter((s: any) => s.status === 'Finalized').length} of 4 stages complete</p>
 							</div>
 							<div class="bg-primary/10 px-3 py-1 rounded-full text-primary font-bold text-xs uppercase tracking-widest">
 								{data.batch.status}
@@ -180,7 +183,7 @@
 
 							<!-- Next Action -->
 							{#if data.batch.status === 'In Progress'}
-								{@const nextStage = data.batch.current_stage < 8 ? data.batch.current_stage + 1 : null}
+								{@const nextStage = data.batch.current_stage < 4 ? data.batch.current_stage + 1 : null}
 								<a href="/batches/{data.batch.id}/stages/{data.batch.current_stage}"
 									class="w-full bg-primary text-white font-black py-4 rounded-lg shadow-xl shadow-primary/30 hover:shadow-primary/40 transition-all flex items-center justify-center gap-2 mb-3">
 									<span>Enter {getStageName(data.batch.current_stage)}</span>
@@ -192,18 +195,18 @@
 				</div>
 
 				<!-- Right Column: Identity & Alerts -->
-				<div class="col-span-3 flex flex-col gap-6">
+				<div class="col-span-3 flex flex-col gap-4 self-start">
 					<div class="bg-bg-card p-4 rounded-xl shadow-sm border border-primary/5">
-						<div class="flex items-center gap-4 mb-4">
-							<div class="w-12 h-12 bg-bg-input rounded-lg flex items-center justify-center">
-								<span class="material-symbols-outlined text-2xl text-text-muted">qr_code_2</span>
+						<div class="flex items-center gap-4 mb-3">
+							<div class="w-10 h-10 bg-bg-input rounded-lg flex items-center justify-center">
+								<span class="material-symbols-outlined text-xl text-text-muted">qr_code_2</span>
 							</div>
 							<div>
-								<h4 class="text-xs font-bold text-text-muted uppercase tracking-widest">Strain</h4>
-								<p class="text-sm font-bold text-text-primary">{data.batch.strain ?? '—'}</p>
+								<h4 class="text-[10px] font-bold text-text-muted uppercase tracking-widest">Batch Info</h4>
+								<p class="text-sm font-bold text-text-primary">{data.batch.batch_number}</p>
 							</div>
 						</div>
-						<div class="flex flex-col gap-2">
+						<div class="flex flex-col gap-0">
 							<div class="flex justify-between items-center py-2 border-t border-border-subtle">
 								<span class="text-xs text-text-muted">Supplier</span>
 								<span class="text-xs font-bold">{data.batch.supplier ?? '—'}</span>
@@ -211,6 +214,10 @@
 							<div class="flex justify-between items-center py-2 border-t border-border-subtle">
 								<span class="text-xs text-text-muted">Leaf Input</span>
 								<span class="text-xs font-bold">{data.batch.leaf_input_kg} kg</span>
+							</div>
+							<div class="flex justify-between items-center py-2 border-t border-border-subtle">
+								<span class="text-xs text-text-muted">Created</span>
+								<span class="text-xs font-bold">{new Date(data.batch.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
 							</div>
 						</div>
 					</div>
@@ -314,19 +321,19 @@
 						<div class="space-y-4">
 							<div class="flex justify-between items-center py-2 border-b border-border-subtle">
 								<span class="text-xs text-text-muted">Volume Issued</span>
-								<span class="text-sm font-bold font-mono">{data.stage2.ethanol_stock_used_l} L</span>
+								<span class="text-sm font-bold font-mono">{data.stage2.etoh_vol_L} L</span>
 							</div>
 							<div class="flex justify-between items-center py-2 border-b border-border-subtle">
 								<span class="text-xs text-text-muted">Volume Recovered</span>
-								<span class="text-sm font-bold font-mono text-primary">{data.stage2.total_ethanol_recovered_l} L</span>
+								<span class="text-sm font-bold font-mono text-primary">{data.stage2.etoh_recovered_L} L</span>
 							</div>
 							<div class="flex justify-between items-center py-2 border-b border-border-subtle">
 								<span class="text-xs text-text-muted">Volume Lost</span>
-								<span class="text-sm font-bold font-mono text-red-400">{data.stage2.total_ethanol_loss_l} L</span>
+								<span class="text-sm font-bold font-mono text-red-400">{data.stage2.etoh_lost_L} L</span>
 							</div>
 							<div class="flex justify-between items-center py-2 bg-primary/5 px-3 rounded-lg">
 								<span class="text-xs font-bold text-text-secondary">Recovery Rate</span>
-								<span class="text-lg font-black text-primary">{data.stage2.recovery_rate_pct}%</span>
+								<span class="text-lg font-black text-primary">{data.stage2.etoh_recovery_pct}%</span>
 							</div>
 						</div>
 					{:else}
@@ -344,18 +351,18 @@
 						<div class="space-y-4">
 							<div class="flex justify-between items-center py-2 border-b border-border-subtle">
 								<span class="text-xs text-text-muted">Volume Issued</span>
-								<span class="text-sm font-bold font-mono">{data.stage3.limonene_volume_l} L</span>
+								<span class="text-sm font-bold font-mono">{data.stage3.dlimo_vol_L} L</span>
 							</div>
 							<div class="flex justify-between items-center py-2 border-b border-border-subtle">
 								<span class="text-xs text-text-muted">Volume Recovered</span>
-								<span class="text-sm font-bold font-mono text-primary">{data.stage3.limonene_recovered_l} L</span>
+								<span class="text-sm font-bold font-mono text-primary">{data.stage3.dlimo_recovered_L} L</span>
 							</div>
 							<div class="flex justify-between items-center py-2 border-b border-border-subtle">
 								<span class="text-xs text-text-muted">Volume Lost</span>
-								<span class="text-sm font-bold font-mono text-red-400">{data.stage3.limonene_loss_l} L</span>
+								<span class="text-sm font-bold font-mono text-red-400">{data.stage3.dlimo_lost_L} L</span>
 							</div>
 							{#if true}
-								{@const limRecovery = data.stage3.limonene_volume_l ? ((data.stage3.limonene_recovered_l ?? 0) / data.stage3.limonene_volume_l * 100) : 0}
+								{@const limRecovery = data.stage3.dlimo_vol_L ? ((data.stage3.dlimo_recovered_L ?? 0) / data.stage3.dlimo_vol_L * 100) : 0}
 								<div class="flex justify-between items-center py-2 bg-primary/5 px-3 rounded-lg">
 									<span class="text-xs font-bold text-text-secondary">Recovery Rate</span>
 									<span class="text-lg font-black text-primary">{limRecovery.toFixed(1)}%</span>
@@ -378,7 +385,6 @@
 					<table class="w-full text-left">
 						<thead>
 							<tr class="border-b border-border-card">
-								<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Stage</th>
 								<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Category</th>
 								<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted">Item</th>
 								<th class="py-3 text-[10px] font-black uppercase tracking-widest text-text-muted text-right">Qty</th>
@@ -389,19 +395,18 @@
 						<tbody>
 							{#each data.costs as cost}
 								<tr class="border-b border-border-subtle">
-									<td class="py-3 text-xs text-text-secondary">{getStageName(cost.stage_number)}</td>
 									<td class="py-3 text-xs text-text-secondary">{cost.cost_category}</td>
 									<td class="py-3 text-xs text-text-primary font-medium">{cost.item_name}</td>
-									<td class="py-3 text-xs text-text-secondary text-right font-mono">{cost.quantity}</td>
-									<td class="py-3 text-xs text-text-secondary text-right font-mono">${cost.unit_rate.toFixed(2)}</td>
-									<td class="py-3 text-xs font-bold text-text-primary text-right font-mono">${cost.total_cost.toFixed(2)}</td>
+									<td class="py-3 text-xs text-text-secondary text-right font-mono">{cost.quantity ?? '—'}</td>
+									<td class="py-3 text-xs text-text-secondary text-right font-mono">{cost.unit_rate ? fmt(cost.unit_rate) : '—'}</td>
+									<td class="py-3 text-xs font-bold text-text-primary text-right font-mono">{fmt(cost.total_cost)}</td>
 								</tr>
 							{/each}
 						</tbody>
 						<tfoot>
 							<tr class="border-t-2 border-border-card">
 								<td colspan="5" class="py-3 text-sm font-black text-text-primary">Total</td>
-								<td class="py-3 text-sm font-black text-primary text-right font-mono">${data.totalCost.toFixed(2)}</td>
+								<td class="py-3 text-sm font-black text-primary text-right font-mono">{fmt(data.totalCost)}</td>
 							</tr>
 						</tfoot>
 					</table>

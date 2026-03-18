@@ -10,16 +10,16 @@ export const load: PageServerLoad = () => {
 export const actions: Actions = {
 	create: async ({ request }) => {
 		const formData = await request.formData();
-		const strain = formData.get('strain') as string;
 		const supplier = formData.get('supplier') as string;
+		const supplier_lot = formData.get('supplier_lot') as string || null;
 		const leaf_input_kg = Number(formData.get('leaf_input_kg'));
 		const operator_name = formData.get('operator_name') as string;
 
-		if (!strain || !supplier || !leaf_input_kg || leaf_input_kg <= 0) {
-			return { error: 'All fields are required and leaf input must be positive.' };
+		if (!supplier || !leaf_input_kg || leaf_input_kg <= 0) {
+			return { error: 'Supplier and leaf input are required.' };
 		}
 
-		const newId = createBatch({ strain, supplier, leaf_input_kg, operator_name });
+		const newId = createBatch({ supplier, supplier_lot, leaf_input_kg, operator_name });
 		redirect(303, `/batches/${newId}`);
 	}
 };

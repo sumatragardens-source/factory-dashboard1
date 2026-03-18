@@ -4,9 +4,10 @@
 
 	interface Props {
 		title?: string;
+		alertCounts?: { high: number; medium: number; low: number; total: number };
 	}
 
-	let { title = 'Operations' }: Props = $props();
+	let { title = 'Operations', alertCounts }: Props = $props();
 
 	const iconMap: Record<string, string> = {
 		activity: 'dashboard',
@@ -64,7 +65,7 @@
 		<div class="flex items-center gap-2">
 			<h1 class="text-sm font-black tracking-tight text-text-primary uppercase">Sumatra Gardens</h1>
 			<span class="text-text-muted">|</span>
-			<span class="text-sm font-bold text-text-secondary uppercase tracking-wide">Ops-Command</span>
+			<span class="text-sm font-bold text-text-secondary uppercase tracking-wide">Dashboard</span>
 		</div>
 	</div>
 
@@ -81,9 +82,18 @@
 				Create New Batch
 			</a>
 
-			<button class="p-1.5 text-text-muted rounded-full relative opacity-50 cursor-not-allowed" disabled title="Coming soon">
+			<a href="/operations" class="p-1.5 text-text-muted rounded-full relative hover:text-text-primary transition-colors" title="{alertCounts?.total ?? 0} active alerts">
 				<span class="material-symbols-outlined text-[20px]">notifications</span>
-			</button>
+				{#if alertCounts && alertCounts.total > 0}
+					<span class="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] rounded-full {alertCounts.high > 0 ? 'bg-red-500' : 'bg-amber-500'} text-[9px] font-black text-white flex items-center justify-center px-1">{alertCounts.total}</span>
+				{/if}
+			</a>
+
+			<form method="POST" action="/api/auth/logout">
+				<button type="submit" class="p-1.5 text-text-muted hover:text-red-400 rounded-full transition-colors" title="Sign out">
+					<span class="material-symbols-outlined text-[20px]">logout</span>
+				</button>
+			</form>
 
 			<div class="h-8 w-8 rounded-full bg-border-card flex items-center justify-center text-text-secondary font-bold text-[10px] border border-border-subtle">SG</div>
 		</div>

@@ -129,7 +129,7 @@
 					<thead>
 						<tr class="border-b border-border-subtle">
 							<th class="text-left px-4 py-3 text-text-muted font-medium">Batch</th>
-							<th class="text-right px-4 py-3 text-text-muted font-medium">Powder Weight (kg)</th>
+							<th class="text-right px-4 py-3 text-text-muted font-medium">Powder Output (kg)</th>
 							<th class="text-right px-4 py-3 text-text-muted font-medium">Yield (%)</th>
 							<th class="text-right px-4 py-3 text-text-muted font-medium">MBE (%)</th>
 							<th class="text-right px-4 py-3 text-text-muted font-medium">Finalized</th>
@@ -141,9 +141,9 @@
 								<td class="px-4 py-3 text-text-primary">
 									<a href="/batches/{batch.batch_id}" class="text-primary hover:underline">{batch.batch_number}</a>
 								</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.powder_weight_kg ?? '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.powder_output_kg ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.powder_yield_pct ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.mass_balance_error_pct ?? '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.mass_balance_err_pct ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-muted">{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td>
 							</tr>
 						{/each}
@@ -154,9 +154,9 @@
 					<thead>
 						<tr class="border-b border-border-subtle">
 							<th class="text-left px-4 py-3 text-text-muted font-medium">Batch</th>
-							<th class="text-right px-4 py-3 text-text-muted font-medium">Extract Weight (kg)</th>
-							<th class="text-right px-4 py-3 text-text-muted font-medium">Recovery (%)</th>
-							<th class="text-right px-4 py-3 text-text-muted font-medium">Ethanol (L)</th>
+							<th class="text-right px-4 py-3 text-text-muted font-medium">Crude Extract (kg)</th>
+							<th class="text-right px-4 py-3 text-text-muted font-medium">EtOH Recovery (%)</th>
+							<th class="text-right px-4 py-3 text-text-muted font-medium">EtOH Vol (L)</th>
 							<th class="text-right px-4 py-3 text-text-muted font-medium">Finalized</th>
 						</tr>
 					</thead>
@@ -166,9 +166,9 @@
 								<td class="px-4 py-3 text-text-primary">
 									<a href="/batches/{batch.batch_id}" class="text-primary hover:underline">{batch.batch_number}</a>
 								</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.extract_weight_kg ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.recovery_rate_pct ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.ethanol_stock_used_l ?? '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.crude_extract_wt_kg ?? '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.etoh_recovery_pct ?? '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.etoh_vol_L ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-muted">{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td>
 							</tr>
 						{/each}
@@ -179,10 +179,10 @@
 					<thead>
 						<tr class="border-b border-border-subtle">
 							<th class="text-left px-4 py-3 text-text-muted font-medium">Batch</th>
-							<th class="text-right px-4 py-3 text-text-muted font-medium">Precipitate (kg)</th>
-							<th class="text-right px-4 py-3 text-text-muted font-medium">Feed Weight (kg)</th>
-							<th class="text-right px-4 py-3 text-text-muted font-medium">Limonene Used (L)</th>
-							<th class="text-right px-4 py-3 text-text-muted font-medium">Limonene Recovered (L)</th>
+							<th class="text-right px-4 py-3 text-text-muted font-medium">Organic Phase (mL)</th>
+							<th class="text-right px-4 py-3 text-text-muted font-medium">Aqueous Waste (L)</th>
+							<th class="text-right px-4 py-3 text-text-muted font-medium">D-Limo Used (L)</th>
+							<th class="text-right px-4 py-3 text-text-muted font-medium">D-Limo Recovered (L)</th>
 							<th class="text-right px-4 py-3 text-text-muted font-medium">Finalized</th>
 						</tr>
 					</thead>
@@ -192,10 +192,10 @@
 								<td class="px-4 py-3 text-text-primary">
 									<a href="/batches/{batch.batch_id}" class="text-primary hover:underline">{batch.batch_number}</a>
 								</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.alkaloid_precipitate_kg ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.feed_weight_kg ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.limonene_volume_l ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.limonene_recovered_l ?? '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.organic_phase_mL ?? '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.aqueous_waste_L ?? '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.dlimo_vol_L ?? '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.dlimo_recovered_L ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-muted">{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td>
 							</tr>
 						{/each}
@@ -207,7 +207,7 @@
 						<tr class="border-b border-border-subtle">
 							<th class="text-left px-4 py-3 text-text-muted font-medium">Batch</th>
 							<th class="text-right px-4 py-3 text-text-muted font-medium">Final Product (kg)</th>
-							<th class="text-right px-4 py-3 text-text-muted font-medium">Cumulative Yield (%)</th>
+							<th class="text-right px-4 py-3 text-text-muted font-medium">Overall Yield (%)</th>
 							<th class="text-right px-4 py-3 text-text-muted font-medium">Finalized</th>
 						</tr>
 					</thead>
@@ -217,8 +217,8 @@
 								<td class="px-4 py-3 text-text-primary">
 									<a href="/batches/{batch.batch_id}" class="text-primary hover:underline">{batch.batch_number}</a>
 								</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.final_product_weight_kg ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.cumulative_yield_pct ?? '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.final_product_g != null ? (batch.final_product_g / 1000).toFixed(2) : '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary">{batch.overall_yield_pct ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-muted">{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td>
 							</tr>
 						{/each}
