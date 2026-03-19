@@ -2279,9 +2279,12 @@
 
 				<!-- S2: Batch Yield Bar Chart — HERO -->
 				{@const lotYieldData = data.runYieldBreakdown.filter(y => y.supplier_lot === activeLot && y.final_product_g != null)}
-				{@const batchYieldMax = Math.max(...lotYieldData.map(y => y.final_product_g ?? 0), 1)}
+				{@const yieldVals = lotYieldData.map(y => y.final_product_g ?? 0).filter(v => v > 0)}
+				{@const batchYieldMax = yieldVals.length > 0 ? Math.max(...yieldVals) * 1.05 : 1}
+				{@const batchYieldMin = yieldVals.length > 0 ? Math.max(0, Math.min(...yieldVals) * 0.9) : 0}
+				{@const batchYieldRange = batchYieldMax - batchYieldMin || 1}
 				{@const batchYieldAvg = lotYieldData.length > 0 ? lotYieldData.reduce((s, y) => s + (y.final_product_g ?? 0), 0) / lotYieldData.length : 0}
-				{@const yieldAvgLinePct = batchYieldAvg > 0 ? (batchYieldAvg / batchYieldMax) * 100 : 0}
+				{@const yieldAvgLinePct = batchYieldAvg > 0 ? ((batchYieldAvg - batchYieldMin) / batchYieldRange) * 100 : 0}
 				{#if lotYieldData.length > 0}
 				<div class="mb-2">
 					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Yield — {activeLot?.replace('LOT-', 'L')}</h4>
@@ -2290,7 +2293,7 @@
 						<span class="absolute text-[6px] font-mono text-slate-400 right-1" style="bottom: {yieldAvgLinePct + 1}%;">avg {(batchYieldAvg / 1000).toFixed(2)}kg</span>
 						{#each lotYieldData as yb}
 							{@const yieldG = yb.final_product_g ?? 0}
-							{@const hPct = (yieldG / batchYieldMax) * 100}
+							{@const hPct = Math.min(100, Math.max(3, ((yieldG - batchYieldMin) / batchYieldRange) * 100))}
 							{@const isAboveAvg = yieldG >= batchYieldAvg}
 							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(yb.batch_id)}
 								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [yb.batch_number, `Yield: ${(yieldG / 1000).toFixed(2)}kg`, `Rate: ${yb.overall_yield_pct?.toFixed(2) ?? '—'}%`] }} onmouseleave={() => chartTooltip = null}>
@@ -2382,7 +2385,7 @@
 					<div class="space-y-1.5">
 						<div class="flex items-center gap-2">
 							<span class="w-20 text-[7px] font-bold text-slate-500">Mitragynine %</span>
-							<span class="text-[8px] font-mono font-bold text-white">{mitVal?.toFixed(1) ?? '—'}%</span>
+							<span class="text-[8px] font-mono font-bold text-white">{mitVal !== null ? mitVal.toFixed(1) + '%' : 'N/A'}</span>
 							{#if mitVal !== null}
 								<span class="text-[6px] px-1 py-0.5 rounded font-bold" style="background: {mitVal >= 1.0 ? 'rgba(190,242,100,0.15)' : 'rgba(239,68,68,0.15)'}; color: {mitVal >= 1.0 ? '#bef264' : '#ef4444'};">{mitVal >= 1.0 ? 'PASS' : 'FAIL'}</span>
 							{/if}
@@ -2417,6 +2420,25 @@
 					<p class="text-[8px] text-slate-500 italic">Lab results pending — submit samples to populate quality data</p>
 				</div>
 				{/if}
+
+				<!-- Yield Summary -->
+				{@const ysLeafInput = lotBatches().reduce((s, b) => s + (b.leaf_input_kg ?? 0), 0)}
+				{@const ysFinalOutput = lotBatches().reduce((s, b) => s + (b.final_product_g ?? 0), 0) / 1000}
+				{@const ysExtractRate = ysLeafInput > 0 ? (ysFinalOutput / ysLeafInput) * 100 : 0}
+				{@const ysBatchCount = lotYieldData.length}
+				{@const ysBestBatch = lotYieldData.length > 0 ? lotYieldData.reduce((a, b) => (a.final_product_g ?? 0) > (b.final_product_g ?? 0) ? a : b) : null}
+				{@const ysWorstBatch = lotYieldData.length > 0 ? lotYieldData.reduce((a, b) => (a.final_product_g ?? 0) < (b.final_product_g ?? 0) ? a : b) : null}
+				<div class="mt-2 p-2 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
+					<h4 class="text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Yield Summary</h4>
+					<div class="grid grid-cols-3 gap-x-3 gap-y-1 text-[7px] font-mono">
+						<div><span class="text-slate-500">Leaf Input</span> <span class="text-white font-bold">{ysLeafInput.toFixed(0)} kg</span></div>
+						<div><span class="text-slate-500">Final Output</span> <span class="text-white font-bold">{ysFinalOutput.toFixed(2)} kg</span></div>
+						<div><span class="text-slate-500">Extract Rate</span> <span class="font-bold" style="color: {ysExtractRate >= 1.2 ? '#bef264' : '#f59e0b'};">{ysExtractRate.toFixed(2)}%</span></div>
+						<div><span class="text-slate-500">Batches</span> <span class="text-white font-bold">{ysBatchCount}</span></div>
+						<div><span class="text-slate-500">Best</span> <span class="font-bold" style="color: #bef264;">{ysBestBatch ? ((ysBestBatch.final_product_g ?? 0) / 1000).toFixed(2) + 'kg' : '—'}</span></div>
+						<div><span class="text-slate-500">Worst</span> <span class="font-bold" style="color: #ef4444;">{ysWorstBatch ? ((ysWorstBatch.final_product_g ?? 0) / 1000).toFixed(2) + 'kg' : '—'}</span></div>
+					</div>
+				</div>
 				{/if}
 			{:else if yieldMode === 'batch'}
 				<!-- Lot History: Yield per Lot Bar Chart -->
