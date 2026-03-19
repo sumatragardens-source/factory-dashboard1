@@ -25,6 +25,7 @@ import {
 	getBatchCostBreakdown
 } from '$lib/data/repositories/dashboardRepo';
 import { getActiveAlerts, getAlertCounts } from '$lib/data/repositories/alertRepo';
+import { getAllMaterials } from '$lib/data/repositories/materialRepo';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
@@ -60,7 +61,8 @@ export const load: PageServerLoad = () => {
 			batchAnomalies: activeRunId ? getBatchAnomalies(activeRunId) : [],
 			qualityCorrelation: activeRunId ? getQualityCorrelation(activeRunId) : [],
 			alertCounts: getAlertCounts(),
-			activeAlerts: getActiveAlerts().slice(0, 5)
+			activeAlerts: getActiveAlerts().slice(0, 5),
+		materials: getAllMaterials()
 		};
 	} catch (e) {
 		console.error('Failed to load operations data:', e);
@@ -91,7 +93,8 @@ export const load: PageServerLoad = () => {
 			batchAnomalies: [],
 			qualityCorrelation: [],
 			alertCounts: { high: 0, medium: 0, low: 0, total: 0 },
-			activeAlerts: []
+			activeAlerts: [],
+		materials: []
 		};
 	}
 };
