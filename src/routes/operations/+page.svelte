@@ -2555,11 +2555,68 @@
 				{/if}
 				{/if}
 			{:else if yieldMode === 'history'}
-				<!-- Batch Contrib. — coming soon -->
-				<div class="flex-1 flex flex-col items-center justify-center">
-					<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">construction</span>
-					<p class="text-[8px] text-slate-500 italic">Batch contribution analysis coming soon</p>
+				<!-- Batch Contribution — bars + mass balance table -->
+				{#if true}
+				{@const contribBatches = data.activeBatchProgress.filter(b => b.supplier_lot === activeLot && b.final_product_g != null).sort((a, b) => (b.final_product_g ?? 0) - (a.final_product_g ?? 0))}
+				{@const contribTotal = contribBatches.reduce((s, b) => s + (b.final_product_g ?? 0), 0)}
+				{@const contribMax = contribBatches.length > 0 ? (contribBatches[0].final_product_g ?? 0) : 1}
+
+				<!-- Batch contribution bars -->
+				{#if contribBatches.length > 0}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Contribution — {activeLot?.replace('LOT-', 'L')}</h4>
+					<div class="space-y-0.5">
+						{#each contribBatches as cb}
+							{@const cbG = cb.final_product_g ?? 0}
+							{@const cbPct = contribTotal > 0 ? (cbG / contribTotal) * 100 : 0}
+							{@const cbWPct = contribMax > 0 ? (cbG / contribMax) * 100 : 0}
+							<div class="flex items-center gap-1.5"
+								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [cb.batch_number, `Output: ${(cbG / 1000).toFixed(2)}kg`, `Share: ${cbPct.toFixed(1)}%`, `Rate: ${cb.overall_yield_pct?.toFixed(2) ?? '—'}%`, `Leaf: ${(cb.leaf_input_kg ?? 0).toFixed(0)}kg`] }} onmouseleave={() => chartTooltip = null}>
+								<span class="w-8 text-[6px] font-mono font-bold text-slate-500 text-right">{cb.batch_number.replace('SG-', '')}</span>
+								<div class="flex-1 h-2.5 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
+									<div class="h-full rounded-sm" style="width: {cbWPct}%; background: rgba(190,242,100,0.5);"></div>
+								</div>
+								<span class="text-[6px] font-mono font-bold text-white">{(cbG / 1000).toFixed(2)}kg</span>
+								<span class="text-[6px] font-mono text-slate-500">{cbPct.toFixed(0)}%</span>
+							</div>
+						{/each}
+					</div>
 				</div>
+				{/if}
+
+				<!-- Stage mass balance table -->
+				{@const mbBatches = data.activeBatchProgress.filter(b => b.supplier_lot === activeLot)}
+				<div class="mb-1">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Mass Balance</h4>
+					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
+						<table class="w-full text-left border-collapse">
+							<thead class="sticky top-0" style="background: #0d0d0d;">
+								<tr class="text-[6px] font-bold text-slate-500 uppercase tracking-widest">
+									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Leaf (kg)</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Powder (kg)</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Precip (g)</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Final (g)</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield %</th>
+								</tr>
+							</thead>
+							<tbody class="text-[7px] font-mono">
+								{#each mbBatches as mb}
+									<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);"
+										onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [mb.batch_number, `Leaf: ${(mb.leaf_input_kg ?? 0).toFixed(1)}kg`, `Final: ${((mb.final_product_g ?? 0) / 1000).toFixed(2)}kg`, `Yield: ${mb.overall_yield_pct?.toFixed(2) ?? '—'}%`] }} onmouseleave={() => chartTooltip = null}>
+										<td class="px-1.5 py-0.5 text-slate-400">{mb.batch_number.replace('SG-', '')}</td>
+										<td class="px-1 py-0.5 text-right text-white">{(mb.leaf_input_kg ?? 0).toFixed(1)}</td>
+										<td class="px-1 py-0.5 text-right text-white">{(mb.powder_output_kg ?? 0).toFixed(1)}</td>
+										<td class="px-1 py-0.5 text-right text-white">{(mb.wet_precipitate_g ?? 0).toFixed(0)}</td>
+										<td class="px-1 py-0.5 text-right font-bold" style="color: #bef264;">{(mb.final_product_g ?? 0).toFixed(0)}</td>
+										<td class="px-1 py-0.5 text-right font-bold" style="color: {(mb.overall_yield_pct ?? 0) >= 1.2 ? '#bef264' : '#f59e0b'};">{mb.overall_yield_pct?.toFixed(2) ?? '—'}%</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+				{/if}
 			{:else}
 				<!-- Quality — coming soon -->
 				<div class="flex-1 flex flex-col items-center justify-center">
