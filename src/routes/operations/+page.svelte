@@ -2618,11 +2618,115 @@
 				</div>
 				{/if}
 			{:else}
-				<!-- Quality — coming soon -->
-				<div class="flex-1 flex flex-col items-center justify-center">
-					<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">construction</span>
-					<p class="text-[8px] text-slate-500 italic">Quality analysis coming soon</p>
+				<!-- Quality Tab -->
+				{#if data.qualityCorrelation.length > 0}
+				{@const qcData = data.qualityCorrelation}
+
+				<!-- HPLC Results Table -->
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">HPLC Results</h4>
+					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 100px;">
+						<table class="w-full text-left border-collapse">
+							<thead class="sticky top-0" style="background: #0d0d0d;">
+								<tr class="text-[6px] font-bold text-slate-500 uppercase tracking-widest">
+									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Purity %</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Mitragynine %</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">7-OH %</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield %</th>
+								</tr>
+							</thead>
+							<tbody class="text-[7px] font-mono">
+								{#each qcData as qc}
+									<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);"
+										onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [qc.batchNumber, `Purity: ${qc.purityPct?.toFixed(1) ?? 'N/A'}%`, `Mitragynine: ${qc.mitragynine?.toFixed(2) ?? 'N/A'}%`, `7-OH: ${qc.hydroxymitragynine?.toFixed(3) ?? 'N/A'}%`, `Yield: ${qc.yieldPct.toFixed(2)}%`] }} onmouseleave={() => chartTooltip = null}>
+										<td class="px-1.5 py-0.5 text-slate-400">{qc.batchNumber.replace('SG-', '')}</td>
+										<td class="px-1 py-0.5 text-right font-bold" style="color: {(qc.purityPct ?? 0) >= 80 ? '#bef264' : '#ef4444'};">{qc.purityPct?.toFixed(1) ?? 'N/A'}</td>
+										<td class="px-1 py-0.5 text-right font-bold" style="color: {(qc.mitragynine ?? 0) >= 1.0 ? '#bef264' : '#ef4444'};">{qc.mitragynine?.toFixed(2) ?? 'N/A'}</td>
+										<td class="px-1 py-0.5 text-right text-white">{qc.hydroxymitragynine?.toFixed(3) ?? 'N/A'}</td>
+										<td class="px-1 py-0.5 text-right text-white">{qc.yieldPct.toFixed(2)}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
 				</div>
+
+				<!-- Purity vs Yield Scatter -->
+				{@const qcWithPurity = qcData.filter(q => q.purityPct !== null)}
+				{#if qcWithPurity.length >= 2}
+				{@const qcPurities = qcWithPurity.map(q => q.purityPct ?? 0)}
+				{@const qcYields = qcWithPurity.map(q => q.yieldPct)}
+				{@const qcPurMin = Math.min(...qcPurities) - 2}
+				{@const qcPurMax = Math.max(...qcPurities) + 2}
+				{@const qcYldMin = Math.min(...qcYields) - 0.1}
+				{@const qcYldMax = Math.max(...qcYields) + 0.1}
+				{@const qcAvgPur = qcPurities.reduce((a, b) => a + b, 0) / qcPurities.length}
+				{@const qcAvgYld = qcYields.reduce((a, b) => a + b, 0) / qcYields.length}
+				{@const qcCrossX = 30 + ((qcAvgPur - qcPurMin) / (qcPurMax - qcPurMin || 1)) * 440}
+				{@const qcCrossY = 5 + (1 - (qcAvgYld - qcYldMin) / (qcYldMax - qcYldMin || 1)) * 60}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Purity vs Yield</h4>
+					<svg viewBox="0 0 500 75" class="w-full" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;">
+						<line x1={qcCrossX} y1="5" x2={qcCrossX} y2="65" stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 3" stroke-width="0.5" />
+						<line x1="30" y1={qcCrossY} x2="470" y2={qcCrossY} stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 3" stroke-width="0.5" />
+						{#each qcWithPurity as qp}
+							{@const qpx = 30 + (((qp.purityPct ?? 0) - qcPurMin) / (qcPurMax - qcPurMin || 1)) * 440}
+							{@const qpy = 5 + (1 - (qp.yieldPct - qcYldMin) / (qcYldMax - qcYldMin || 1)) * 60}
+							{@const aboveAvg = qp.yieldPct >= qcAvgYld}
+							<circle cx={qpx} cy={qpy} r="4" fill={aboveAvg ? '#bef264' : '#ef4444'} opacity="0.8" style="cursor: pointer;"
+								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [qp.batchNumber, `Purity: ${(qp.purityPct ?? 0).toFixed(1)}%`, `Yield: ${qp.yieldPct.toFixed(2)}%`] }} onmouseleave={() => chartTooltip = null} />
+						{/each}
+						<text x="250" y="73" text-anchor="middle" fill="#666666" font-size="5">Purity %</text>
+						<text x="5" y="35" text-anchor="start" fill="#666666" font-size="5" transform="rotate(-90, 5, 35)">Yield %</text>
+					</svg>
+				</div>
+				{/if}
+
+				<!-- Avg Alkaloid Profile -->
+				{@const alkData = [
+					{ name: 'Mitragynine', values: qcData.map(q => q.mitragynine).filter((v): v is number => v !== null) },
+					{ name: '7-OH-Mitragynine', values: qcData.map(q => q.hydroxymitragynine).filter((v): v is number => v !== null) },
+					{ name: 'Paynantheine', values: qcData.map(q => q.paynantheine).filter((v): v is number => v !== null) },
+				]}
+				{@const alkAvgs = alkData.map(a => ({ name: a.name, avg: a.values.length > 0 ? a.values.reduce((s, v) => s + v, 0) / a.values.length : 0 }))}
+				{@const alkMax = Math.max(...alkAvgs.map(a => a.avg), 0.01)}
+				{#if alkAvgs.some(a => a.avg > 0)}
+				<div class="mb-1">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Avg Alkaloid Profile</h4>
+					<div class="space-y-0.5">
+						{#each alkAvgs as alk}
+							{@const alkWPct = alkMax > 0 ? (alk.avg / alkMax) * 100 : 0}
+							<div class="flex items-center gap-1.5">
+								<span class="w-20 text-[6px] font-bold text-slate-500 truncate">{alk.name}</span>
+								<div class="flex-1 h-2 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
+									<div class="h-full rounded-sm" style="width: {alkWPct}%; background: rgba(190,242,100,0.5);"></div>
+								</div>
+								<span class="text-[6px] font-mono font-bold text-white">{alk.avg.toFixed(3)}%</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+				{/if}
+
+				{:else}
+				<!-- No quality data placeholder -->
+				<div class="flex-1 flex flex-col items-center justify-center p-4">
+					<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">science</span>
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-2">Lab Results Pending</h4>
+					<div class="space-y-1 text-[7px] font-mono text-slate-500">
+						<div class="flex items-center gap-2">
+							<span class="text-[6px] px-1 py-0.5 rounded font-bold" style="background: rgba(190,242,100,0.15); color: #bef264;">SPEC</span>
+							<span>Purity >= 80%</span>
+						</div>
+						<div class="flex items-center gap-2">
+							<span class="text-[6px] px-1 py-0.5 rounded font-bold" style="background: rgba(190,242,100,0.15); color: #bef264;">SPEC</span>
+							<span>Mitragynine >= 1.0%</span>
+						</div>
+					</div>
+					<p class="text-[7px] text-slate-600 italic mt-2">Submit HPLC samples to populate quality data</p>
+				</div>
+				{/if}
 			{/if}
 		{/if}
 		</div>
