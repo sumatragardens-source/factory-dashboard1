@@ -2155,11 +2155,83 @@
 				{/if}
 				{/if}
 			{:else}
-				<!-- Batch Breakdown — coming soon -->
-				<div class="flex-1 flex flex-col items-center justify-center">
-					<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">construction</span>
-					<p class="text-[8px] text-slate-500 italic">Batch breakdown analysis coming soon</p>
+				<!-- Batch Breakdown — Solvent Table + Loss Ranking + Filtrate Context -->
+				{#if true}
+				{@const bbBatches = data.activeBatchProgress.filter(b => b.supplier_lot === activeLot)}
+
+				<!-- Per-batch solvent table -->
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Solvent Usage — {activeLot?.replace('LOT-', 'L')}</h4>
+					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
+						<table class="w-full text-left border-collapse">
+							<thead class="sticky top-0" style="background: #0d0d0d;">
+								<tr class="text-[6px] font-bold text-slate-500 uppercase tracking-widest">
+									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH In</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH Out</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH Lost</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">D-Limo In</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">D-Limo Out</th>
+									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">D-Limo Lost</th>
+								</tr>
+							</thead>
+							<tbody class="text-[7px] font-mono">
+								{#each bbBatches as bb}
+									{@const etohLost = (bb.etoh_vol_L ?? 0) - (bb.etoh_recovered_L ?? 0)}
+									{@const dlimoLost = (bb.dlimo_vol_L ?? 0) - (bb.dlimo_recovered_L ?? 0)}
+									<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);"
+										onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [bb.batch_number, `EtOH: ${(bb.etoh_vol_L ?? 0).toFixed(0)}→${(bb.etoh_recovered_L ?? 0).toFixed(0)}L`, `D-Limo: ${(bb.dlimo_vol_L ?? 0).toFixed(1)}→${(bb.dlimo_recovered_L ?? 0).toFixed(1)}L`] }} onmouseleave={() => chartTooltip = null}>
+										<td class="px-1.5 py-0.5 text-slate-400">{bb.batch_number.replace('SG-', '')}</td>
+										<td class="px-1 py-0.5 text-right text-white">{(bb.etoh_vol_L ?? 0).toFixed(0)}</td>
+										<td class="px-1 py-0.5 text-right text-white">{(bb.etoh_recovered_L ?? 0).toFixed(0)}</td>
+										<td class="px-1 py-0.5 text-right" style="color: #ef4444;">{etohLost > 0 ? etohLost.toFixed(0) : '—'}</td>
+										<td class="px-1 py-0.5 text-right text-white">{(bb.dlimo_vol_L ?? 0).toFixed(1)}</td>
+										<td class="px-1 py-0.5 text-right text-white">{(bb.dlimo_recovered_L ?? 0).toFixed(1)}</td>
+										<td class="px-1 py-0.5 text-right" style="color: #ef4444;">{dlimoLost > 0 ? dlimoLost.toFixed(1) : '—'}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
 				</div>
+
+				<!-- EtOH Loss Ranking — horizontal bars -->
+				{@const lossRanking = bbBatches.map(b => ({ bn: b.batch_number.replace('SG-', ''), lost: (b.etoh_vol_L ?? 0) - (b.etoh_recovered_L ?? 0) })).filter(b => b.lost > 0).sort((a, b) => b.lost - a.lost)}
+				{@const maxLoss = lossRanking.length > 0 ? lossRanking[0].lost : 1}
+				{#if lossRanking.length > 0}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">EtOH Loss Ranking</h4>
+					<div class="space-y-0.5">
+						{#each lossRanking as lr}
+							{@const wPct = (lr.lost / maxLoss) * 100}
+							{@const lossCostLr = lr.lost * UNIT_RATES.ethanol70.rate}
+							<div class="flex items-center gap-1.5"
+								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [lr.bn, `Lost: ${lr.lost.toFixed(0)}L`, `Cost: ${fmt(lossCostLr)}`] }} onmouseleave={() => chartTooltip = null}>
+								<span class="w-8 text-[6px] font-mono font-bold text-slate-500 text-right">{lr.bn}</span>
+								<div class="flex-1 h-2.5 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
+									<div class="h-full rounded-sm" style="width: {wPct}%; background: rgba(239,68,68,0.6);"></div>
+								</div>
+								<span class="text-[6px] font-mono font-bold" style="color: #ef4444;">{lr.lost.toFixed(0)}L</span>
+								<span class="text-[6px] font-mono text-slate-500">{fmt(lossCostLr)}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+				{/if}
+
+				<!-- Filtrate Recovery Context -->
+				{@const avgFiltrate = bbBatches.length > 0 ? bbBatches.reduce((s, b) => s + (b.filtrate_vol_L ?? 0), 0) / bbBatches.length : 0}
+				{@const avgEtohIn = bbBatches.length > 0 ? bbBatches.reduce((s, b) => s + (b.etoh_vol_L ?? 0), 0) / bbBatches.length : 0}
+				{@const filtrateReturnPct = avgEtohIn > 0 ? (avgFiltrate / avgEtohIn) * 100 : 0}
+				<div class="p-2 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
+					<h4 class="text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Filtrate Recovery</h4>
+					<div class="flex gap-4 text-[7px] font-mono">
+						<div><span class="text-slate-500">Avg EtOH In</span> <span class="text-white font-bold">{avgEtohIn.toFixed(0)}L</span></div>
+						<div><span class="text-slate-500">Avg Filtrate</span> <span class="text-white font-bold">{avgFiltrate.toFixed(0)}L</span></div>
+						<div><span class="text-slate-500">Return</span> <span class="font-bold" style="color: {filtrateReturnPct >= 85 ? '#bef264' : '#f59e0b'};">{filtrateReturnPct.toFixed(1)}%</span></div>
+					</div>
+				</div>
+				{/if}
 			{/if}
 		{:else}
 			{#if yieldMode === 'lot'}
