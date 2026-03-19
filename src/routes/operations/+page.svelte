@@ -1535,12 +1535,24 @@
 							{@const cpk = lotSummaries.get(lot)?.avgCostPerKg ?? 0}
 							{@const hPct = cpk > 0 ? ((cpk - cpkMin) / (cpkMax - cpkMin)) * 100 : 0}
 							{@const isCurrent = lot === activeLot}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => { selectedLot = lot; costMode = 'lot'; }}>
 								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{cpk > 0 ? fmt(cpk) : '—'}</span>
 								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(cpk, lotCpks, isCurrent)}; min-height: 4px;"></div>
 								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
 							</button>
 						{/each}
+						<!-- SVG trend line overlay -->
+						{#if lots.length >= 2}
+						<svg class="absolute inset-0 pointer-events-none" viewBox="0 0 {lots.length * 100} 100" preserveAspectRatio="none" style="overflow: visible;">
+							<polyline fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" vector-effect="non-scaling-stroke"
+								points="{lots.map((lot, i) => {
+									const cpk = lotSummaries.get(lot)?.avgCostPerKg ?? 0;
+									const x = i * 100 + 50;
+									const y = cpk > 0 ? 100 - ((cpk - cpkMin) / (cpkMax - cpkMin)) * 100 : 100;
+									return `${x},${y}`;
+								}).join(' ')}" />
+						</svg>
+						{/if}
 					</div>
 				</div>
 
@@ -1619,6 +1631,66 @@
 						{/each}
 					</div>
 				</div>
+
+				<!-- Cost Category Shift — Last Lots -->
+				{@const shiftLots = lots.slice(-4)}
+				{@const shiftKeys = ['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const}
+				{#if shiftLots.length >= 2}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Category % Shift</h4>
+					<div class="border border-white/10 rounded overflow-hidden">
+						<table class="w-full text-left border-collapse">
+							<thead>
+								<tr class="text-[6px] font-bold text-slate-500 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
+									<th class="px-1.5 py-0.5"></th>
+									{#each shiftLots as sl}
+										<th class="px-1 py-0.5 text-center">{sl.replace('LOT-', 'L')}</th>
+									{/each}
+								</tr>
+							</thead>
+							<tbody class="text-[7px] font-mono">
+								{#each shiftKeys as key}
+									{@const vals = shiftLots.map(l => { const a = lotSummaries.get(l); const segs = a?.costBySegment; if (!segs) return 0; const tot = Object.values(segs).reduce((s, v) => s + v, 0) || 1; return (segs[key] / tot) * 100; })}
+									{@const trend = vals.length >= 2 ? vals[vals.length - 1] - vals[0] : 0}
+									<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+										<td class="px-1.5 py-0.5 uppercase text-slate-500 font-bold">{key}</td>
+										{#each vals as v}
+											<td class="px-1 py-0.5 text-center" style="color: {trend <= -2 ? '#bef264' : trend >= 2 ? '#ef4444' : '#cbd5e1'};">{v.toFixed(0)}%</td>
+										{/each}
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+				{/if}
+
+				<!-- Best / Worst Lot -->
+				{@const bestLotH = lots.reduce((best, l) => { const a = lotSummaries.get(l); return a && a.avgCostPerKg > 0 && (best === null || a.avgCostPerKg < (lotSummaries.get(best)?.avgCostPerKg ?? Infinity)) ? l : best; }, null as string | null)}
+				{@const worstLotH = lots.reduce((worst, l) => { const a = lotSummaries.get(l); return a && a.avgCostPerKg > 0 && (worst === null || a.avgCostPerKg > (lotSummaries.get(worst)?.avgCostPerKg ?? 0)) ? l : worst; }, null as string | null)}
+				{#if bestLotH || worstLotH}
+				<div class="mb-1">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Best / Worst Lot</h4>
+					<div class="flex gap-2">
+						{#if bestLotH}
+						{@const ba = lotSummaries.get(bestLotH)}
+						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestLotH; costMode = 'lot'; }}>
+							<span class="text-[6px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
+							<div class="text-[9px] font-mono font-bold text-white">{bestLotH.replace('LOT-', 'L')}</div>
+							<div class="text-[7px] font-mono text-slate-400">{ba ? fmt(ba.avgCostPerKg) : '—'}/kg</div>
+						</button>
+						{/if}
+						{#if worstLotH}
+						{@const wa = lotSummaries.get(worstLotH)}
+						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstLotH; costMode = 'lot'; }}>
+							<span class="text-[6px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
+							<div class="text-[9px] font-mono font-bold text-white">{worstLotH.replace('LOT-', 'L')}</div>
+							<div class="text-[7px] font-mono text-slate-400">{wa ? fmt(wa.avgCostPerKg) : '—'}/kg</div>
+						</button>
+						{/if}
+					</div>
+				</div>
+				{/if}
 				{/if}
 			{:else}
 				<!-- Cost Drivers Tab -->
