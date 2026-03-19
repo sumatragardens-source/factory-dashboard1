@@ -1153,7 +1153,7 @@
 					<div class="text-center">Stage</div>
 					<div class="text-center">Act</div>
 				</div>
-				{#each sortedBatches() as batch}
+				{#each sortedBatches() as batch, batchIdx}
 					{@const s1f = batch.stages.find(s => s.stage_number === 1)?.status === 'Finalized'}
 					{@const s2f = batch.stages.find(s => s.stage_number === 2)?.status === 'Finalized'}
 					{@const s3f = batch.stages.find(s => s.stage_number === 3)?.status === 'Finalized'}
@@ -1162,8 +1162,8 @@
 					<button onclick={() => selectBatch(batch.id)} style="display: grid; grid-template-columns: 72px repeat(7, 1fr) 12px 1fr 1fr 1fr;" class="items-center py-1 border-b rounded gap-1.5 transition-all w-full text-left {selectedBatchId === batch.id ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/30' : 'border-border-subtle hover:bg-bg-card-hover/30'}">
 						<!-- Lot ID + Position -->
 						<div class="hover:bg-bg-card-hover transition-colors rounded px-0.5 py-0.5 overflow-hidden">
-							<p class="text-sm font-bold text-text-primary truncate">{batch.batch_number}</p>
-							<p class="text-xs text-text-muted truncate">{batch.lot_position ?? '—'}</p>
+							<p class="text-sm font-bold text-text-primary truncate">{batch.batch_number.replace('SG-', '')}</p>
+							<p class="text-xs truncate {batchIdx === lotBatchCount - 1 ? 'font-bold text-white' : 'text-text-muted'}">{batchIdx + 1}/{lotBatchCount}</p>
 						</div>
 						<!-- 7 Stage cells -->
 						{#each TABLE_COLUMNS as col, ci}
