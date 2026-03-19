@@ -1925,7 +1925,7 @@
 						{#each seq as s}
 							{@const xPos = 25 + ((s.recoveryPct - 82) / 6) * 450}
 							{@const lotIdx = lots.indexOf(s.lot)}
-							<circle cx={Math.min(480, Math.max(25, xPos))} cy="10" r={s.lot === activeLot ? 3 : 2} fill={LOT_COLORS[lotIdx % LOT_COLORS.length]} opacity={s.lot === activeLot ? 1 : 0.35} />
+							<circle cx={Math.min(480, Math.max(25, xPos))} cy="10" r={s.lot === activeLot ? 3 : 2} fill={LOT_COLORS[lotIdx % LOT_COLORS.length]} opacity={s.lot === activeLot ? 1 : 0.35} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [s.batchNumber, `Recovery: ${s.recoveryPct.toFixed(1)}%`, `Lot: ${s.lot}`] }} onmouseleave={() => chartTooltip = null} />
 						{/each}
 					</svg>
 				</div>
