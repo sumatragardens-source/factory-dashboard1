@@ -2045,14 +2045,29 @@
 						{/each}
 					</svg>
 				</div>
+
+				<!-- Trend text summary -->
+				{@const halfIdx = Math.floor(recoveryValues.length / 2)}
+				{@const firstHalfAvg = halfIdx > 0 ? recoveryValues.slice(0, halfIdx).reduce((a, b) => a + b, 0) / halfIdx : 0}
+				{@const secondHalfAvg = halfIdx > 0 ? recoveryValues.slice(halfIdx).reduce((a, b) => a + b, 0) / (recoveryValues.length - halfIdx) : 0}
+				{@const trendDir = secondHalfAvg > firstHalfAvg + 0.3 ? 'improving' : secondHalfAvg < firstHalfAvg - 0.3 ? 'declining' : 'stable'}
+				<p class="text-[7px] text-slate-400 mb-2 px-1">
+					Recovery {trendDir} — 2nd half avg <span class="font-bold text-white">{secondHalfAvg.toFixed(1)}%</span> vs 1st half <span class="font-bold text-white">{firstHalfAvg.toFixed(1)}%</span>
+					{#if trendDir === 'improving'}
+						<span style="color: #bef264;"> ▲ {(secondHalfAvg - firstHalfAvg).toFixed(1)}%</span>
+					{:else if trendDir === 'declining'}
+						<span style="color: #ef4444;"> ▼ {(firstHalfAvg - secondHalfAvg).toFixed(1)}%</span>
+					{/if}
+				</p>
 				{/if}
 
 				<!-- Lot Avg Recovery Bar Chart -->
 				{@const lotRecoveries = lots.map(l => lotSummaries.get(l)?.avgRecoveryPct ?? 0)}
-				{@const barMin = 84.0}
-				{@const barMax = 86.0}
+				{@const lotRecValid = lotRecoveries.filter(v => v > 0)}
+				{@const barMin = lotRecValid.length > 0 ? Math.min(...lotRecValid) * 0.995 : 84.0}
+				{@const barMax = lotRecValid.length > 0 ? Math.max(...lotRecValid) * 1.005 : 86.0}
 				{@const barRange = barMax - barMin || 1}
-				{@const avgLineBot = ((allTimeLotAvg.recoveryPct - barMin) / barRange) * 100}
+				{@const avgLineBot = Math.min(100, Math.max(0, ((allTimeLotAvg.recoveryPct - barMin) / barRange) * 100))}
 				<div class="mb-2">
 					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Lot Avg Recovery</h4>
 					<div class="relative flex items-end gap-1 px-1" style="height: 60px;">
@@ -2062,7 +2077,9 @@
 							{@const hPct = Math.min(100, Math.max(5, ((rec - barMin) / barRange) * 100))}
 							{@const isAboveAvg = rec >= allTimeLotAvg.recoveryPct}
 							{@const isCurrent = lot === activeLot}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
+							{@const lotAggH = lotSummaries.get(lot)}
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => { selectedLot = lot; ethanolMode = 'lot'; }}
+								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [lot, `Recovery: ${rec.toFixed(1)}%`, `Issued: ${(lotAggH?.totalEthIssued ?? 0).toFixed(0)}L`, `Lost: ${(lotAggH?.totalEthLost ?? 0).toFixed(0)}L`] }} onmouseleave={() => chartTooltip = null}>
 								<span class="text-[6px] font-mono font-bold mb-0.5" style="color: {isAboveAvg ? '#bef264' : '#ef4444'};">{rec.toFixed(1)}%</span>
 								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {isAboveAvg ? 'rgba(190,242,100,0.6)' : 'rgba(239,68,68,0.5)'}; min-height: 4px;"></div>
 								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
@@ -2070,6 +2087,72 @@
 						{/each}
 					</div>
 				</div>
+
+				<!-- Best / Worst Lot -->
+				{@const bestEthLot = lots.reduce((best, l) => { const a = lotSummaries.get(l); return a && a.avgRecoveryPct > 0 && (best === null || a.avgRecoveryPct > (lotSummaries.get(best)?.avgRecoveryPct ?? 0)) ? l : best; }, null as string | null)}
+				{@const worstEthLot = lots.reduce((worst, l) => { const a = lotSummaries.get(l); return a && a.avgRecoveryPct > 0 && (worst === null || a.avgRecoveryPct < (lotSummaries.get(worst)?.avgRecoveryPct ?? Infinity)) ? l : worst; }, null as string | null)}
+				{#if bestEthLot || worstEthLot}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Best / Worst Lot</h4>
+					<div class="flex gap-2">
+						{#if bestEthLot}
+						{@const ba = lotSummaries.get(bestEthLot)}
+						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestEthLot; ethanolMode = 'lot'; }}>
+							<span class="text-[6px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
+							<div class="text-[9px] font-mono font-bold text-white">{bestEthLot.replace('LOT-', 'L')}</div>
+							<div class="text-[7px] font-mono text-slate-400">{ba ? ba.avgRecoveryPct.toFixed(1) : '—'}% recovery</div>
+						</button>
+						{/if}
+						{#if worstEthLot}
+						{@const wa = lotSummaries.get(worstEthLot)}
+						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstEthLot; ethanolMode = 'lot'; }}>
+							<span class="text-[6px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
+							<div class="text-[9px] font-mono font-bold text-white">{worstEthLot.replace('LOT-', 'L')}</div>
+							<div class="text-[7px] font-mono text-slate-400">{wa ? wa.avgRecoveryPct.toFixed(1) : '—'}% recovery</div>
+						</button>
+						{/if}
+					</div>
+				</div>
+				{/if}
+
+				<!-- Lot-over-Lot Delta Table -->
+				{@const deltaLots = lots.slice(-5)}
+				{#if deltaLots.length >= 2}
+				<div class="mb-1">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Lot-over-Lot Delta</h4>
+					<div class="border border-white/10 rounded overflow-hidden">
+						<table class="w-full text-left border-collapse">
+							<thead style="background: #0d0d0d;">
+								<tr class="text-[7px] font-bold text-slate-500 uppercase tracking-widest">
+									<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Lot</th>
+									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Recovery</th>
+									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">vs Prev</th>
+									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Lost (L)</th>
+									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Loss $</th>
+								</tr>
+							</thead>
+							<tbody class="text-[7px] font-mono">
+								{#each deltaLots as dLot, di}
+									{@const dAgg = lotSummaries.get(dLot)}
+									{@const dRec = dAgg?.avgRecoveryPct ?? 0}
+									{@const dLost = dAgg?.totalEthLost ?? 0}
+									{@const dCost = dLost * UNIT_RATES.ethanol70.rate}
+									{@const prevDLot = di > 0 ? deltaLots[di - 1] : null}
+									{@const prevDRec = prevDLot ? (lotSummaries.get(prevDLot)?.avgRecoveryPct ?? 0) : 0}
+									{@const dDelta = prevDLot ? dRec - prevDRec : 0}
+									<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+										<td class="px-2 py-0.5 text-slate-400">{dLot.replace('LOT-', 'L')}</td>
+										<td class="px-2 py-0.5 text-right font-bold" style="color: {dRec >= allTimeLotAvg.recoveryPct ? '#bef264' : '#ef4444'};">{dRec.toFixed(1)}%</td>
+										<td class="px-2 py-0.5 text-right" style="color: {dDelta >= 0 ? '#bef264' : '#ef4444'};">{prevDLot ? (dDelta >= 0 ? '+' : '') + dDelta.toFixed(1) + '%' : '—'}</td>
+										<td class="px-2 py-0.5 text-right" style="color: #ef4444;">{dLost.toFixed(0)}</td>
+										<td class="px-2 py-0.5 text-right text-white">{fmt(dCost)}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+				{/if}
 				{/if}
 			{:else}
 				<!-- Batch Breakdown — coming soon -->
