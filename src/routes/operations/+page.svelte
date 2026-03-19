@@ -2120,17 +2120,20 @@
 				{/if}
 
 				<!-- S3: Stage Yield — Current vs Previous -->
+				<!-- Stage Yields: Grinding=material retention, Extraction=EtOH recovery, A/B Phase=D-Limo recovery, Drying=mass after moisture removal -->
 				{@const curStages = getLotStageYields(activeLot)}
 				{@const prevStages = getLotStageYields(prevLot)}
 				{@const stageNames = ['Grinding', 'Extraction', 'A/B Phase', 'Drying'] as const}
 				{@const stageKeys = ['grinding', 'extraction', 'abPhase', 'drying'] as const}
+				{@const stageThresholds = { grinding: { green: 93, orange: 88 }, extraction: { green: 82, orange: 78 }, abPhase: { green: 95, orange: 90 }, drying: { green: 70, orange: 60 } }}
 				<div class="mb-2">
 					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Stage Yield — Current vs Previous</h4>
 					<div class="space-y-1">
 						{#each stageKeys as key, si}
 							{@const curVal = curStages[key]}
 							{@const prevVal = prevStages[key]}
-							{@const stageColor = curVal >= 95 ? '#bef264' : curVal >= 85 ? '#f59e0b' : '#ef4444'}
+							{@const thresholds = stageThresholds[key]}
+							{@const stageColor = curVal >= thresholds.green ? '#bef264' : curVal >= thresholds.orange ? '#f59e0b' : '#ef4444'}
 							<div class="flex items-center gap-1.5">
 								<span class="w-14 text-[7px] font-bold text-slate-500 uppercase truncate">{stageNames[si]}</span>
 								<div class="flex-1 flex flex-col gap-0.5">
