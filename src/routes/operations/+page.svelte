@@ -1443,7 +1443,18 @@
 						{#each lotBatchCosts as bc}
 							{@const hPct = batchCostMax > batchCostMin ? ((bc.totalCost - batchCostMin) / (batchCostMax - batchCostMin)) * 100 : 50}
 														<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(bc.batch_id)}
-								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [bc.batch_number, `Total: ${fmt(bc.totalCost)}`, bc.costPerKg ? `$/kg: ${fmt(bc.costPerKg)}` : ''] }} onmouseleave={() => chartTooltip = null}>
+								onmouseenter={(e) => {
+									const seg = data.batchCostBreakdown.find(s => s.batchId === bc.batch_id);
+									const devPct = batchCostAvg > 0 ? ((bc.totalCost - batchCostAvg) / batchCostAvg * 100) : 0;
+									const lines = [bc.batch_number, `Total: ${fmt(bc.totalCost)}`];
+									if (bc.costPerKg) lines.push(`$/kg: ${fmt(bc.costPerKg)}`);
+									lines.push(`${devPct <= 0 ? '▼' : '▲'}${Math.abs(devPct).toFixed(1)}% vs avg`);
+									if (seg) {
+										const cats = (['leaf','solvent','chemicals','labor','electricity','testing'] as const).map(k => ({ k, v: seg[k] })).sort((a, b) => b.v - a.v).slice(0, 3);
+										cats.forEach(c => lines.push(`${c.k}: ${fmt(c.v)}`));
+									}
+									chartTooltip = { x: e.clientX, y: e.clientY, lines };
+								}} onmouseleave={() => chartTooltip = null}>
 								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{fmt(bc.totalCost)}</span>
 								<div class="w-full rounded-t transition-all {selectedBatchId === bc.batch_id ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(bc.totalCost, batchCostVals, selectedBatchId === bc.batch_id)}; min-height: 4px;"></div>
 								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{bc.batch_number.replace('SG-', '')}</span>
@@ -1535,7 +1546,13 @@
 							{@const cpk = lotSummaries.get(lot)?.avgCostPerKg ?? 0}
 							{@const hPct = cpk > 0 ? ((cpk - cpkMin) / (cpkMax - cpkMin)) * 100 : 0}
 							{@const isCurrent = lot === activeLot}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => { selectedLot = lot; costMode = 'lot'; }}>
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => { selectedLot = lot; costMode = 'lot'; }}
+								onmouseenter={(e) => {
+									const a = lotSummaries.get(lot);
+									const lines = [lot.replace('LOT-', 'Lot '), `$/kg: ${cpk > 0 ? fmt(cpk) : '—'}`];
+									if (a) { lines.push(`Total: ${fmt(a.totalCost)}`, `Batches: ${a.batchCount}`); }
+									chartTooltip = { x: e.clientX, y: e.clientY, lines };
+								}} onmouseleave={() => chartTooltip = null}>
 								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{cpk > 0 ? fmt(cpk) : '—'}</span>
 								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(cpk, lotCpks, isCurrent)}; min-height: 4px;"></div>
 								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
