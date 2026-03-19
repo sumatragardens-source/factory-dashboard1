@@ -158,6 +158,29 @@
 	const grindingYield = processedKg > 0 ? (pm.totalPowderKg / processedKg * 100) : 0;
 	const extractionYield = pm.totalPowderKg > 0 ? (pm.extractTotalKg / pm.totalPowderKg * 100) : 0;
 
+	function costBarColorByRange(cpk: number, allCpks: number[], isCurrent: boolean): string {
+		const alpha = isCurrent ? 0.8 : 0.5;
+		const valid = allCpks.filter(v => v > 0);
+		if (valid.length < 2 || cpk <= 0) return `rgba(190,242,100,${alpha})`;
+		const mn = Math.min(...valid);
+		const mx = Math.max(...valid);
+		if (mx === mn) return `rgba(190,242,100,${alpha})`;
+		const t = (cpk - mn) / (mx - mn);
+		let r, g, b;
+		if (t < 0.5) {
+			const u = t * 2;
+			r = Math.round(190 + (245 - 190) * u);
+			g = Math.round(242 + (158 - 242) * u);
+			b = Math.round(100 + (11 - 100) * u);
+		} else {
+			const u = (t - 0.5) * 2;
+			r = Math.round(245 + (239 - 245) * u);
+			g = Math.round(158 + (68 - 158) * u);
+			b = Math.round(11 + (68 - 11) * u);
+		}
+		return `rgba(${r},${g},${b},${alpha})`;
+	}
+
 	// Cost KPI helpers
 	const costPerBatch = pm.completedCount > 0 ? costTotal / pm.completedCount : 0;
 	const budgetVariance = data.dailyOpCost - DAILY_BUDGET;
@@ -197,6 +220,8 @@
 	let ethanolMode: CardMode = $state('lot');
 	let yieldMode: CardMode = $state('lot');
 	let drawerBatchId: number | null = $state(null);
+	let chartTooltip: { x: number; y: number; lines: string[] } | null = $state(null);
+	let expandedCard: 0 | 1 | 2 | null = $state(null);
 
 	// Selection state: null = whole production run, number = specific batch id
 	let selectedBatchId: number | null = $state(null);
@@ -268,7 +293,7 @@
 		return lots;
 	});
 	let selectedLot: string | null = $state(null);
-	const activeLot = $derived(selectedLot ?? allLots()[0] ?? null);
+	const activeLot = $derived(selectedLot ?? allLots()[allLots().length - 1] ?? null);
 	const lotBatches = $derived(() => {
 		if (!activeLot) return data.activeBatchProgress;
 		return data.activeBatchProgress.filter(b => b.supplier_lot === activeLot);
@@ -664,17 +689,31 @@
 		const batches = data.activeBatchProgress.filter(b => b.supplier_lot === lotId);
 		if (batches.length === 0) return { grinding: 0, extraction: 0, abPhase: 0, drying: 0 };
 
-		const totalLeaf = batches.reduce((s, b) => s + (b.leaf_input_kg ?? 0), 0);
-		const totalPowder = batches.reduce((s, b) => s + (b.powder_output_kg ?? 0), 0);
-		const totalCrude = batches.reduce((s, b) => s + (b.crude_extract_wt_kg ?? 0), 0);
-		const totalPrecip = batches.reduce((s, b) => s + ((b.wet_precipitate_g ?? 0) / 1000), 0);
-		const totalFinal = batches.reduce((s, b) => s + ((b.final_product_g ?? 0) / 1000), 0);
+		// Grinding: only batches with powder data
+		const withPowder = batches.filter(b => b.powder_output_kg != null);
+		const grindLeaf = withPowder.reduce((s, b) => s + (b.leaf_input_kg ?? 0), 0);
+		const grindPowder = withPowder.reduce((s, b) => s + (b.powder_output_kg ?? 0), 0);
+
+		// Extraction: EtOH solvent recovery rate
+		const withEtoh = batches.filter(b => b.etoh_vol_L != null && b.etoh_vol_L > 0);
+		const extIssued = withEtoh.reduce((s, b) => s + (b.etoh_vol_L ?? 0), 0);
+		const extRecovered = withEtoh.reduce((s, b) => s + (b.etoh_recovered_L ?? 0), 0);
+
+		// A/B Phase: d-Limonene solvent recovery rate
+		const withDlimo = batches.filter(b => b.dlimo_vol_L != null && b.dlimo_vol_L > 0);
+		const abIssued = withDlimo.reduce((s, b) => s + (b.dlimo_vol_L ?? 0), 0);
+		const abRecovered = withDlimo.reduce((s, b) => s + (b.dlimo_recovered_L ?? 0), 0);
+
+		// Drying: only batches with final product data
+		const withFinal = batches.filter(b => b.final_product_g != null);
+		const dryPrecip = withFinal.reduce((s, b) => s + ((b.wet_precipitate_g ?? 0) / 1000), 0);
+		const dryFinal = withFinal.reduce((s, b) => s + ((b.final_product_g ?? 0) / 1000), 0);
 
 		return {
-			grinding: totalLeaf > 0 ? (totalPowder / totalLeaf) * 100 : 0,
-			extraction: totalPowder > 0 ? (totalCrude / totalPowder) * 100 : 0,
-			abPhase: totalCrude > 0 ? (totalPrecip / totalCrude) * 100 : 0,
-			drying: totalPrecip > 0 ? (totalFinal / totalPrecip) * 100 : 0
+			grinding: grindLeaf > 0 ? (grindPowder / grindLeaf) * 100 : 0,
+			extraction: extIssued > 0 ? (extRecovered / extIssued) * 100 : 0,
+			abPhase: abIssued > 0 ? (abRecovered / abIssued) * 100 : 0,
+			drying: dryPrecip > 0 ? (dryFinal / dryPrecip) * 100 : 0
 		};
 	}
 </script>
@@ -965,7 +1004,7 @@
 	<div class="bg-bg-card border border-border-card pt-3 pl-3 pb-3 pr-1 rounded w-full flex-1 flex flex-col min-h-0">
 		<!-- Intake summary bar -->
 		<div class="flex items-center gap-2 mb-3 pb-2 border-b border-border-subtle pr-3">
-			<div class="flex items-center gap-1 flex-none">
+			<div class="flex items-center gap-1 flex-none overflow-x-auto min-w-0">
 				{#each allLots() as lot}
 					<button onclick={() => selectedLot = lot} class="px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-wider rounded transition-colors {activeLot === lot ? 'text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}">{lot}</button>
 				{/each}
@@ -979,6 +1018,26 @@
 				<button class="px-1.5 py-0.5 text-[7px] font-medium uppercase tracking-wider transition-colors {lotSort === 'completed' ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'completed'}>Completed</button>
 			</div>
 		</div>
+
+		{#if activeLot}
+		<div class="flex items-center gap-3 px-2 py-1 mb-1 rounded text-[8px]"
+			style="background: rgba(163,230,53,0.04); border: 1px solid rgba(163,230,53,0.08);">
+			<span class="text-[7px] text-text-muted uppercase">Leaf</span>
+			<span class="font-mono font-bold text-text-primary">{Math.round(lotIntakeKg)} kg</span>
+			<span class="text-white/10">|</span>
+			<span class="text-[7px] text-text-muted uppercase">Powder</span>
+			<span class="font-mono font-bold text-text-primary">{lotPowderKg} kg</span>
+			<span class="text-white/10">|</span>
+			<span class="text-[7px] text-text-muted uppercase">EtOH</span>
+			<span class="font-mono font-bold text-text-primary">{lotEtohIssued.toFixed(0)} L</span>
+			<span class="text-white/10">|</span>
+			<span class="text-[7px] text-text-muted uppercase">Recovery</span>
+			<span class="font-mono font-bold" style="color: {lotEtohRecoveryPct >= 95 ? '#bef264' : '#ef4444'};">{lotEtohRecoveryPct.toFixed(1)}%</span>
+			<span class="text-white/10">|</span>
+			<span class="text-[7px] text-text-muted uppercase">Yield</span>
+			<span class="font-mono font-bold text-text-primary">{lotFinalProductKg.toFixed(3)} kg</span>
+		</div>
+		{/if}
 
 		<!-- Parent-lot summary bar -->
 		<div class="flex items-center gap-2 mb-2 pr-3">
@@ -1032,7 +1091,7 @@
 		{#if data.activeBatchProgress.length === 0}
 			<p class="text-xs text-text-muted">No active lots</p>
 		{:else}
-			<div class="pr-1 overflow-y-auto overflow-x-hidden" style="max-height: 170px; scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
+			<div class="pr-1 overflow-y-auto overflow-x-hidden max-h-[40vh]" style="scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
 				<!-- Header -->
 				<div style="display: grid; grid-template-columns: 72px repeat(7, 1fr) 12px 1fr 1fr 1fr;" class="text-[7px] font-bold text-text-muted uppercase tracking-wider pb-1.5 border-b border-border-subtle gap-1.5 sticky top-0 bg-bg-card z-10">
 					<button onclick={selectRun} class="text-left transition-colors {selectedBatchId === null ? 'text-primary' : 'text-text-muted hover:text-primary/70'}">{activeLot ?? runLabel}</button>
@@ -1144,14 +1203,17 @@
 	</div>
 
 	<!-- Analytics Carousel - Intelligence Panels -->
-	<div class="col-span-6 border border-white/10 rounded-xl px-4 pt-3 pb-2.5 flex flex-col min-h-[520px] max-h-[520px]" style="background: #161616;">
-		<div class="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+	<div class="{expandedCard !== null ? 'fixed inset-4 z-50' : 'col-span-6'} border border-white/10 rounded-xl px-4 pt-3 pb-2.5 flex flex-col {expandedCard === null ? 'min-h-[650px]' : ''}" style="background: #161616;">
+		<div class="flex-shrink-0">
 		{#if carouselIndex === 0}
 			<!-- ═══ COST INTELLIGENCE ═══ -->
 			<div class="flex items-center justify-between mb-1.5">
 				<div class="flex items-center gap-2">
 					<span class="material-symbols-outlined text-[14px] opacity-50" style="color: #ec5b13;">payments</span>
 					<h3 class="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Cost Intelligence</h3>
+					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
+						<span class="material-symbols-outlined text-[11px]">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
+					</button>
 				</div>
 				<div class="flex items-center gap-2">
 					{#if selectedBatchId && selectedBatchInfo}
@@ -1203,7 +1265,125 @@
 				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {costMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'batch' ? 'background: rgba(236, 91, 19, 0.15);' : ''} onclick={() => costMode = 'batch'}>Cost Drivers</button>
 				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {costMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'history' ? 'background: rgba(236, 91, 19, 0.15);' : ''} onclick={() => costMode = 'history'}>Ton History</button>
 			</div>
+		{:else if carouselIndex === 1}
+			<!-- ═══ SOLVENT INTELLIGENCE ═══ -->
+			<div class="flex items-center justify-between mb-1.5">
+				<div class="flex items-center gap-2">
+					<span class="material-symbols-outlined text-[14px] opacity-50" style="color: #bef264;">water_drop</span>
+					<h3 class="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Solvent Intelligence</h3>
+					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
+						<span class="material-symbols-outlined text-[11px]">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
+					</button>
+				</div>
+				<div class="flex items-center gap-2">
+					{#if selectedBatchId && selectedBatchInfo}
+						<span class="text-[8px] font-medium text-primary">{selectedBatchInfo.batch_number}</span>
+						<span class="text-[8px] text-text-muted/25">|</span>
+						<span class="text-[8px] text-text-muted/35">{selectedBatchInfo.operator_name ?? selectedBatchInfo.status}</span>
+					{:else}
+						<span class="text-[8px] text-text-muted/35">{runLabel}</span>
+						<span class="text-[8px] text-text-muted/25">|</span>
+						<span class="text-[8px] text-text-muted/35">{runCompletedBatches}/{runBatchCount}</span>
+					{/if}
+				</div>
+			</div>
+			<div class="flex items-baseline gap-1.5 mb-2">
+				{#if selectedBatchId && selectedEthRow}
+					<span class="text-base font-semibold text-text-primary">{selectedEthRow.recovery_pct?.toFixed(1) ?? '—'}%</span>
+					{#if selectedEthRow.recovery_pct !== null && runEthAgg}
+						{@const ethDelta = selectedEthRow.recovery_pct - runEthAgg.avgRecovery}
+						<span class="text-[9px] font-medium" style="color: {ethDelta >= 0 ? '#bef264' : '#ef4444'};">{ethDelta >= 0 ? '+' : ''}{ethDelta.toFixed(1)} vs run avg</span>
+					{/if}
+					{#if batchAnomalyMap.get(selectedBatchId)?.some(a => a.metric === 'recovery')}
+						<span class="text-[7px] px-1 py-0.5 rounded bg-red-900/30 text-red-400">ANOMALY</span>
+					{/if}
+				{:else}
+					<span class="text-base font-semibold text-text-primary">{runEthAgg?.avgRecovery.toFixed(1) ?? '—'}%</span>
+					{#if comparisonTarget}
+						{@const rd = compDelta(runEthAgg?.avgRecovery ?? 0, comparisonTarget, 'avgEthanolRecovery')}
+						{#if rd !== null}
+							<span class="text-[9px] font-medium" style="color: {rd >= 0 ? '#bef264' : '#ef4444'};">{rd >= 0 ? '+' : ''}{rd.toFixed(1)} vs {comparisonTarget.runNumber}</span>
+						{/if}
+					{:else}
+						{#if runEthDelta >= 0}
+							<span class="text-[9px] font-medium" style="color: #bef264;">+{runEthDelta.toFixed(1)}</span>
+						{:else}
+							<span class="text-[9px] font-medium" style="color: #ef4444;">{runEthDelta.toFixed(1)}</span>
+						{/if}
+					{/if}
+					<span class="text-[8px] text-text-muted/35">run avg recovery</span>
+				{/if}
+			</div>
 
+			<!-- Mode toggle -->
+			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'lot' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'lot' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'lot'}>Run Summary</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'batch' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'batch'}>Batch Breakdown</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'history' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'history'}>Ton History</button>
+			</div>
+		{:else}
+			<!-- ═══ YIELD & QUALITY ═══ -->
+			<div class="flex items-center justify-between mb-1.5">
+				<div class="flex items-center gap-2">
+					<span class="material-symbols-outlined text-[14px] opacity-50" style="color: #bef264;">science</span>
+					<h3 class="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Yield & Quality</h3>
+					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
+						<span class="material-symbols-outlined text-[11px]">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
+					</button>
+				</div>
+				<div class="flex items-center gap-2">
+					{#if selectedBatchId && selectedBatchInfo}
+						<span class="text-[8px] font-medium text-primary">{selectedBatchInfo.batch_number}</span>
+						<span class="text-[8px] text-text-muted/25">|</span>
+						<span class="text-[8px] text-text-muted/35">{selectedBatchInfo.operator_name ?? selectedBatchInfo.status}</span>
+					{:else}
+						<span class="text-[8px] text-text-muted/35">{runLabel}</span>
+						<span class="text-[8px] text-text-muted/25">|</span>
+						<span class="text-[8px] text-text-muted/35">{yieldFinishedBatches.length}/{runBatchCount} finished</span>
+					{/if}
+				</div>
+			</div>
+			<div class="flex items-baseline gap-1.5 mb-2">
+				{#if selectedBatchId && selectedYieldRow}
+					<span class="text-base font-semibold text-text-primary">{selectedYieldRow.final_product_g != null ? (selectedYieldRow.final_product_g / 1000).toFixed(2) : '—'} kg</span>
+					<span class="text-[9px] text-text-muted/50">{selectedYieldRow.overall_yield_pct?.toFixed(2) ?? '—'}%</span>
+					{#if selectedYieldRow.overall_yield_pct !== null && runYieldAgg}
+						{@const yieldDiff = selectedYieldRow.overall_yield_pct - runYieldAgg.overallYield}
+						<span class="text-[9px] font-medium" style="color: {yieldDiff >= 0 ? '#bef264' : '#ef4444'};">{yieldDiff >= 0 ? '+' : ''}{yieldDiff.toFixed(2)} vs avg</span>
+					{/if}
+					{#if batchAnomalyMap.get(selectedBatchId)?.some(a => a.metric === 'yield')}
+						<span class="text-[7px] px-1 py-0.5 rounded bg-red-900/30 text-red-400">ANOMALY</span>
+					{/if}
+				{:else}
+					<span class="text-base font-semibold text-text-primary">{runYieldAgg?.totalProduced.toFixed(1) ?? '—'} kg</span>
+					<span class="text-[9px] text-text-muted/50">{runYieldAgg?.overallYield.toFixed(2) ?? '—'}%</span>
+					{#if comparisonTarget}
+						{@const yd = compDelta(runYieldAgg?.overallYield ?? 0, comparisonTarget, 'overallYieldPct')}
+						{#if yd !== null}
+							<span class="text-[9px] font-medium" style="color: {yd >= 0 ? '#bef264' : '#ef4444'};">{yd >= 0 ? '+' : ''}{yd.toFixed(2)} vs {comparisonTarget.runNumber}</span>
+						{/if}
+					{:else if runYieldAgg}
+						{@const yd2 = runYieldAgg.overallYield - avgYield}
+						{#if yd2 >= 0}
+							<span class="text-[9px] font-medium" style="color: #bef264;">+{yd2.toFixed(2)}</span>
+						{:else}
+							<span class="text-[9px] font-medium" style="color: #ef4444;">{yd2.toFixed(2)}</span>
+						{/if}
+					{/if}
+				{/if}
+			</div>
+
+			<!-- Mode toggle (4 modes for yield) -->
+			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'lot' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'lot' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'lot'}>Run Summary</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'batch' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'batch'}>Batch Contrib.</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'history' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'history'}>Ton History</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'quality' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'quality' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'quality'}>Quality</button>
+			</div>
+		{/if}
+		</div>
+		<div class="flex-1 overflow-y-auto overflow-x-hidden min-h-0" style="scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
+		{#if carouselIndex === 0}
 			{#if costMode === 'lot'}
 				{#if true}
 				{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
@@ -1262,11 +1442,11 @@
 							{@const cpk = lotSummaries.get(lot)?.avgCostPerKg ?? 0}
 							{@const hPct = cpk > 0 ? ((cpk - cpkMin) / (cpkMax - cpkMin)) * 100 : 0}
 							{@const isCurrent = lot === activeLot}
-							<div class="flex-1 flex flex-col items-center justify-end h-full">
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
 								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{cpk > 0 ? fmt(cpk) : '—'}</span>
-								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {cpk <= TARGETS.costPerKg ? 'rgba(190,242,100,' + (isCurrent ? '0.8' : '0.5') + ')' : 'rgba(239,68,68,' + (isCurrent ? '0.8' : '0.5') + ')'}; min-height: 4px;"></div>
+								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(cpk, lotCpks, isCurrent)}; min-height: 4px;"></div>
 								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
-							</div>
+							</button>
 						{/each}
 					</div>
 				</div>
@@ -1274,8 +1454,8 @@
 				<!-- S3: Cost Variance Heatmap -->
 				{@const lotCostSegs = data.batchCostBreakdown.filter(s => s.supplierLot === activeLot)}
 				{#if lotCostSegs.length > 0}
-				{@const segCats = ['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const}
-				{@const segLabels = ['Leaf', 'Solvent', 'Chem', 'Labor', 'Elec', 'Test']}
+				{@const segCats = ['leaf', 'solvent', 'chemicals'] as const}
+				{@const segLabels = ['Leaf', 'Solvent', 'Chem']}
 				{@const segAvgs = segCats.map(cat => { const vals = lotCostSegs.map(s => s[cat]); return vals.reduce((a, b) => a + b, 0) / vals.length; })}
 				<div class="mb-2">
 					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Cost Variance Heatmap</h4>
@@ -1291,7 +1471,7 @@
 							</thead>
 							<tbody class="text-[7px] font-mono">
 								{#each lotCostSegs as seg}
-									<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+									<tr class="cursor-pointer hover:bg-white/5 transition-colors" style="border-bottom: 1px solid rgba(30,30,30,0.5);" onclick={() => selectBatch(seg.batchId)}>
 										<td class="px-1.5 py-0.5 text-slate-400">{seg.batchNumber.replace('SG-', '')}</td>
 										{#each segCats as cat, ci}
 											{@const val = seg[cat]}
@@ -1306,6 +1486,7 @@
 							</tbody>
 						</table>
 					</div>
+				<p class="text-[6px] text-slate-600 mt-0.5 italic">Labor, electricity & testing costs are fixed per batch</p>
 				</div>
 				{/if}
 
@@ -1452,7 +1633,7 @@
 							<defs><linearGradient id="histCostGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ec5b13" stop-opacity="0.22" /><stop offset="100%" stop-color="#ec5b13" stop-opacity="0.02" /></linearGradient></defs>
 							<path d={historyCostChart.area} fill="url(#histCostGrad)" /><path d={historyCostChart.line} fill="none" stroke="#ec5b13" stroke-width="1.5" opacity="0.7" />
 							{#each historyCostChart.points as pt, pi}
-								<circle cx={pt.x} cy={pt.y} r={historyRuns[pi]?.runId === data.activeRunId ? 3 : 1.5} fill="#ec5b13" opacity={historyRuns[pi]?.runId === data.activeRunId ? 1 : 0.45} />
+								<circle cx={pt.x} cy={pt.y} r={historyRuns[pi]?.runId === data.activeRunId ? 3 : 1.5} fill="#ec5b13" opacity={historyRuns[pi]?.runId === data.activeRunId ? 1 : 0.45} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [historyRunLabels[pi], `Cost/KG: ${fmt(historyCostPerKgValues[pi])}`] }} onmouseleave={() => chartTooltip = null} />
 								<text x={pt.x} y={CH + 18} text-anchor="middle" fill="#666666" font-size="5">{historyRunLabels[pi]}</text>
 							{/each}
 						</svg>
@@ -1484,59 +1665,6 @@
 				</div>
 			{/if}
 		{:else if carouselIndex === 1}
-			<!-- ═══ SOLVENT INTELLIGENCE ═══ -->
-			<div class="flex items-center justify-between mb-1.5">
-				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined text-[14px] opacity-50" style="color: #bef264;">water_drop</span>
-					<h3 class="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Solvent Intelligence</h3>
-				</div>
-				<div class="flex items-center gap-2">
-					{#if selectedBatchId && selectedBatchInfo}
-						<span class="text-[8px] font-medium text-primary">{selectedBatchInfo.batch_number}</span>
-						<span class="text-[8px] text-text-muted/25">|</span>
-						<span class="text-[8px] text-text-muted/35">{selectedBatchInfo.operator_name ?? selectedBatchInfo.status}</span>
-					{:else}
-						<span class="text-[8px] text-text-muted/35">{runLabel}</span>
-						<span class="text-[8px] text-text-muted/25">|</span>
-						<span class="text-[8px] text-text-muted/35">{runCompletedBatches}/{runBatchCount}</span>
-					{/if}
-				</div>
-			</div>
-			<div class="flex items-baseline gap-1.5 mb-2">
-				{#if selectedBatchId && selectedEthRow}
-					<span class="text-base font-semibold text-text-primary">{selectedEthRow.recovery_pct?.toFixed(1) ?? '—'}%</span>
-					{#if selectedEthRow.recovery_pct !== null && runEthAgg}
-						{@const ethDelta = selectedEthRow.recovery_pct - runEthAgg.avgRecovery}
-						<span class="text-[9px] font-medium" style="color: {ethDelta >= 0 ? '#bef264' : '#ef4444'};">{ethDelta >= 0 ? '+' : ''}{ethDelta.toFixed(1)} vs run avg</span>
-					{/if}
-					{#if batchAnomalyMap.get(selectedBatchId)?.some(a => a.metric === 'recovery')}
-						<span class="text-[7px] px-1 py-0.5 rounded bg-red-900/30 text-red-400">ANOMALY</span>
-					{/if}
-				{:else}
-					<span class="text-base font-semibold text-text-primary">{runEthAgg?.avgRecovery.toFixed(1) ?? '—'}%</span>
-					{#if comparisonTarget}
-						{@const rd = compDelta(runEthAgg?.avgRecovery ?? 0, comparisonTarget, 'avgEthanolRecovery')}
-						{#if rd !== null}
-							<span class="text-[9px] font-medium" style="color: {rd >= 0 ? '#bef264' : '#ef4444'};">{rd >= 0 ? '+' : ''}{rd.toFixed(1)} vs {comparisonTarget.runNumber}</span>
-						{/if}
-					{:else}
-						{#if runEthDelta >= 0}
-							<span class="text-[9px] font-medium" style="color: #bef264;">+{runEthDelta.toFixed(1)}</span>
-						{:else}
-							<span class="text-[9px] font-medium" style="color: #ef4444;">{runEthDelta.toFixed(1)}</span>
-						{/if}
-					{/if}
-					<span class="text-[8px] text-text-muted/35">run avg recovery</span>
-				{/if}
-			</div>
-
-			<!-- Mode toggle -->
-			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'lot' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'lot' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'batch' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'batch'}>Batch Breakdown</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'history' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'history'}>Ton History</button>
-			</div>
-
 			{#if ethanolMode === 'lot'}
 				{#if true}
 				{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
@@ -1631,7 +1759,7 @@
 							{@const cx = 40 + (si / (seq.length - 1)) * 540}
 							{@const cy = 10 + (1 - (s.recoveryPct - minR) / rangeR) * 115}
 							{@const lotIdx = lots.indexOf(s.lot)}
-							<circle {cx} {cy} r={s.lot === activeLot ? 3 : 2} fill={LOT_COLORS[lotIdx % LOT_COLORS.length]} opacity={s.lot === activeLot ? 1 : 0.4} />
+							<circle {cx} {cy} r={s.lot === activeLot ? 3 : 2} fill={LOT_COLORS[lotIdx % LOT_COLORS.length]} opacity={s.lot === activeLot ? 1 : 0.4} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [s.batchNumber, `Recovery: ${s.recoveryPct.toFixed(1)}%`, `Lot: ${s.lot}`] }} onmouseleave={() => chartTooltip = null} />
 						{/each}
 					</svg>
 				</div>
@@ -1641,8 +1769,8 @@
 				{#if true}
 				{@const lots = allLots()}
 				{@const lotRecoveries = lots.map(l => lotSummaries.get(l)?.avgRecoveryPct ?? 0)}
-				{@const barMin = Math.max(0, Math.min(...lotRecoveries) - 3)}
-				{@const barMax = Math.max(...lotRecoveries) + 2}
+				{@const barMin = 84.0}
+				{@const barMax = 86.0}
 				{@const barRange = barMax - barMin || 1}
 				{@const avgLineBot = ((allTimeLotAvg.recoveryPct - barMin) / barRange) * 100}
 				<div class="mb-2">
@@ -1652,14 +1780,14 @@
 						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {avgLineBot}%; border-color: rgba(255,255,255,0.2);"></div>
 						{#each lots as lot, li}
 							{@const rec = lotSummaries.get(lot)?.avgRecoveryPct ?? 0}
-							{@const hPct = ((rec - barMin) / barRange) * 100}
+							{@const hPct = Math.min(100, Math.max(5, ((rec - barMin) / barRange) * 100))}
 							{@const isAboveAvg = rec >= allTimeLotAvg.recoveryPct}
 							{@const isCurrent = lot === activeLot}
-							<div class="flex-1 flex flex-col items-center justify-end h-full">
-								<span class="text-[6px] font-mono font-bold mb-0.5" style="color: {isAboveAvg ? '#bef264' : '#ef4444'};">{rec.toFixed(0)}%</span>
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
+								<span class="text-[6px] font-mono font-bold mb-0.5" style="color: {isAboveAvg ? '#bef264' : '#ef4444'};">{rec.toFixed(1)}%</span>
 								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {isAboveAvg ? 'rgba(190,242,100,0.6)' : 'rgba(239,68,68,0.5)'}; min-height: 4px;"></div>
 								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
-							</div>
+							</button>
 						{/each}
 					</div>
 				</div>
@@ -1672,11 +1800,11 @@
 				<div class="mb-2">
 					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Recovery Distribution</h4>
 					<svg viewBox="0 0 500 25" class="w-full" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;">
-						<!-- Range 80-100% -->
-						<text x="5" y="22" fill="#666666" font-size="6">80%</text>
-						<text x="475" y="22" fill="#666666" font-size="6">100%</text>
+						<!-- Range 82-88% -->
+						<text x="5" y="22" fill="#666666" font-size="6">82%</text>
+						<text x="475" y="22" fill="#666666" font-size="6">88%</text>
 						{#each seq as s}
-							{@const xPos = 25 + ((s.recoveryPct - 80) / 20) * 450}
+							{@const xPos = 25 + ((s.recoveryPct - 82) / 6) * 450}
 							{@const lotIdx = lots.indexOf(s.lot)}
 							<circle cx={Math.min(480, Math.max(25, xPos))} cy="10" r={s.lot === activeLot ? 3 : 2} fill={LOT_COLORS[lotIdx % LOT_COLORS.length]} opacity={s.lot === activeLot ? 1 : 0.35} />
 						{/each}
@@ -1789,7 +1917,7 @@
 							{/if}
 							<path d={historyRecoveryChart.area} fill="url(#histEthGrad)" /><path d={historyRecoveryChart.line} fill="none" stroke="#bef264" stroke-width="1.5" opacity="0.7" />
 							{#each historyRecoveryChart.points as pt, pi}
-								<circle cx={pt.x} cy={pt.y} r={historyRuns[pi]?.runId === data.activeRunId ? 3 : 1.5} fill="#bef264" opacity={historyRuns[pi]?.runId === data.activeRunId ? 1 : 0.45} />
+								<circle cx={pt.x} cy={pt.y} r={historyRuns[pi]?.runId === data.activeRunId ? 3 : 1.5} fill="#bef264" opacity={historyRuns[pi]?.runId === data.activeRunId ? 1 : 0.45} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [historyRunLabels[pi], `Recovery: ${historyRecoveryValues[pi].toFixed(1)}%`] }} onmouseleave={() => chartTooltip = null} />
 								<text x={pt.x} y={CH + 18} text-anchor="middle" fill="#666666" font-size="5">{historyRunLabels[pi]}</text>
 							{/each}
 						</svg>
@@ -1818,62 +1946,6 @@
 				</div>
 			{/if}
 		{:else}
-			<!-- ═══ YIELD & QUALITY ═══ -->
-			<div class="flex items-center justify-between mb-1.5">
-				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined text-[14px] opacity-50" style="color: #bef264;">science</span>
-					<h3 class="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">Yield & Quality</h3>
-				</div>
-				<div class="flex items-center gap-2">
-					{#if selectedBatchId && selectedBatchInfo}
-						<span class="text-[8px] font-medium text-primary">{selectedBatchInfo.batch_number}</span>
-						<span class="text-[8px] text-text-muted/25">|</span>
-						<span class="text-[8px] text-text-muted/35">{selectedBatchInfo.operator_name ?? selectedBatchInfo.status}</span>
-					{:else}
-						<span class="text-[8px] text-text-muted/35">{runLabel}</span>
-						<span class="text-[8px] text-text-muted/25">|</span>
-						<span class="text-[8px] text-text-muted/35">{yieldFinishedBatches.length}/{runBatchCount} finished</span>
-					{/if}
-				</div>
-			</div>
-			<div class="flex items-baseline gap-1.5 mb-2">
-				{#if selectedBatchId && selectedYieldRow}
-					<span class="text-base font-semibold text-text-primary">{selectedYieldRow.final_product_g != null ? (selectedYieldRow.final_product_g / 1000).toFixed(2) : '—'} kg</span>
-					<span class="text-[9px] text-text-muted/50">{selectedYieldRow.overall_yield_pct?.toFixed(2) ?? '—'}%</span>
-					{#if selectedYieldRow.overall_yield_pct !== null && runYieldAgg}
-						{@const yieldDiff = selectedYieldRow.overall_yield_pct - runYieldAgg.overallYield}
-						<span class="text-[9px] font-medium" style="color: {yieldDiff >= 0 ? '#bef264' : '#ef4444'};">{yieldDiff >= 0 ? '+' : ''}{yieldDiff.toFixed(2)} vs avg</span>
-					{/if}
-					{#if batchAnomalyMap.get(selectedBatchId)?.some(a => a.metric === 'yield')}
-						<span class="text-[7px] px-1 py-0.5 rounded bg-red-900/30 text-red-400">ANOMALY</span>
-					{/if}
-				{:else}
-					<span class="text-base font-semibold text-text-primary">{runYieldAgg?.totalProduced.toFixed(1) ?? '—'} kg</span>
-					<span class="text-[9px] text-text-muted/50">{runYieldAgg?.overallYield.toFixed(2) ?? '—'}%</span>
-					{#if comparisonTarget}
-						{@const yd = compDelta(runYieldAgg?.overallYield ?? 0, comparisonTarget, 'overallYieldPct')}
-						{#if yd !== null}
-							<span class="text-[9px] font-medium" style="color: {yd >= 0 ? '#bef264' : '#ef4444'};">{yd >= 0 ? '+' : ''}{yd.toFixed(2)} vs {comparisonTarget.runNumber}</span>
-						{/if}
-					{:else if runYieldAgg}
-						{@const yd2 = runYieldAgg.overallYield - avgYield}
-						{#if yd2 >= 0}
-							<span class="text-[9px] font-medium" style="color: #bef264;">+{yd2.toFixed(2)}</span>
-						{:else}
-							<span class="text-[9px] font-medium" style="color: #ef4444;">{yd2.toFixed(2)}</span>
-						{/if}
-					{/if}
-				{/if}
-			</div>
-
-			<!-- Mode toggle (4 modes for yield) -->
-			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'lot' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'lot' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'batch' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'batch'}>Batch Contrib.</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'history' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'history'}>Ton History</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'quality' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'quality' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'quality'}>Quality</button>
-			</div>
-
 			{#if yieldMode === 'lot'}
 				{#if true}
 				{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
@@ -1931,11 +2003,11 @@
 							{@const ykg = lotSummaries.get(lot)?.totalYieldKg ?? 0}
 							{@const hPct = (ykg / yieldMax) * 100}
 							{@const isCurrent = lot === activeLot}
-							<div class="flex-1 flex flex-col items-center justify-end h-full">
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
 								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{ykg.toFixed(1)}</span>
 								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#bef264]' : ''}" style="height: {hPct}%; background: rgba(190,242,100,{isCurrent ? 0.8 : 0.4}); min-height: 4px; opacity: {isCurrent ? 1 : 0.6};"></div>
 								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
-							</div>
+							</button>
 						{/each}
 						<!-- Extract rate overlay dots -->
 						<svg class="absolute inset-0 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -1947,12 +2019,18 @@
 									{@const prevRate = lotSummaries.get(lots[li - 1])?.avgYieldPct ?? 0}
 									{@const prevX = ((li - 0.5) / lots.length) * 100}
 									{@const prevY = prevRate > 0 ? 100 - ((prevRate - rateMin) / rateRange) * 85 - 5 : 95}
-									<line x1="{prevX}%" y1="{prevY}%" x2="{dotX}%" y2="{dotY}%" stroke="rgba(255,255,255,0.3)" stroke-width="0.5" vector-effect="non-scaling-stroke" />
+									<line x1="{prevX}%" y1="{prevY}%" x2="{dotX}%" y2="{dotY}%" stroke="rgba(236,91,19,0.4)" stroke-width="0.5" vector-effect="non-scaling-stroke" />
 								{/if}
-								<circle cx="{dotX}%" cy="{dotY}%" r="1.5" fill="white" vector-effect="non-scaling-stroke" />
+								<circle cx="{dotX}%" cy="{dotY}%" r="1.5" fill="#ec5b13" vector-effect="non-scaling-stroke" />
 							{/each}
 						</svg>
+						<div class="flex items-center gap-3 mt-1 text-[6px] text-slate-500">
+						<span class="inline-block w-2 h-2 rounded-sm" style="background: rgba(190,242,100,0.6);"></span>
+						<span>Yield (kg)</span>
+						<span class="inline-block w-1.5 h-1.5 rounded-full" style="background: #ec5b13;"></span>
+						<span>Extract Rate (%)</span>
 					</div>
+				</div>
 				</div>
 
 				<!-- S3: Stage Yield — Current vs Previous -->
@@ -1999,9 +2077,9 @@
 				{@const yMax = Math.max(...scatterBatches.map(s => s.yieldG)) + 10}
 				{@const crossX = 30 + ((avgRecX - xMin) / (xMax - xMin || 1)) * 440}
 				{@const crossY = 5 + (1 - (avgYieldY - yMin) / (yMax - yMin || 1)) * 60}
-				<div class="mb-2">
+				<div class="mb-2 overflow-hidden h-48">
 					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Recovery vs Yield</h4>
-					<svg viewBox="0 0 500 75" class="w-full" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;">
+					<svg viewBox="0 0 500 75" class="w-full" overflow="hidden" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;">
 						<!-- Crosshairs -->
 						<line x1={crossX} y1="5" x2={crossX} y2="65" stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 3" stroke-width="0.5" />
 						<line x1="30" y1={crossY} x2="470" y2={crossY} stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 3" stroke-width="0.5" />
@@ -2010,7 +2088,7 @@
 							{@const sx = 30 + ((sb.recoveryPct - xMin) / (xMax - xMin || 1)) * 440}
 							{@const sy = 5 + (1 - (sb.yieldG - yMin) / (yMax - yMin || 1)) * 60}
 							{@const above = sb.yieldG >= avgYieldY}
-							<circle cx={sx} cy={sy} r="3" fill={above ? '#bef264' : '#ef4444'} opacity="0.8" />
+							<circle cx={sx} cy={sy} r="4" fill={above ? '#bef264' : '#ef4444'} opacity="0.8" />
 						{/each}
 						<!-- Axis labels -->
 						<text x="250" y="73" text-anchor="middle" fill="#666666" font-size="5">Recovery %</text>
@@ -2025,6 +2103,7 @@
 				{@const devCount = curLotAgg?.deviationCount ?? 0}
 				{@const lotMitValues = lots.map(l => lotSummaries.get(l)?.avgMitragynine ?? 0).filter(v => v > 0)}
 				{@const lotPurValues = lots.map(l => lotSummaries.get(l)?.avgPurity ?? 0).filter(v => v > 0)}
+				{#if mitVal !== null || purVal !== null || devCount > 0}
 				<div class="mb-1">
 					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Quality Specs</h4>
 					<div class="space-y-1.5">
@@ -2043,7 +2122,7 @@
 						</div>
 						<div class="flex items-center gap-2">
 							<span class="w-20 text-[7px] font-bold text-slate-500">Purity %</span>
-							<span class="text-[8px] font-mono font-bold text-white">{purVal?.toFixed(1) ?? '—'}%</span>
+							<span class="text-[8px] font-mono font-bold text-white">{purVal !== null ? purVal.toFixed(1) + '%' : 'N/A'}</span>
 							{#if purVal !== null}
 								<span class="text-[6px] px-1 py-0.5 rounded font-bold" style="background: {purVal >= 80 ? 'rgba(190,242,100,0.15)' : 'rgba(239,68,68,0.15)'}; color: {purVal >= 80 ? '#bef264' : '#ef4444'};">{purVal >= 80 ? 'PASS' : 'FAIL'}</span>
 							{/if}
@@ -2059,6 +2138,12 @@
 						</div>
 					</div>
 				</div>
+				{:else}
+				<div class="mb-1 p-2.5 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Quality Specs</h4>
+					<p class="text-[8px] text-slate-500 italic">Lab results pending — submit samples to populate quality data</p>
+				</div>
+				{/if}
 				{/if}
 			{:else if yieldMode === 'batch'}
 				<!-- Header row -->
@@ -2083,7 +2168,7 @@
 										<div class="h-full rounded-full" style="width: {Math.min(100, (yb.overall_yield_pct ?? 0) * 10)}%; background: rgba(190, 242, 100, 0.6);"></div>
 									</div>
 									<span class="text-[8px] font-medium text-text-secondary w-10 text-right flex-none">{yb.overall_yield_pct?.toFixed(1)}%</span>
-									<span class="text-[7px] text-text-muted/35 w-8 text-right flex-none">{yb.hplc_purity_pct?.toFixed(0) ?? '—'}%</span>
+									<span class="text-[7px] text-text-muted/35 w-8 text-right flex-none">{yb.hplc_purity_pct != null ? yb.hplc_purity_pct.toFixed(0) + '%' : 'N/A'}</span>
 								{:else}
 									<span class="text-[7px] text-text-muted w-16 flex-none">—</span>
 									<div class="flex-1 h-1 rounded-full" style="background: rgba(30, 30, 30, 0.5);"></div>
@@ -2110,7 +2195,7 @@
 						{@const yRank = [...data.runYieldBreakdown].filter(y => y.overall_yield_pct !== null).sort((a,b) => (b.overall_yield_pct ?? 0) - (a.overall_yield_pct ?? 0)).findIndex(y => y.batch_id === selectedBatchId) + 1}
 						<div><p class="text-[7px] text-text-muted/40 uppercase">Rank</p><p class="text-[9px] font-semibold text-text-secondary">#{yRank}</p></div>
 						<div><p class="text-[7px] text-text-muted/40 uppercase">vs Avg</p><p class="text-[9px] font-semibold" style="color: {(selectedYieldRow.overall_yield_pct ?? 0) >= (runYieldAgg?.overallYield ?? 0) ? '#bef264' : '#ef4444'};">{((selectedYieldRow.overall_yield_pct ?? 0) - (runYieldAgg?.overallYield ?? 0)).toFixed(2)}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Purity</p><p class="text-[9px] font-semibold text-text-secondary">{selectedYieldRow.hplc_purity_pct?.toFixed(1) ?? '—'}%</p></div>
+						<div><p class="text-[7px] text-text-muted/40 uppercase">Purity</p><p class="text-[9px] font-semibold text-text-secondary">{selectedYieldRow.hplc_purity_pct != null ? selectedYieldRow.hplc_purity_pct.toFixed(1) + '%' : 'N/A'}</p></div>
 						<div><p class="text-[7px] text-text-muted/40 uppercase">Alkaloids</p><p class="text-[9px] font-semibold text-text-secondary">{selectedYieldRow.mitragynine_pct?.toFixed(1) ?? '—'}%</p></div>
 						<div><p class="text-[7px] text-text-muted/40 uppercase">Deviations</p><p class="text-[9px] font-semibold" style="color: {selectedYieldRow.deviation_count > 0 ? '#ef4444' : 'inherit'};">{selectedYieldRow.deviation_count}</p></div>
 					{:else}
@@ -2129,7 +2214,7 @@
 							<defs><linearGradient id="histYieldGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#bef264" stop-opacity="0.22" /><stop offset="100%" stop-color="#bef264" stop-opacity="0.02" /></linearGradient></defs>
 							<path d={historyYieldChart.area} fill="url(#histYieldGrad)" /><path d={historyYieldChart.line} fill="none" stroke="#bef264" stroke-width="1.5" opacity="0.7" />
 							{#each historyYieldChart.points as pt, pi}
-								<circle cx={pt.x} cy={pt.y} r={historyRuns[pi]?.runId === data.activeRunId ? 3 : 1.5} fill="#bef264" opacity={historyRuns[pi]?.runId === data.activeRunId ? 1 : 0.45} />
+								<circle cx={pt.x} cy={pt.y} r={historyRuns[pi]?.runId === data.activeRunId ? 3 : 1.5} fill="#bef264" opacity={historyRuns[pi]?.runId === data.activeRunId ? 1 : 0.45} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [historyRunLabels[pi], `Yield: ${historyYieldValues[pi].toFixed(2)}%`] }} onmouseleave={() => chartTooltip = null} />
 								<text x={pt.x} y={CH + 18} text-anchor="middle" fill="#666666" font-size="5">{historyRunLabels[pi]}</text>
 							{/each}
 						</svg>
@@ -2240,6 +2325,21 @@
 {:else}
 <div class="text-center py-12 text-[#666666]"><p class="text-sm">No data available</p><p class="text-xs mt-1">Import data via the Admin page to get started.</p></div>
 {/if}
+
+{#if chartTooltip}
+	<div class="fixed z-[60] pointer-events-none px-2 py-1.5 rounded-lg border border-white/10 shadow-xl text-[8px] font-mono"
+		style="left: {chartTooltip.x + 12}px; top: {chartTooltip.y - 10}px; background: #1a1a1a;">
+		{#each chartTooltip.lines as line}
+			<div class="text-text-secondary whitespace-nowrap">{line}</div>
+		{/each}
+	</div>
+{/if}
+
+{#if expandedCard !== null}
+	<button class="fixed inset-0 z-40 bg-black/60" onclick={() => expandedCard = null}></button>
+{/if}
+
+<svelte:window onkeydown={(e) => { if (e.key === 'Escape') expandedCard = null; }} />
 
 <!-- Batch Detail Drawer -->
 <BatchDrawer batchId={drawerBatchId} runId={data.activeRunId} onclose={() => drawerBatchId = null} />
