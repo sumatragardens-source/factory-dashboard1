@@ -1882,9 +1882,10 @@
 				<!-- S2: Batch Recovery Bar Chart — HERO -->
 				{@const lotEthData = data.runEthanolBreakdown.filter(e => e.supplier_lot === activeLot && e.recovery_pct != null)}
 				{@const lotRecAvg = lotEthData.length > 0 ? lotEthData.reduce((s, e) => s + (e.recovery_pct ?? 0), 0) / lotEthData.length : 0}
-				{@const recBarMin = 82}
-				{@const recBarMax = 95}
-				{@const recBarRange = recBarMax - recBarMin}
+				{@const recValues = lotEthData.map(e => e.recovery_pct ?? 0).filter(v => v > 0)}
+				{@const recBarMin = recValues.length > 0 ? Math.min(...recValues) * 0.98 : 82}
+				{@const recBarMax = recValues.length > 0 ? Math.max(...recValues) * 1.02 : 88}
+				{@const recBarRange = recBarMax - recBarMin || 1}
 				{@const avgRecLinePct = lotRecAvg > 0 ? ((lotRecAvg - recBarMin) / recBarRange) * 100 : 0}
 				{@const tgt95Pct = ((95 - recBarMin) / recBarRange) * 100}
 				{#if lotEthData.length > 0}
@@ -1899,8 +1900,9 @@
 							{@const recPct = eb.recovery_pct ?? 0}
 							{@const hPct = Math.min(100, Math.max(3, ((recPct - recBarMin) / recBarRange) * 100))}
 							{@const barColor = recPct >= 86 ? '#bef264' : recPct >= 83 ? '#f59e0b' : '#ef4444'}
+							{@const vsAvgPct = recPct - lotRecAvg}
 							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(eb.batch_id)}
-								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [eb.batch_number, `Recovery: ${recPct.toFixed(1)}%`, `Issued: ${eb.ethanol_issued_l?.toFixed(0) ?? '—'}L`] }} onmouseleave={() => chartTooltip = null}>
+								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [eb.batch_number, `Recovery: ${recPct.toFixed(1)}%`, `Issued: ${eb.ethanol_issued_l?.toFixed(0) ?? '—'}L`, `Recovered: ${eb.ethanol_recovered_l?.toFixed(0) ?? '—'}L`, `Lost: ${eb.ethanol_lost_l?.toFixed(0) ?? '—'}L`, `vs Avg: ${vsAvgPct >= 0 ? '+' : ''}${vsAvgPct.toFixed(1)}%`] }} onmouseleave={() => chartTooltip = null}>
 								<span class="text-[6px] font-mono font-bold mb-0.5" style="color: {barColor};">{recPct.toFixed(1)}%</span>
 								<div class="w-full rounded-t transition-all {selectedBatchId === eb.batch_id ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {barColor}; opacity: 0.7; min-height: 4px;"></div>
 								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{eb.batch_number.replace('SG-', '')}</span>
@@ -1959,6 +1961,33 @@
 							{/each}
 						</tbody>
 					</table>
+				</div>
+
+				<!-- Solvent Loss Summary -->
+				{@const slTotalIssued = lotEthBatches.reduce((s, e) => s + (e.ethanol_issued_l ?? 0), 0)}
+				{@const slTotalRecovered = lotEthBatches.reduce((s, e) => s + (e.ethanol_recovered_l ?? 0), 0)}
+				{@const slTotalLost = lotEthBatches.reduce((s, e) => s + (e.ethanol_lost_l ?? 0), 0)}
+				{@const slLossRate = slTotalIssued > 0 ? (slTotalLost / slTotalIssued) * 100 : 0}
+				{@const slLossCost = slTotalLost * UNIT_RATES.ethanol70.rate}
+				{@const slBatchRecs = lotEthBatches.filter(e => e.recovery_pct != null).map(e => ({ bn: e.batch_number.replace('SG-', ''), rec: e.recovery_pct ?? 0 }))}
+				{@const slBest = slBatchRecs.length > 0 ? slBatchRecs.reduce((a, b) => a.rec > b.rec ? a : b) : null}
+				{@const slWorst = slBatchRecs.length > 0 ? slBatchRecs.reduce((a, b) => a.rec < b.rec ? a : b) : null}
+				<div class="mt-2 p-2 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
+					<h4 class="text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Solvent Loss Summary</h4>
+					<div class="grid grid-cols-3 gap-x-3 gap-y-1 text-[7px] font-mono">
+						<div><span class="text-slate-500">Issued</span> <span class="text-white font-bold">{slTotalIssued.toFixed(0)}L</span></div>
+						<div><span class="text-slate-500">Recovered</span> <span class="text-white font-bold">{slTotalRecovered.toFixed(0)}L</span></div>
+						<div><span class="text-slate-500">Lost</span> <span class="font-bold" style="color: #ef4444;">{slTotalLost.toFixed(0)}L</span></div>
+						<div><span class="text-slate-500">Loss Rate</span> <span class="font-bold" style="color: {slLossRate <= 15 ? '#bef264' : '#ef4444'};">{slLossRate.toFixed(1)}%</span></div>
+						<div><span class="text-slate-500">Loss Cost</span> <span class="font-bold" style="color: #ef4444;">{fmt(slLossCost)}</span></div>
+						<div><span class="text-slate-500">Batches</span> <span class="text-white font-bold">{lotEthBatches.length}</span></div>
+					</div>
+					{#if slBest && slWorst}
+					<div class="flex gap-2 mt-1.5">
+						<div class="flex-1 text-[7px]"><span class="text-slate-500">Best:</span> <span class="font-bold" style="color: #bef264;">{slBest.bn} ({slBest.rec.toFixed(1)}%)</span></div>
+						<div class="flex-1 text-[7px]"><span class="text-slate-500">Worst:</span> <span class="font-bold" style="color: #ef4444;">{slWorst.bn} ({slWorst.rec.toFixed(1)}%)</span></div>
+					</div>
+					{/if}
 				</div>
 				{/if}
 			{:else if ethanolMode === 'batch'}
