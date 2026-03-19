@@ -1997,7 +1997,7 @@
 							{@const sx = 30 + ((sb.recoveryPct - xMin) / (xMax - xMin || 1)) * 440}
 							{@const sy = 5 + (1 - (sb.yieldG - yMin) / (yMax - yMin || 1)) * 60}
 							{@const above = sb.yieldG >= avgYieldY}
-							<circle cx={sx} cy={sy} r="4" fill={above ? '#bef264' : '#ef4444'} opacity="0.8" />
+							<circle cx={sx} cy={sy} r="4" fill={above ? '#bef264' : '#ef4444'} opacity="0.8" style="cursor: pointer;" onclick={() => selectBatch(sb.batchId)} onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [`Recovery: ${sb.recoveryPct.toFixed(1)}%`, `Yield: ${sb.yieldG.toFixed(0)}g`] }} onmouseleave={() => chartTooltip = null} />
 						{/each}
 						<!-- Axis labels -->
 						<text x="250" y="73" text-anchor="middle" fill="#666666" font-size="5">Recovery %</text>
