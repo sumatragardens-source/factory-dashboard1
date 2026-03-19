@@ -1621,11 +1621,132 @@
 				</div>
 				{/if}
 			{:else}
-				<!-- Cost Drivers — coming soon -->
-				<div class="flex-1 flex flex-col items-center justify-center">
-					<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">construction</span>
-					<p class="text-[8px] text-slate-500 italic">Cost drivers analysis coming soon</p>
+				<!-- Cost Drivers Tab -->
+				{#if true}
+				{@const allSegs = data.batchCostBreakdown}
+				{@const catTotals = (['leaf','solvent','chemicals','labor','electricity','testing'] as const).map(cat => ({
+					cat,
+					total: allSegs.reduce((s, b) => s + b[cat], 0)
+				})).sort((a, b) => b.total - a.total)}
+				{@const grandTotal = catTotals.reduce((s, c) => s + c.total, 0) || 1}
+				{@const paretoMax = catTotals[0]?.total || 1}
+				{@const driverSegColors = { leaf: '#bef264', solvent: '#ec5b13', chemicals: '#ef4444', labor: '#9ca3af', electricity: '#f59e0b', testing: '#4b5563' } as Record<string, string>}
+
+				<!-- 4a: Pareto Chart -->
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Cost Pareto — All Batches</h4>
+					<div class="space-y-1">
+						{#each catTotals as { cat, total }, ci}
+							{@const cumPct = catTotals.slice(0, ci + 1).reduce((s, c) => s + c.total, 0) / grandTotal * 100}
+							<div class="flex items-center gap-1.5">
+								<span class="w-14 text-[7px] font-bold text-slate-500 uppercase truncate">{cat}</span>
+								<div class="flex-1 h-3 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.03);">
+									<div class="h-full rounded-sm" style="width: {(total / paretoMax) * 100}%; background: {driverSegColors[cat] ?? '#9ca3af'};"
+										onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [cat, fmt(total), `${(total / grandTotal * 100).toFixed(1)}% of total`] }} onmouseleave={() => chartTooltip = null}></div>
+								</div>
+								<span class="text-[7px] font-mono font-bold text-white w-12 text-right">{fmt(total)}</span>
+								<span class="text-[6px] font-mono text-slate-400 w-8 text-right">{(total / grandTotal * 100).toFixed(0)}%</span>
+								<span class="text-[6px] font-mono text-slate-600 w-8 text-right">Σ{cumPct.toFixed(0)}%</span>
+							</div>
+						{/each}
+					</div>
 				</div>
+
+				<!-- 4b: Variable vs Fixed -->
+				{@const varCost = catTotals.filter(c => ['leaf','solvent','chemicals'].includes(c.cat)).reduce((s, c) => s + c.total, 0)}
+				{@const fixCost = catTotals.filter(c => ['labor','electricity','testing'].includes(c.cat)).reduce((s, c) => s + c.total, 0)}
+				{@const varPct = (varCost / grandTotal) * 100}
+				{@const fixPct = (fixCost / grandTotal) * 100}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Variable vs Fixed</h4>
+					<div class="flex h-5 w-full rounded-sm overflow-hidden">
+						<div class="h-full flex items-center justify-center" style="width: {varPct}%; background: rgba(190,242,100,0.5);">
+							<span class="text-[6px] font-mono font-bold text-black/70">Variable {varPct.toFixed(0)}%</span>
+						</div>
+						<div class="h-full flex items-center justify-center" style="width: {fixPct}%; background: rgba(156,163,175,0.5);">
+							<span class="text-[6px] font-mono font-bold text-black/70">Fixed {fixPct.toFixed(0)}%</span>
+						</div>
+					</div>
+					<div class="flex justify-between mt-0.5">
+						<span class="text-[6px] text-slate-400">Leaf + Solvent + Chemicals: {fmt(varCost)}</span>
+						<span class="text-[6px] text-slate-400">Labor + Elec + Testing: {fmt(fixCost)}</span>
+					</div>
+				</div>
+
+				<!-- 4c: Cost/KG by Category -->
+				{@const curLotAggD = activeLot ? lotSummaries.get(activeLot) : null}
+				{@const lotYieldKg = curLotAggD?.totalYieldKg ?? 0}
+				{@const curSegsD = curLotAggD?.costBySegment ?? { leaf: 0, solvent: 0, chemicals: 0, labor: 0, electricity: 0, testing: 0 }}
+				{@const totalCpk = lotYieldKg > 0 ? Object.values(curSegsD).reduce((a, b) => a + b, 0) / lotYieldKg : 0}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Cost/KG by Category — {activeLot?.replace('LOT-', 'L')}</h4>
+					{#if lotYieldKg > 0}
+					<div class="border border-white/10 rounded overflow-hidden">
+						<table class="w-full text-left border-collapse">
+							<thead>
+								<tr class="text-[6px] font-bold text-slate-500 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
+									<th class="px-1.5 py-0.5">Category</th>
+									<th class="px-1 py-0.5 text-right">$/kg</th>
+									<th class="px-1 py-0.5 text-right">% of Total</th>
+								</tr>
+							</thead>
+							<tbody class="text-[7px] font-mono">
+								{#each (['leaf','solvent','chemicals','labor','electricity','testing'] as const) as key}
+									{@const cpk = curSegsD[key] / lotYieldKg}
+									{@const pctOfTotal = totalCpk > 0 ? (cpk / totalCpk) * 100 : 0}
+									<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+										<td class="px-1.5 py-0.5 flex items-center gap-1"><span class="size-1.5 rounded-full" style="background: {driverSegColors[key]};"></span><span class="uppercase text-slate-400">{key}</span></td>
+										<td class="px-1 py-0.5 text-right text-white">{fmt(cpk)}</td>
+										<td class="px-1 py-0.5 text-right text-slate-400">{pctOfTotal.toFixed(1)}%</td>
+									</tr>
+								{/each}
+								<tr class="font-bold" style="border-top: 1px solid #333;">
+									<td class="px-1.5 py-0.5 text-slate-300 uppercase">Total</td>
+									<td class="px-1 py-0.5 text-right text-white">{fmt(totalCpk)}</td>
+									<td class="px-1 py-0.5 text-right text-slate-400">100%</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					{:else}
+					<p class="text-[7px] text-slate-600 italic">No yield data for $/kg breakdown</p>
+					{/if}
+				</div>
+
+				<!-- 4d: Sensitivity Analysis -->
+				{#if lotYieldKg > 0}
+				{@const varKeys = ['leaf','solvent','chemicals'] as const}
+				<div class="mb-1">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Sensitivity — ±10% Variable Cost</h4>
+					<div class="border border-white/10 rounded overflow-hidden">
+						<table class="w-full text-left border-collapse">
+							<thead>
+								<tr class="text-[6px] font-bold text-slate-500 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
+									<th class="px-1.5 py-0.5">Category</th>
+									<th class="px-1 py-0.5 text-right">Current $/kg</th>
+									<th class="px-1 py-0.5 text-right">-10%</th>
+									<th class="px-1 py-0.5 text-right">+10%</th>
+								</tr>
+							</thead>
+							<tbody class="text-[7px] font-mono">
+								{#each varKeys as key}
+									{@const cpk = curSegsD[key] / lotYieldKg}
+									{@const impactDown = cpk * -0.1}
+									{@const impactUp = cpk * 0.1}
+									<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+										<td class="px-1.5 py-0.5 uppercase text-slate-400">{key}</td>
+										<td class="px-1 py-0.5 text-right text-white">{fmt(cpk)}</td>
+										<td class="px-1 py-0.5 text-right" style="color: #bef264;">{fmt(impactDown)}</td>
+										<td class="px-1 py-0.5 text-right" style="color: #ef4444;">+{fmt(impactUp)}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+					<p class="text-[6px] text-slate-600 mt-0.5 italic">Impact on total $/kg if category cost changes by ±10%</p>
+				</div>
+				{/if}
+				{/if}
 			{/if}
 		{:else if carouselIndex === 1}
 			{#if ethanolMode === 'lot'}
