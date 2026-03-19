@@ -2457,7 +2457,9 @@
 							{@const ykg = lotSummaries.get(lot)?.totalYieldKg ?? 0}
 							{@const hPct = (ykg / yieldMax) * 100}
 							{@const isCurrent = lot === activeLot}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
+							{@const lotAggY = lotSummaries.get(lot)}
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => { selectedLot = lot; yieldMode = 'lot'; }}
+								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [lot, `Yield: ${ykg.toFixed(2)}kg`, `Rate: ${(lotAggY?.avgYieldPct ?? 0).toFixed(2)}%`, `Purity: ${lotAggY?.avgPurity?.toFixed(1) ?? 'N/A'}%`] }} onmouseleave={() => chartTooltip = null}>
 								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{ykg.toFixed(1)}</span>
 								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#bef264]' : ''}" style="height: {hPct}%; background: rgba(190,242,100,{isCurrent ? 0.8 : 0.4}); min-height: 4px; opacity: {isCurrent ? 1 : 0.6};"></div>
 								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
@@ -2485,6 +2487,72 @@
 						</div>
 					</div>
 				</div>
+
+				<!-- Best / Worst Lot (Yield) -->
+				{@const bestYieldLot = lots.reduce((best, l) => { const a = lotSummaries.get(l); return a && a.avgYieldPct > 0 && (best === null || a.avgYieldPct > (lotSummaries.get(best)?.avgYieldPct ?? 0)) ? l : best; }, null as string | null)}
+				{@const worstYieldLot = lots.reduce((worst, l) => { const a = lotSummaries.get(l); return a && a.avgYieldPct > 0 && (worst === null || a.avgYieldPct < (lotSummaries.get(worst)?.avgYieldPct ?? Infinity)) ? l : worst; }, null as string | null)}
+				{#if bestYieldLot || worstYieldLot}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Best / Worst Lot</h4>
+					<div class="flex gap-2">
+						{#if bestYieldLot}
+						{@const ba = lotSummaries.get(bestYieldLot)}
+						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestYieldLot; yieldMode = 'lot'; }}>
+							<span class="text-[6px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
+							<div class="text-[9px] font-mono font-bold text-white">{bestYieldLot.replace('LOT-', 'L')}</div>
+							<div class="text-[7px] font-mono text-slate-400">{ba ? ba.avgYieldPct.toFixed(2) : '—'}% rate</div>
+						</button>
+						{/if}
+						{#if worstYieldLot}
+						{@const wa = lotSummaries.get(worstYieldLot)}
+						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstYieldLot; yieldMode = 'lot'; }}>
+							<span class="text-[6px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
+							<div class="text-[9px] font-mono font-bold text-white">{worstYieldLot.replace('LOT-', 'L')}</div>
+							<div class="text-[7px] font-mono text-slate-400">{wa ? wa.avgYieldPct.toFixed(2) : '—'}% rate</div>
+						</button>
+						{/if}
+					</div>
+				</div>
+				{/if}
+
+				<!-- Lot Comparison Table -->
+				{@const compLots = lots.slice(-5)}
+				{#if compLots.length >= 2}
+				<div class="mb-1">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Lot Comparison</h4>
+					<div class="border border-white/10 rounded overflow-hidden">
+						<table class="w-full text-left border-collapse">
+							<thead style="background: #0d0d0d;">
+								<tr class="text-[7px] font-bold text-slate-500 uppercase tracking-widest">
+									<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Lot</th>
+									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield (kg)</th>
+									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Rate %</th>
+									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Delta</th>
+									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Purity</th>
+								</tr>
+							</thead>
+							<tbody class="text-[7px] font-mono">
+								{#each compLots as cLot, ci}
+									{@const cAgg = lotSummaries.get(cLot)}
+									{@const cRate = cAgg?.avgYieldPct ?? 0}
+									{@const cYld = cAgg?.totalYieldKg ?? 0}
+									{@const cPur = cAgg?.avgPurity}
+									{@const prevCLot = ci > 0 ? compLots[ci - 1] : null}
+									{@const prevCRate = prevCLot ? (lotSummaries.get(prevCLot)?.avgYieldPct ?? 0) : 0}
+									{@const cDelta = prevCLot ? cRate - prevCRate : 0}
+									<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+										<td class="px-2 py-0.5 text-slate-400">{cLot.replace('LOT-', 'L')}</td>
+										<td class="px-2 py-0.5 text-right text-white font-bold">{cYld.toFixed(2)}</td>
+										<td class="px-2 py-0.5 text-right font-bold" style="color: {cRate >= allTimeLotAvg.yieldPct ? '#bef264' : '#ef4444'};">{cRate.toFixed(2)}%</td>
+										<td class="px-2 py-0.5 text-right" style="color: {cDelta >= 0 ? '#bef264' : '#ef4444'};">{prevCLot ? (cDelta >= 0 ? '+' : '') + cDelta.toFixed(2) + '%' : '—'}</td>
+										<td class="px-2 py-0.5 text-right text-white">{cPur !== null ? (cPur?.toFixed(1) ?? '—') + '%' : 'N/A'}</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+				{/if}
 				{/if}
 			{:else if yieldMode === 'history'}
 				<!-- Batch Contrib. — coming soon -->
