@@ -1702,87 +1702,31 @@
 					</div>
 				</div>
 
-				<!-- S2: Recovery Trend Line — HERO -->
-				{#if batchSequenceEthanol.length >= 2}
-				{@const seq = batchSequenceEthanol}
-				{@const recoveryValues = seq.map(s => s.recoveryPct)}
-				{@const rolling5 = rollingAvg(recoveryValues, 5)}
-				{@const minR = Math.min(...recoveryValues) - 2}
-				{@const maxR = Math.max(...recoveryValues) + 2}
-				{@const rangeR = maxR - minR || 1}
-				{@const lots = allLots()}
-				{@const targetY95 = 10 + (1 - (95 - minR) / rangeR) * 115}
-				{@const ySteps = [minR, minR + rangeR * 0.25, minR + rangeR * 0.5, minR + rangeR * 0.75, maxR]}
-				{@const rollPts = rolling5.map((v, i) => `${(40 + (i / (seq.length - 1)) * 540).toFixed(1)},${(10 + (1 - (v - minR) / rangeR) * 115).toFixed(1)}`).join(' ')}
+				<!-- S2: Batch Recovery Bar Chart — HERO -->
+				{@const lotEthData = data.runEthanolBreakdown.filter(e => e.supplier_lot === activeLot && e.recovery_pct != null)}
+				{@const lotRecAvg = lotEthData.length > 0 ? lotEthData.reduce((s, e) => s + (e.recovery_pct ?? 0), 0) / lotEthData.length : 0}
+				{@const recBarMin = 82}
+				{@const recBarMax = 95}
+				{@const recBarRange = recBarMax - recBarMin}
+				{@const avgRecLinePct = lotRecAvg > 0 ? ((lotRecAvg - recBarMin) / recBarRange) * 100 : 0}
+				{@const tgt95Pct = ((95 - recBarMin) / recBarRange) * 100}
+				{#if lotEthData.length > 0}
 				<div class="mb-2">
-					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Recovery Trend — All Batches</h4>
-					<svg viewBox="0 0 600 140" class="w-full" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;">
-						<!-- Lot background tints -->
-						{#each lots as lot, li}
-							{@const lotBatchesInSeq = seq.filter(s => s.lot === lot)}
-							{#if lotBatchesInSeq.length > 0}
-								{@const firstIdx = seq.indexOf(lotBatchesInSeq[0])}
-								{@const lastIdx = seq.indexOf(lotBatchesInSeq[lotBatchesInSeq.length - 1])}
-								{@const x1 = 40 + (firstIdx / (seq.length - 1)) * 540}
-								{@const x2 = 40 + (lastIdx / (seq.length - 1)) * 540}
-								<rect x={x1 - 2} y="10" width={Math.max(4, x2 - x1 + 4)} height="115" fill={lot === activeLot ? 'rgba(236,91,19,0.06)' : li % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)'} />
-							{/if}
-						{/each}
-						<!-- Lot boundary lines -->
-						{#each lots as lot, li}
-							{#if li > 0}
-								{@const lotBatchesInSeq = seq.filter(s => s.lot === lot)}
-								{#if lotBatchesInSeq.length > 0}
-									{@const firstIdx = seq.indexOf(lotBatchesInSeq[0])}
-									{@const bx = 40 + (firstIdx / (seq.length - 1)) * 540}
-									<line x1={bx} y1="10" x2={bx} y2="125" stroke="rgba(255,255,255,0.1)" stroke-dasharray="3 3" stroke-width="0.5" />
-									<text x={bx + 2} y="18" fill="rgba(255,255,255,0.25)" font-size="6" font-weight="bold">{lot.replace('LOT-', 'L')}</text>
-								{/if}
-							{/if}
-						{/each}
-						<!-- 95% target line -->
-						<line x1="40" y1={targetY95} x2="580" y2={targetY95} stroke="#666666" stroke-dasharray="4 4" stroke-width="0.5" opacity="0.5" />
-						<text x="582" y={targetY95 + 3} fill="#666666" font-size="6" opacity="0.5">95%</text>
-						<!-- Y-axis labels -->
-						{#each ySteps as yv}
-							{@const yy = 10 + (1 - (yv - minR) / rangeR) * 115}
-							<text x="36" y={yy + 2} text-anchor="end" fill="#666666" font-size="5">{yv.toFixed(0)}%</text>
-						{/each}
-						<!-- Rolling average line -->
-						<polyline points={rollPts} fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linejoin="round" />
-						<!-- Batch dots -->
-						{#each seq as s, si}
-							{@const cx = 40 + (si / (seq.length - 1)) * 540}
-							{@const cy = 10 + (1 - (s.recoveryPct - minR) / rangeR) * 115}
-							{@const lotIdx = lots.indexOf(s.lot)}
-							<circle {cx} {cy} r={s.lot === activeLot ? 3 : 2} fill={LOT_COLORS[lotIdx % LOT_COLORS.length]} opacity={s.lot === activeLot ? 1 : 0.4} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [s.batchNumber, `Recovery: ${s.recoveryPct.toFixed(1)}%`, `Lot: ${s.lot}`] }} onmouseleave={() => chartTooltip = null} />
-						{/each}
-					</svg>
-				</div>
-				{/if}
-
-				<!-- S3: Lot Average Bar Chart -->
-				{#if true}
-				{@const lots = allLots()}
-				{@const lotRecoveries = lots.map(l => lotSummaries.get(l)?.avgRecoveryPct ?? 0)}
-				{@const barMin = 84.0}
-				{@const barMax = 86.0}
-				{@const barRange = barMax - barMin || 1}
-				{@const avgLineBot = ((allTimeLotAvg.recoveryPct - barMin) / barRange) * 100}
-				<div class="mb-2">
-					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Lot Avg Recovery</h4>
-					<div class="relative flex items-end gap-1 px-1" style="height: 60px;">
-						<!-- Average line -->
-						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {avgLineBot}%; border-color: rgba(255,255,255,0.2);"></div>
-						{#each lots as lot, li}
-							{@const rec = lotSummaries.get(lot)?.avgRecoveryPct ?? 0}
-							{@const hPct = Math.min(100, Math.max(5, ((rec - barMin) / barRange) * 100))}
-							{@const isAboveAvg = rec >= allTimeLotAvg.recoveryPct}
-							{@const isCurrent = lot === activeLot}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
-								<span class="text-[6px] font-mono font-bold mb-0.5" style="color: {isAboveAvg ? '#bef264' : '#ef4444'};">{rec.toFixed(1)}%</span>
-								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {isAboveAvg ? 'rgba(190,242,100,0.6)' : 'rgba(239,68,68,0.5)'}; min-height: 4px;"></div>
-								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Recovery — {activeLot?.replace('LOT-', 'L')}</h4>
+					<div class="relative flex items-end gap-1 px-1 h-[110px]">
+						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {avgRecLinePct}%; border-color: rgba(255,255,255,0.25);"></div>
+						<span class="absolute text-[6px] font-mono text-slate-400 right-1" style="bottom: {avgRecLinePct + 1}%;">avg {lotRecAvg.toFixed(1)}%</span>
+						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {tgt95Pct}%; border-color: rgba(102,102,102,0.3);"></div>
+						<span class="absolute text-[6px] font-mono text-slate-600 left-1" style="bottom: {tgt95Pct + 1}%;">95%</span>
+						{#each lotEthData as eb}
+							{@const recPct = eb.recovery_pct ?? 0}
+							{@const hPct = Math.min(100, Math.max(3, ((recPct - recBarMin) / recBarRange) * 100))}
+							{@const barColor = recPct >= 86 ? '#bef264' : recPct >= 83 ? '#f59e0b' : '#ef4444'}
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(eb.batch_id)}
+								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [eb.batch_number, `Recovery: ${recPct.toFixed(1)}%`, `Issued: ${eb.ethanol_issued_l?.toFixed(0) ?? '—'}L`] }} onmouseleave={() => chartTooltip = null}>
+								<span class="text-[6px] font-mono font-bold mb-0.5" style="color: {barColor};">{recPct.toFixed(1)}%</span>
+								<div class="w-full rounded-t transition-all {selectedBatchId === eb.batch_id ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {barColor}; opacity: 0.7; min-height: 4px;"></div>
+								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{eb.batch_number.replace('SG-', '')}</span>
 							</button>
 						{/each}
 					</div>
@@ -1841,104 +1785,91 @@
 				</div>
 				{/if}
 			{:else if ethanolMode === 'batch'}
-				<!-- Header row -->
-				<div class="flex items-center gap-1.5 px-1.5 py-0.5 text-[7px] font-bold text-text-muted/40 uppercase tracking-wider border-b border-border-subtle mb-0.5">
-					<span class="w-16 flex-none">Batch</span>
-					<span class="w-3 flex-none"></span>
-					<span class="w-10 text-right flex-none">Iss.</span>
-					<span class="w-10 text-right flex-none">Rec.</span>
-					<span class="w-10 text-right flex-none">Lost</span>
-					<span class="flex-1">Recovery</span>
-					<span class="w-12 text-right flex-none">vs Avg</span>
-				</div>
-				<div class="flex-1 overflow-y-auto mb-2">
-					<div class="space-y-0.5">
-						{#each [...data.runEthanolBreakdown].sort((a, b) => (b.recovery_pct ?? 0) - (a.recovery_pct ?? 0)) as eb, ebi}
-							{@const hasAnomaly = batchAnomalyMap.get(eb.batch_id)?.some(a => a.metric === 'recovery')}
-							{@const isBest = ebi === 0 && eb.recovery_pct !== null}
-							{@const sortedLen = data.runEthanolBreakdown.filter(e => e.recovery_pct !== null).length}
-							{@const isLow = ebi === sortedLen - 1 && eb.recovery_pct !== null && sortedLen > 1}
-							{@const vsAvg = eb.recovery_pct !== null && runEthAgg ? eb.recovery_pct - runEthAgg.avgRecovery : null}
-							<button class="w-full flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors text-left {selectedBatchId === eb.batch_id ? 'bg-primary/10 ring-1 ring-primary/30' : 'hover:bg-bg-card-hover'}" onclick={() => { selectBatch(eb.batch_id); }}>
-								<span class="text-[8px] font-medium text-text-secondary w-16 flex-none truncate">
-									{eb.batch_number.replace('SG-', '')}
-									{#if isBest}<span class="text-[6px] px-0.5 rounded ml-0.5" style="background: rgba(190,242,100,0.15); color: #bef264;">BEST</span>{/if}
-									{#if isLow}<span class="text-[6px] px-0.5 rounded ml-0.5" style="background: rgba(239,68,68,0.15); color: #ef4444;">LOW</span>{/if}
-								</span>
-								<span class="h-1.5 w-1.5 rounded-full flex-none {eb.status === 'Completed' ? 'bg-primary' : eb.status === 'In Progress' ? 'bg-blue-500' : eb.status === 'Pending Review' ? 'bg-amber-500' : eb.status === 'Rejected' ? 'bg-red-500' : 'bg-border-card'}"></span>
-								<span class="text-[7px] text-text-muted/50 w-10 text-right flex-none">{eb.ethanol_issued_l?.toFixed(0) ?? '—'}</span>
-								<span class="text-[7px] text-text-muted/50 w-10 text-right flex-none">{eb.ethanol_recovered_l?.toFixed(0) ?? '—'}</span>
-								<span class="text-[7px] w-10 text-right flex-none" style="color: #ef4444;">{eb.ethanol_lost_l?.toFixed(0) ?? '—'}</span>
-								{#if eb.recovery_pct !== null}
-									<div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(30, 30, 30, 0.8);">
-										<div class="h-full rounded-full" style="width: {Math.min(100, eb.recovery_pct)}%; background: {eb.recovery_pct < 93 ? 'rgba(239, 68, 68, 0.7)' : eb.recovery_pct < 95 ? 'rgba(196, 180, 106, 0.7)' : 'rgba(190, 242, 100, 0.7)'};"></div>
-									</div>
-									<span class="text-[8px] font-medium w-12 text-right flex-none" style="color: {vsAvg !== null && vsAvg >= 0 ? '#bef264' : '#ef4444'};">{vsAvg !== null ? (vsAvg >= 0 ? '+' : '') + vsAvg.toFixed(1) : '—'}</span>
-								{:else}
-									<div class="flex-1 h-1 rounded-full" style="background: rgba(30, 30, 30, 0.5);"></div>
-									<span class="text-[7px] text-text-muted/30 w-12 text-right flex-none">—</span>
+				<!-- Lot History: Recovery Trend + Lot Avg Recovery -->
+				{#if true}
+				{@const lots = allLots()}
+
+				<!-- Recovery Trend — All Batches -->
+				{#if batchSequenceEthanol.length >= 2}
+				{@const seq = batchSequenceEthanol}
+				{@const recoveryValues = seq.map(s => s.recoveryPct)}
+				{@const rolling5 = rollingAvg(recoveryValues, 5)}
+				{@const minR = Math.min(...recoveryValues) - 2}
+				{@const maxR = Math.max(...recoveryValues) + 2}
+				{@const rangeR = maxR - minR || 1}
+				{@const targetY95 = 10 + (1 - (95 - minR) / rangeR) * 115}
+				{@const ySteps = [minR, minR + rangeR * 0.25, minR + rangeR * 0.5, minR + rangeR * 0.75, maxR]}
+				{@const rollPts = rolling5.map((v, i) => `${(40 + (i / (seq.length - 1)) * 540).toFixed(1)},${(10 + (1 - (v - minR) / rangeR) * 115).toFixed(1)}`).join(' ')}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Recovery Trend — All Batches</h4>
+					<svg viewBox="0 0 600 140" class="w-full" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;">
+						{#each lots as lot, li}
+							{@const lotBatchesInSeq = seq.filter(s => s.lot === lot)}
+							{#if lotBatchesInSeq.length > 0}
+								{@const firstIdx = seq.indexOf(lotBatchesInSeq[0])}
+								{@const lastIdx = seq.indexOf(lotBatchesInSeq[lotBatchesInSeq.length - 1])}
+								{@const x1 = 40 + (firstIdx / (seq.length - 1)) * 540}
+								{@const x2 = 40 + (lastIdx / (seq.length - 1)) * 540}
+								<rect x={x1 - 2} y="10" width={Math.max(4, x2 - x1 + 4)} height="115" fill={lot === activeLot ? 'rgba(236,91,19,0.06)' : li % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)'} />
+							{/if}
+						{/each}
+						{#each lots as lot, li}
+							{#if li > 0}
+								{@const lotBatchesInSeq = seq.filter(s => s.lot === lot)}
+								{#if lotBatchesInSeq.length > 0}
+									{@const firstIdx = seq.indexOf(lotBatchesInSeq[0])}
+									{@const bx = 40 + (firstIdx / (seq.length - 1)) * 540}
+									<line x1={bx} y1="10" x2={bx} y2="125" stroke="rgba(255,255,255,0.1)" stroke-dasharray="3 3" stroke-width="0.5" />
+									<text x={bx + 2} y="18" fill="rgba(255,255,255,0.25)" font-size="6" font-weight="bold">{lot.replace('LOT-', 'L')}</text>
 								{/if}
-								{#if hasAnomaly}<span class="h-1.5 w-1.5 rounded-full bg-red-500 flex-none"></span>{/if}
+							{/if}
+						{/each}
+						<line x1="40" y1={targetY95} x2="580" y2={targetY95} stroke="#666666" stroke-dasharray="4 4" stroke-width="0.5" opacity="0.5" />
+						<text x="582" y={targetY95 + 3} fill="#666666" font-size="6" opacity="0.5">95%</text>
+						{#each ySteps as yv}
+							{@const yy = 10 + (1 - (yv - minR) / rangeR) * 115}
+							<text x="36" y={yy + 2} text-anchor="end" fill="#666666" font-size="5">{yv.toFixed(0)}%</text>
+						{/each}
+						<polyline points={rollPts} fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linejoin="round" />
+						{#each seq as s, si}
+							{@const cx = 40 + (si / (seq.length - 1)) * 540}
+							{@const cy = 10 + (1 - (s.recoveryPct - minR) / rangeR) * 115}
+							{@const lotIdx = lots.indexOf(s.lot)}
+							<circle {cx} {cy} r={s.lot === activeLot ? 3 : 2} fill={LOT_COLORS[lotIdx % LOT_COLORS.length]} opacity={s.lot === activeLot ? 1 : 0.4} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [s.batchNumber, `Recovery: ${s.recoveryPct.toFixed(1)}%`, `Lot: ${s.lot}`] }} onmouseleave={() => chartTooltip = null} />
+						{/each}
+					</svg>
+				</div>
+				{/if}
+
+				<!-- Lot Avg Recovery Bar Chart -->
+				{@const lotRecoveries = lots.map(l => lotSummaries.get(l)?.avgRecoveryPct ?? 0)}
+				{@const barMin = 84.0}
+				{@const barMax = 86.0}
+				{@const barRange = barMax - barMin || 1}
+				{@const avgLineBot = ((allTimeLotAvg.recoveryPct - barMin) / barRange) * 100}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Lot Avg Recovery</h4>
+					<div class="relative flex items-end gap-1 px-1" style="height: 60px;">
+						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {avgLineBot}%; border-color: rgba(255,255,255,0.2);"></div>
+						{#each lots as lot, li}
+							{@const rec = lotSummaries.get(lot)?.avgRecoveryPct ?? 0}
+							{@const hPct = Math.min(100, Math.max(5, ((rec - barMin) / barRange) * 100))}
+							{@const isAboveAvg = rec >= allTimeLotAvg.recoveryPct}
+							{@const isCurrent = lot === activeLot}
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
+								<span class="text-[6px] font-mono font-bold mb-0.5" style="color: {isAboveAvg ? '#bef264' : '#ef4444'};">{rec.toFixed(1)}%</span>
+								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {isAboveAvg ? 'rgba(190,242,100,0.6)' : 'rgba(239,68,68,0.5)'}; min-height: 4px;"></div>
+								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
 							</button>
 						{/each}
 					</div>
 				</div>
-				<!-- Bottom -->
-				<div class="grid grid-cols-5 gap-1 border-t pt-2 mt-auto" style="border-color: rgba(30, 30, 30, 0.8);">
-					{#if selectedBatchId && selectedEthRow}
-						{@const ethRank = [...data.runEthanolBreakdown].filter(e => e.recovery_pct !== null).sort((a,b) => (b.recovery_pct ?? 0) - (a.recovery_pct ?? 0)).findIndex(e => e.batch_id === selectedBatchId) + 1}
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Rank</p><p class="text-[9px] font-semibold text-text-secondary">#{ethRank}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">vs Avg</p><p class="text-[9px] font-semibold" style="color: {(selectedEthRow.recovery_pct ?? 0) >= (runEthAgg?.avgRecovery ?? 0) ? '#bef264' : '#ef4444'};">{((selectedEthRow.recovery_pct ?? 0) - (runEthAgg?.avgRecovery ?? 0)).toFixed(1)}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Loss</p><p class="text-[9px] font-semibold" style="color: #ef4444;">{selectedEthRow.ethanol_lost_l?.toFixed(0) ?? '—'} L</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Conc.</p><p class="text-[9px] font-semibold text-text-secondary">{selectedEthRow.concentration_gl?.toFixed(1) ?? '—'} g/L</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Anomalies</p><p class="text-[9px] font-semibold">{batchAnomalyMap.get(selectedBatchId)?.filter(a => a.metric === 'recovery').length ?? 0}</p></div>
-					{:else}
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Best</p><p class="text-[9px] font-semibold" style="color: #bef264;">{runEthAgg?.bestBatch?.recovery_pct.toFixed(1) ?? '—'}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Worst</p><p class="text-[9px] font-semibold" style="color: #ef4444;">{runEthAgg?.worstBatch?.recovery_pct.toFixed(1) ?? '—'}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Avg</p><p class="text-[9px] font-semibold text-text-secondary">{runEthAgg?.avgRecovery.toFixed(1) ?? '—'}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Loss</p><p class="text-[9px] font-semibold" style="color: #ef4444;">{runEthAgg?.totalLoss.toFixed(0) ?? '—'} L</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Anomalies</p><p class="text-[9px] font-semibold" style="color: {data.batchAnomalies.filter(a => a.metric === 'recovery').length > 0 ? '#ef4444' : 'inherit'};">{data.batchAnomalies.filter(a => a.metric === 'recovery').length}</p></div>
-					{/if}
-				</div>
+				{/if}
 			{:else}
-				<!-- Ton History: recovery% across runs -->
-				<div class="flex-1 flex flex-col">
-					{#if historyRecoveryChart}
-						<svg viewBox="0 0 {CW} {CH + 20}" class="w-full">
-							<defs><linearGradient id="histEthGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#bef264" stop-opacity="0.22" /><stop offset="100%" stop-color="#bef264" stop-opacity="0.02" /></linearGradient></defs>
-							{#if true}
-								{@const targetY95 = computeTargetY(95, historyRecoveryValues, CH + 20)}
-								<line x1="10" y1={targetY95} x2="230" y2={targetY95} stroke="#666666" stroke-dasharray="3 4" stroke-width="0.5" opacity="0.4" />
-								<text x="233" y={targetY95 + 3} text-anchor="end" fill="#666666" font-size="5" opacity="0.3">95%</text>
-							{/if}
-							<path d={historyRecoveryChart.area} fill="url(#histEthGrad)" /><path d={historyRecoveryChart.line} fill="none" stroke="#bef264" stroke-width="1.5" opacity="0.7" />
-							{#each historyRecoveryChart.points as pt, pi}
-								<circle cx={pt.x} cy={pt.y} r={historyRuns[pi]?.runId === data.activeRunId ? 3 : 1.5} fill="#bef264" opacity={historyRuns[pi]?.runId === data.activeRunId ? 1 : 0.45} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [historyRunLabels[pi], `Recovery: ${historyRecoveryValues[pi].toFixed(1)}%`] }} onmouseleave={() => chartTooltip = null} />
-								<text x={pt.x} y={CH + 18} text-anchor="middle" fill="#666666" font-size="5">{historyRunLabels[pi]}</text>
-							{/each}
-						</svg>
-						<!-- Comparison table -->
-						<div class="mt-1 space-y-0.5">
-							{#each historyRuns as hr}
-								<div class="flex items-center gap-1.5 px-1 py-0.5 rounded text-[7px] {hr.runId === data.activeRunId ? 'bg-primary/5' : ''}">
-									<span class="font-medium text-text-secondary w-12 flex-none">{hr.runNumber}</span>
-									<span class="text-text-muted/40 w-14 flex-none">{hr.totalEthanolIssued.toFixed(0)}L issued</span>
-									<span class="text-text-muted/40 w-14 flex-none">{hr.totalEthanolRecovered.toFixed(0)}L rec.</span>
-									<span class="text-text-muted/40 flex-1 text-right" style="color: {hr.avgEthanolRecovery >= 95 ? '#bef264' : '#ef4444'};">{hr.avgEthanolRecovery.toFixed(1)}%</span>
-								</div>
-							{/each}
-						</div>
-					{:else}
-						<div class="flex-1 flex items-center justify-center"><span class="text-[9px] text-text-muted/40">Need 2+ runs for history</span></div>
-					{/if}
-				</div>
-				<!-- Bottom -->
-				<div class="grid grid-cols-5 gap-1 border-t pt-2 mt-auto" style="border-color: rgba(30, 30, 30, 0.8);">
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Best Run</p><p class="text-[9px] font-semibold" style="color: #bef264;">{[...data.runHistory].sort((a,b) => b.avgEthanolRecovery - a.avgEthanolRecovery)[0]?.runNumber ?? '—'}</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Recovery</p><p class="text-[9px] font-semibold text-text-secondary">{runEthAgg?.avgRecovery.toFixed(1) ?? '—'}%</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Loss</p><p class="text-[9px] font-semibold" style="color: #ef4444;">{runEthAgg?.totalLoss.toFixed(0) ?? '—'} L</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Anomalies</p><p class="text-[9px] font-semibold">{data.batchAnomalies.filter(a => a.metric === 'recovery').length}</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Run Rank</p><p class="text-[9px] font-semibold text-text-secondary">#{currentRunRank.recovery}/{currentRunRank.total}</p></div>
+				<!-- Batch Breakdown — coming soon -->
+				<div class="flex-1 flex flex-col items-center justify-center">
+					<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">construction</span>
+					<p class="text-[8px] text-slate-500 italic">Batch breakdown analysis coming soon</p>
 				</div>
 			{/if}
 		{:else}
