@@ -1442,11 +1442,10 @@
 						<span class="absolute text-[6px] font-mono text-slate-400 right-1" style="bottom: {avgLinePct + 1}%;">avg {fmt(batchCostAvg)}</span>
 						{#each lotBatchCosts as bc}
 							{@const hPct = batchCostMax > batchCostMin ? ((bc.totalCost - batchCostMin) / (batchCostMax - batchCostMin)) * 100 : 50}
-							{@const isOver = bc.totalCost > batchCostAvg}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(bc.batch_id)}
+														<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(bc.batch_id)}
 								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [bc.batch_number, `Total: ${fmt(bc.totalCost)}`, bc.costPerKg ? `$/kg: ${fmt(bc.costPerKg)}` : ''] }} onmouseleave={() => chartTooltip = null}>
 								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{fmt(bc.totalCost)}</span>
-								<div class="w-full rounded-t transition-all {selectedBatchId === bc.batch_id ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {isOver ? 'rgba(239,68,68,0.6)' : 'rgba(190,242,100,0.6)'}; min-height: 4px;"></div>
+								<div class="w-full rounded-t transition-all {selectedBatchId === bc.batch_id ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(bc.totalCost, batchCostVals, selectedBatchId === bc.batch_id)}; min-height: 4px;"></div>
 								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{bc.batch_number.replace('SG-', '')}</span>
 							</button>
 						{/each}
