@@ -1916,49 +1916,31 @@
 					</div>
 				</div>
 
-				<!-- S2: Yield per Lot Bar Chart — HERO -->
-				{@const lotYields = lots.map(l => lotSummaries.get(l)?.totalYieldKg ?? 0)}
-				{@const yieldMax = Math.max(...lotYields) * 1.15 || 1}
-				{@const lotRates = lots.map(l => lotSummaries.get(l)?.avgYieldPct ?? 0)}
-				{@const rateMin = Math.min(...lotRates.filter(r => r > 0)) - 0.1}
-				{@const rateMax = Math.max(...lotRates) + 0.1}
-				{@const rateRange = rateMax - rateMin || 1}
+				<!-- S2: Batch Yield Bar Chart — HERO -->
+				{@const lotYieldData = data.runYieldBreakdown.filter(y => y.supplier_lot === activeLot && y.final_product_g != null)}
+				{@const batchYieldMax = Math.max(...lotYieldData.map(y => y.final_product_g ?? 0), 1)}
+				{@const batchYieldAvg = lotYieldData.length > 0 ? lotYieldData.reduce((s, y) => s + (y.final_product_g ?? 0), 0) / lotYieldData.length : 0}
+				{@const yieldAvgLinePct = batchYieldAvg > 0 ? (batchYieldAvg / batchYieldMax) * 100 : 0}
+				{#if lotYieldData.length > 0}
 				<div class="mb-2">
-					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Yield per Lot</h4>
-					<div class="relative flex items-end gap-1 px-1" style="height: 110px;">
-						{#each lots as lot, li}
-							{@const ykg = lotSummaries.get(lot)?.totalYieldKg ?? 0}
-							{@const hPct = (ykg / yieldMax) * 100}
-							{@const isCurrent = lot === activeLot}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
-								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{ykg.toFixed(1)}</span>
-								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#bef264]' : ''}" style="height: {hPct}%; background: rgba(190,242,100,{isCurrent ? 0.8 : 0.4}); min-height: 4px; opacity: {isCurrent ? 1 : 0.6};"></div>
-								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Yield — {activeLot?.replace('LOT-', 'L')}</h4>
+					<div class="relative flex items-end gap-1 px-1 h-[110px]">
+						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {yieldAvgLinePct}%; border-color: rgba(255,255,255,0.25);"></div>
+						<span class="absolute text-[6px] font-mono text-slate-400 right-1" style="bottom: {yieldAvgLinePct + 1}%;">avg {(batchYieldAvg / 1000).toFixed(2)}kg</span>
+						{#each lotYieldData as yb}
+							{@const yieldG = yb.final_product_g ?? 0}
+							{@const hPct = (yieldG / batchYieldMax) * 100}
+							{@const isAboveAvg = yieldG >= batchYieldAvg}
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(yb.batch_id)}
+								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [yb.batch_number, `Yield: ${(yieldG / 1000).toFixed(2)}kg`, `Rate: ${yb.overall_yield_pct?.toFixed(2) ?? '—'}%`] }} onmouseleave={() => chartTooltip = null}>
+								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{(yieldG / 1000).toFixed(1)}</span>
+								<div class="w-full rounded-t transition-all {selectedBatchId === yb.batch_id ? 'ring-2 ring-[#bef264]' : ''}" style="height: {hPct}%; background: {isAboveAvg ? 'rgba(190,242,100,0.6)' : 'rgba(239,68,68,0.5)'}; min-height: 4px;"></div>
+								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{yb.batch_number.replace('SG-', '')}</span>
 							</button>
 						{/each}
-						<!-- Extract rate overlay dots -->
-						<svg class="absolute inset-0 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-							{#each lots as lot, li}
-								{@const rate = lotSummaries.get(lot)?.avgYieldPct ?? 0}
-								{@const dotX = ((li + 0.5) / lots.length) * 100}
-								{@const dotY = rate > 0 ? 100 - ((rate - rateMin) / rateRange) * 85 - 5 : 95}
-								{#if li > 0}
-									{@const prevRate = lotSummaries.get(lots[li - 1])?.avgYieldPct ?? 0}
-									{@const prevX = ((li - 0.5) / lots.length) * 100}
-									{@const prevY = prevRate > 0 ? 100 - ((prevRate - rateMin) / rateRange) * 85 - 5 : 95}
-									<line x1="{prevX}%" y1="{prevY}%" x2="{dotX}%" y2="{dotY}%" stroke="rgba(236,91,19,0.4)" stroke-width="0.5" vector-effect="non-scaling-stroke" />
-								{/if}
-								<circle cx="{dotX}%" cy="{dotY}%" r="1.5" fill="#ec5b13" vector-effect="non-scaling-stroke" />
-							{/each}
-						</svg>
-						<div class="flex items-center gap-3 mt-1 text-[6px] text-slate-500">
-						<span class="inline-block w-2 h-2 rounded-sm" style="background: rgba(190,242,100,0.6);"></span>
-						<span>Yield (kg)</span>
-						<span class="inline-block w-1.5 h-1.5 rounded-full" style="background: #ec5b13;"></span>
-						<span>Extract Rate (%)</span>
 					</div>
 				</div>
-				</div>
+				{/if}
 
 				<!-- S3: Stage Yield — Current vs Previous -->
 				{@const curStages = getLotStageYields(activeLot)}
@@ -2073,168 +2055,62 @@
 				{/if}
 				{/if}
 			{:else if yieldMode === 'batch'}
-				<!-- Header row -->
-				<div class="flex items-center gap-1.5 px-1.5 py-0.5 text-[7px] font-bold text-text-muted/40 uppercase tracking-wider border-b border-border-subtle mb-0.5">
-					<span class="w-16 flex-none">Batch</span>
-					<span class="w-3 flex-none"></span>
-					<span class="w-16 flex-none">Input&rarr;Out</span>
-					<span class="flex-1">Yield</span>
-					<span class="w-10 text-right flex-none">Yield%</span>
-					<span class="w-8 text-right flex-none">Purity</span>
-				</div>
-				<div class="flex-1 overflow-y-auto mb-2">
-					<div class="space-y-0.5">
-						{#each [...data.runYieldBreakdown].sort((a, b) => (b.overall_yield_pct ?? 0) - (a.overall_yield_pct ?? 0)) as yb}
-							{@const hasAnomaly = batchAnomalyMap.get(yb.batch_id)?.some(a => a.metric === 'yield')}
-							<button class="w-full flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors text-left {selectedBatchId === yb.batch_id ? 'bg-primary/10 ring-1 ring-primary/30' : 'hover:bg-bg-card-hover'}" onclick={() => { selectBatch(yb.batch_id); }}>
-								<span class="text-[8px] font-medium text-text-secondary w-16 flex-none truncate">{yb.batch_number.replace('SG-', '')}</span>
-								<span class="h-1.5 w-1.5 rounded-full flex-none {yb.status === 'Completed' ? 'bg-primary' : yb.status === 'In Progress' ? 'bg-blue-500' : yb.status === 'Pending Review' ? 'bg-amber-500' : yb.status === 'Rejected' ? 'bg-red-500' : 'bg-border-card'}"></span>
-								{#if yb.final_product_g !== null}
-									<span class="text-[7px] text-text-muted w-16 flex-none">{yb.leaf_input_kg}&rarr;{(yb.final_product_g / 1000).toFixed(1)}kg</span>
-									<div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(30, 30, 30, 0.8);">
-										<div class="h-full rounded-full" style="width: {Math.min(100, (yb.overall_yield_pct ?? 0) * 10)}%; background: rgba(190, 242, 100, 0.6);"></div>
-									</div>
-									<span class="text-[8px] font-medium text-text-secondary w-10 text-right flex-none">{yb.overall_yield_pct?.toFixed(1)}%</span>
-									<span class="text-[7px] text-text-muted/35 w-8 text-right flex-none">{yb.hplc_purity_pct != null ? yb.hplc_purity_pct.toFixed(0) + '%' : 'N/A'}</span>
-								{:else}
-									<span class="text-[7px] text-text-muted w-16 flex-none">—</span>
-									<div class="flex-1 h-1 rounded-full" style="background: rgba(30, 30, 30, 0.5);"></div>
-									<span class="text-[7px] text-text-muted/30 w-10 text-right flex-none">—</span>
-									<span class="text-[7px] text-text-muted/30 w-8 text-right flex-none">—</span>
-								{/if}
-								{#if yb.deviation_count > 0}
-									<span class="h-1.5 w-1.5 rounded-full bg-red-500 flex-none"></span>
-								{/if}
-								{#if hasAnomaly}<span class="h-1.5 w-1.5 rounded-full bg-amber-500 flex-none"></span>{/if}
+				<!-- Lot History: Yield per Lot Bar Chart -->
+				{#if true}
+				{@const lots = allLots()}
+				{@const lotYields = lots.map(l => lotSummaries.get(l)?.totalYieldKg ?? 0)}
+				{@const yieldMax = Math.max(...lotYields) * 1.15 || 1}
+				{@const lotRates = lots.map(l => lotSummaries.get(l)?.avgYieldPct ?? 0)}
+				{@const rateMin = Math.min(...lotRates.filter(r => r > 0)) - 0.1}
+				{@const rateMax = Math.max(...lotRates) + 0.1}
+				{@const rateRange = rateMax - rateMin || 1}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Yield per Lot</h4>
+					<div class="relative flex items-end gap-1 px-1" style="height: 110px;">
+						{#each lots as lot, li}
+							{@const ykg = lotSummaries.get(lot)?.totalYieldKg ?? 0}
+							{@const hPct = (ykg / yieldMax) * 100}
+							{@const isCurrent = lot === activeLot}
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
+								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{ykg.toFixed(1)}</span>
+								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#bef264]' : ''}" style="height: {hPct}%; background: rgba(190,242,100,{isCurrent ? 0.8 : 0.4}); min-height: 4px; opacity: {isCurrent ? 1 : 0.6};"></div>
+								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
 							</button>
 						{/each}
-					</div>
-				</div>
-				{#if runYieldAgg?.bestBatch && runYieldAgg?.worstBatch}
-					<div class="flex gap-2 mb-2">
-						<span class="text-[7px] px-1.5 py-0.5 rounded" style="background: rgba(190, 242, 100, 0.15); color: #bef264;">Best: {runYieldAgg.bestBatch.batch_number.replace('SG-', '')} {runYieldAgg.bestBatch.yield_pct}%</span>
-						<span class="text-[7px] px-1.5 py-0.5 rounded" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">Worst: {runYieldAgg.worstBatch.batch_number.replace('SG-', '')} {runYieldAgg.worstBatch.yield_pct}%</span>
-					</div>
-				{/if}
-				<!-- Bottom -->
-				<div class="grid grid-cols-5 gap-1 border-t pt-2 mt-auto" style="border-color: rgba(30, 30, 30, 0.8);">
-					{#if selectedBatchId && selectedYieldRow}
-						{@const yRank = [...data.runYieldBreakdown].filter(y => y.overall_yield_pct !== null).sort((a,b) => (b.overall_yield_pct ?? 0) - (a.overall_yield_pct ?? 0)).findIndex(y => y.batch_id === selectedBatchId) + 1}
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Rank</p><p class="text-[9px] font-semibold text-text-secondary">#{yRank}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">vs Avg</p><p class="text-[9px] font-semibold" style="color: {(selectedYieldRow.overall_yield_pct ?? 0) >= (runYieldAgg?.overallYield ?? 0) ? '#bef264' : '#ef4444'};">{((selectedYieldRow.overall_yield_pct ?? 0) - (runYieldAgg?.overallYield ?? 0)).toFixed(2)}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Purity</p><p class="text-[9px] font-semibold text-text-secondary">{selectedYieldRow.hplc_purity_pct != null ? selectedYieldRow.hplc_purity_pct.toFixed(1) + '%' : 'N/A'}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Alkaloids</p><p class="text-[9px] font-semibold text-text-secondary">{selectedYieldRow.mitragynine_pct?.toFixed(1) ?? '—'}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Deviations</p><p class="text-[9px] font-semibold" style="color: {selectedYieldRow.deviation_count > 0 ? '#ef4444' : 'inherit'};">{selectedYieldRow.deviation_count}</p></div>
-					{:else}
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Best</p><p class="text-[9px] font-semibold" style="color: #bef264;">{runYieldAgg?.bestBatch?.yield_pct ?? '—'}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Worst</p><p class="text-[9px] font-semibold" style="color: #ef4444;">{runYieldAgg?.worstBatch?.yield_pct ?? '—'}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Deviations</p><p class="text-[9px] font-semibold" style="color: {(runYieldAgg?.totalDeviations ?? 0) > 0 ? '#ef4444' : 'inherit'};">{runYieldAgg?.totalDeviations ?? 0}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Purity</p><p class="text-[9px] font-semibold text-text-secondary">{runYieldAgg?.avgPurity?.toFixed(1) ?? '—'}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Anomalies</p><p class="text-[9px] font-semibold" style="color: {data.batchAnomalies.filter(a => a.metric === 'yield').length > 0 ? '#ef4444' : 'inherit'};">{data.batchAnomalies.filter(a => a.metric === 'yield').length}</p></div>
-					{/if}
-				</div>
-			{:else if yieldMode === 'history'}
-				<!-- Ton History: yield% across runs -->
-				<div class="flex-1 flex flex-col">
-					{#if historyYieldChart}
-						<svg viewBox="0 0 {CW} {CH + 20}" class="w-full">
-							<defs><linearGradient id="histYieldGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#bef264" stop-opacity="0.22" /><stop offset="100%" stop-color="#bef264" stop-opacity="0.02" /></linearGradient></defs>
-							<path d={historyYieldChart.area} fill="url(#histYieldGrad)" /><path d={historyYieldChart.line} fill="none" stroke="#bef264" stroke-width="1.5" opacity="0.7" />
-							{#each historyYieldChart.points as pt, pi}
-								<circle cx={pt.x} cy={pt.y} r={historyRuns[pi]?.runId === data.activeRunId ? 3 : 1.5} fill="#bef264" opacity={historyRuns[pi]?.runId === data.activeRunId ? 1 : 0.45} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [historyRunLabels[pi], `Yield: ${historyYieldValues[pi].toFixed(2)}%`] }} onmouseleave={() => chartTooltip = null} />
-								<text x={pt.x} y={CH + 18} text-anchor="middle" fill="#666666" font-size="5">{historyRunLabels[pi]}</text>
+						<svg class="absolute inset-0 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+							{#each lots as lot, li}
+								{@const rate = lotSummaries.get(lot)?.avgYieldPct ?? 0}
+								{@const dotX = ((li + 0.5) / lots.length) * 100}
+								{@const dotY = rate > 0 ? 100 - ((rate - rateMin) / rateRange) * 85 - 5 : 95}
+								{#if li > 0}
+									{@const prevRate = lotSummaries.get(lots[li - 1])?.avgYieldPct ?? 0}
+									{@const prevX = ((li - 0.5) / lots.length) * 100}
+									{@const prevY = prevRate > 0 ? 100 - ((prevRate - rateMin) / rateRange) * 85 - 5 : 95}
+									<line x1="{prevX}%" y1="{prevY}%" x2="{dotX}%" y2="{dotY}%" stroke="rgba(236,91,19,0.4)" stroke-width="0.5" vector-effect="non-scaling-stroke" />
+								{/if}
+								<circle cx="{dotX}%" cy="{dotY}%" r="1.5" fill="#ec5b13" vector-effect="non-scaling-stroke" />
 							{/each}
 						</svg>
-						<!-- Comparison table -->
-						<div class="mt-1 space-y-0.5">
-							{#each historyRuns as hr}
-								<div class="flex items-center gap-1.5 px-1 py-0.5 rounded text-[7px] {hr.runId === data.activeRunId ? 'bg-primary/5' : ''}">
-									<span class="font-medium text-text-secondary w-12 flex-none">{hr.runNumber}</span>
-									<span class="text-text-muted/40 w-14 flex-none">{hr.totalProducedKg.toFixed(1)} kg</span>
-									<span class="text-text-muted/40 w-12 flex-none">{hr.overallYieldPct.toFixed(2)}%</span>
-									<span class="text-text-muted/40 w-10 flex-none">{hr.avgPurity?.toFixed(1) ?? '—'}%</span>
-									<span class="text-text-muted/40 flex-1 text-right">{hr.deviationCount} dev</span>
-								</div>
-							{/each}
+						<div class="flex items-center gap-3 mt-1 text-[6px] text-slate-500">
+							<span class="inline-block w-2 h-2 rounded-sm" style="background: rgba(190,242,100,0.6);"></span>
+							<span>Yield (kg)</span>
+							<span class="inline-block w-1.5 h-1.5 rounded-full" style="background: #ec5b13;"></span>
+							<span>Extract Rate (%)</span>
 						</div>
-					{:else}
-						<div class="flex-1 flex items-center justify-center"><span class="text-[9px] text-text-muted/40">Need 2+ runs for history</span></div>
-					{/if}
+					</div>
 				</div>
-				<!-- Bottom -->
-				<div class="grid grid-cols-5 gap-1 border-t pt-2 mt-auto" style="border-color: rgba(30, 30, 30, 0.8);">
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Produced</p><p class="text-[9px] font-semibold text-text-secondary">{runYieldAgg?.totalProduced.toFixed(1) ?? '—'} kg</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Yield</p><p class="text-[9px] font-semibold text-text-secondary">{runYieldAgg?.overallYield.toFixed(2) ?? '—'}%</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Purity</p><p class="text-[9px] font-semibold text-text-secondary">{runYieldAgg?.avgPurity?.toFixed(1) ?? '—'}%</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Deviations</p><p class="text-[9px] font-semibold" style="color: {(runYieldAgg?.totalDeviations ?? 0) > 0 ? '#ef4444' : 'inherit'};">{runYieldAgg?.totalDeviations ?? 0}</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Rank</p><p class="text-[9px] font-semibold text-text-secondary">#{currentRunRank.yield}/{currentRunRank.total}</p></div>
+				{/if}
+			{:else if yieldMode === 'history'}
+				<!-- Batch Contrib. — coming soon -->
+				<div class="flex-1 flex flex-col items-center justify-center">
+					<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">construction</span>
+					<p class="text-[8px] text-slate-500 italic">Batch contribution analysis coming soon</p>
 				</div>
 			{:else}
-				<!-- Quality Correlation: scatter plot + alkaloid table -->
-				<div class="flex-1 flex flex-col">
-					{#if data.qualityCorrelation.length >= 2}
-						{@const qc = data.qualityCorrelation}
-						{@const minY = Math.min(...qc.map(p => p.yieldPct)) - 0.5}
-						{@const maxY = Math.max(...qc.map(p => p.yieldPct)) + 0.5}
-						{@const minP = Math.min(...qc.filter(p => p.purityPct !== null).map(p => p.purityPct!)) - 1}
-						{@const maxP = Math.max(...qc.filter(p => p.purityPct !== null).map(p => p.purityPct!)) + 1}
-						<p class="text-[8px] font-medium uppercase tracking-[0.12em] text-text-muted/60 mb-1">Yield vs Purity</p>
-						<svg viewBox="0 0 {CW} {CH + 30}" class="w-full">
-							<!-- Axes labels -->
-							<text x="5" y={CH + 25} fill="#666666" font-size="5">Yield%</text>
-							<text x={CW - 5} y="8" text-anchor="end" fill="#666666" font-size="5">Purity%</text>
-							<!-- Grid -->
-							<line x1="15" y1="10" x2="15" y2={CH + 15} stroke="#1e1e1e" stroke-width="0.3" />
-							<line x1="15" y1={CH + 15} x2={CW - 10} y2={CH + 15} stroke="#1e1e1e" stroke-width="0.3" />
-							<!-- Points -->
-							{#each qc as pt}
-								{#if pt.purityPct !== null}
-									{@const px = 20 + ((pt.yieldPct - minY) / (maxY - minY)) * (CW - 35)}
-									{@const py = 12 + (1 - (pt.purityPct - minP) / (maxP - minP)) * (CH)}
-									{@const isSelected = selectedBatchId === pt.batchId}
-									{@const r = isSelected ? 4 : (pt.mitragynine !== null ? Math.max(2, Math.min(4, (pt.mitragynine ?? 60) / 25)) : 2)}
-									<circle cx={px} cy={py} {r} fill={pt.supplier === 'Supplier B' ? '#ef4444' : '#bef264'} opacity={isSelected ? 1 : 0.6} stroke={isSelected ? '#fff' : 'none'} stroke-width={isSelected ? 1 : 0} />
-									{#if isSelected}
-										<line x1={px} y1="10" x2={px} y2={CH + 15} stroke="#fff" stroke-width="0.3" stroke-dasharray="2 2" opacity="0.3" />
-										<line x1="15" y1={py} x2={CW - 10} y2={py} stroke="#fff" stroke-width="0.3" stroke-dasharray="2 2" opacity="0.3" />
-									{/if}
-								{/if}
-							{/each}
-						</svg>
-						<!-- Alkaloid profile table -->
-						<div class="mt-1">
-							<div class="flex items-center gap-0.5 text-[6px] text-text-muted/30 uppercase mb-0.5">
-								<span class="w-16 flex-none">Alkaloid</span>
-								{#each qc.slice(0, 5) as pt}
-									<span class="flex-1 text-center truncate">{pt.batchNumber.replace('SG-', '').slice(-3)}</span>
-								{/each}
-								<span class="w-10 text-right">Avg</span>
-							</div>
-							{#each [{ label: 'Mitrag.', key: 'mitragynine' }, { label: '7-OH-M', key: 'hydroxymitragynine' }, { label: 'Payn.', key: 'paynantheine' }] as alk}
-								<div class="flex items-center gap-0.5 text-[7px]">
-									<span class="w-16 flex-none text-text-muted/40">{alk.label}</span>
-									{#each qc.slice(0, 5) as pt}
-										{@const val = (pt as any)[alk.key]}
-										<span class="flex-1 text-center text-text-secondary">{val?.toFixed(1) ?? '—'}</span>
-									{/each}
-									{#if true}
-										{@const vals = qc.map(p => (p as any)[alk.key]).filter((v: any): v is number => v !== null)}
-										<span class="w-10 text-right font-medium text-text-secondary">{vals.length > 0 ? (vals.reduce((a: number, b: number) => a + b, 0) / vals.length).toFixed(1) : '—'}</span>
-									{/if}
-								</div>
-							{/each}
-						</div>
-					{:else}
-						<div class="flex-1 flex items-center justify-center"><span class="text-[9px] text-text-muted/40">Need 2+ batches with HPLC data</span></div>
-					{/if}
-				</div>
-				<!-- Bottom -->
-				<div class="grid grid-cols-5 gap-1 border-t pt-2 mt-auto" style="border-color: rgba(30, 30, 30, 0.8);">
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Tested</p><p class="text-[9px] font-semibold text-text-secondary">{data.qualityCorrelation.length}</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Avg Purity</p><p class="text-[9px] font-semibold text-text-secondary">{runYieldAgg?.avgPurity?.toFixed(1) ?? '—'}%</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Best Yield</p><p class="text-[9px] font-semibold" style="color: #bef264;">{runYieldAgg?.bestBatch?.yield_pct ?? '—'}%</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Deviations</p><p class="text-[9px] font-semibold">{runYieldAgg?.totalDeviations ?? 0}</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Rank</p><p class="text-[9px] font-semibold text-text-secondary">#{currentRunRank.yield}/{currentRunRank.total}</p></div>
+				<!-- Quality — coming soon -->
+				<div class="flex-1 flex flex-col items-center justify-center">
+					<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">construction</span>
+					<p class="text-[8px] text-slate-500 italic">Quality analysis coming soon</p>
 				</div>
 			{/if}
 		{/if}
