@@ -1429,9 +1429,11 @@
 
 				<!-- S2: Batch Cost Bar Chart — HERO -->
 				{@const lotBatchCosts = data.runBatchCosts.filter(c => c.supplier_lot === activeLot && c.totalCost > 0)}
-				{@const batchCostMax = Math.max(...lotBatchCosts.map(c => c.totalCost), 1)}
+				{@const batchCostVals = lotBatchCosts.map(c => c.totalCost)}
+				{@const batchCostMax = Math.max(...batchCostVals) * 1.05}
+				{@const batchCostMin = Math.max(0, Math.min(...batchCostVals) * 0.9)}
 				{@const batchCostAvg = lotBatchCosts.length > 0 ? lotBatchCosts.reduce((s, c) => s + c.totalCost, 0) / lotBatchCosts.length : 0}
-				{@const avgLinePct = batchCostAvg > 0 ? (batchCostAvg / batchCostMax) * 100 : 0}
+				{@const avgLinePct = batchCostAvg > 0 && batchCostMax > batchCostMin ? ((batchCostAvg - batchCostMin) / (batchCostMax - batchCostMin)) * 100 : 0}
 				{#if lotBatchCosts.length > 0}
 				<div class="mb-2">
 					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Cost — {activeLot?.replace('LOT-', 'L')}</h4>
@@ -1439,7 +1441,7 @@
 						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {avgLinePct}%; border-color: rgba(255,255,255,0.25);"></div>
 						<span class="absolute text-[6px] font-mono text-slate-400 right-1" style="bottom: {avgLinePct + 1}%;">avg {fmt(batchCostAvg)}</span>
 						{#each lotBatchCosts as bc}
-							{@const hPct = (bc.totalCost / batchCostMax) * 100}
+							{@const hPct = batchCostMax > batchCostMin ? ((bc.totalCost - batchCostMin) / (batchCostMax - batchCostMin)) * 100 : 50}
 							{@const isOver = bc.totalCost > batchCostAvg}
 							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(bc.batch_id)}
 								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [bc.batch_number, `Total: ${fmt(bc.totalCost)}`, bc.costPerKg ? `$/kg: ${fmt(bc.costPerKg)}` : ''] }} onmouseleave={() => chartTooltip = null}>
