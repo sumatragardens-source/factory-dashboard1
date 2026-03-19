@@ -1492,79 +1492,23 @@
 				</div>
 				{/if}
 
-				<!-- S4: Cost Breakdown — Current vs Previous -->
-				{@const segColors = { leaf: '#bef264', solvent: '#ec5b13', chemicals: '#ef4444', labor: '#9ca3af', electricity: '#f59e0b', testing: '#4b5563' }}
-				{@const segKeys = ['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const}
-				{@const curSegs = curLotAgg?.costBySegment ?? { leaf: 0, solvent: 0, chemicals: 0, labor: 0, electricity: 0, testing: 0 }}
-				{@const curTotal = Object.values(curSegs).reduce((a, b) => a + b, 0) || 1}
-				{@const prevSegs = prevLotAgg?.costBySegment ?? null}
-				{@const prevTotal = prevSegs ? Object.values(prevSegs).reduce((a, b) => a + b, 0) || 1 : 1}
+				<!-- S4: Batch Cost Variance -->
 				<div class="mb-2">
-					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Cost Breakdown — Current vs Previous</h4>
-					<div class="space-y-1">
-						<div>
-							<span class="text-[6px] font-bold text-slate-500 uppercase">CURRENT ({activeLot?.replace('LOT-', 'L')})</span>
-							<div class="flex h-4 w-full rounded-sm overflow-hidden mt-0.5">
-								{#each segKeys as key}
-									{@const pct = (curSegs[key] / curTotal) * 100}
-									{#if pct > 0}
-										<div class="h-full flex items-center justify-center overflow-hidden" style="width: {pct}%; background: {segColors[key]}; border-right: 1px solid #161616;" title="{key}: {pct.toFixed(0)}%">
-										{#if pct >= 12}
-											<span class="text-[5px] font-mono font-bold text-black/70 truncate px-0.5">{fmt(curSegs[key])}</span>
-										{/if}
-									</div>
-									{/if}
-								{/each}
-							</div>
-						</div>
-						<div>
-							<span class="text-[6px] font-bold text-slate-500 uppercase">PREVIOUS ({prevLot ? prevLot.replace('LOT-', 'L') : '—'})</span>
-							{#if prevSegs}
-								<div class="flex h-4 w-full rounded-sm overflow-hidden mt-0.5">
-									{#each segKeys as key}
-										{@const pct = (prevSegs[key] / prevTotal) * 100}
-										{#if pct > 0}
-											<div class="h-full opacity-50 flex items-center justify-center overflow-hidden" style="width: {pct}%; background: {segColors[key]}; border-right: 1px solid #161616;">
-												{#if pct >= 12}
-													<span class="text-[5px] font-mono font-bold text-black/70 truncate px-0.5">{fmt(prevSegs[key])}</span>
-												{/if}
-											</div>
-										{/if}
-									{/each}
-								</div>
-							{:else}
-								<div class="h-4 w-full rounded-sm mt-0.5 flex items-center justify-center" style="background: rgba(255,255,255,0.03);">
-									<span class="text-[6px] text-slate-600 italic">No previous lot data</span>
-								</div>
-							{/if}
-						</div>
-						<!-- Legend -->
-						<div class="flex flex-wrap gap-2 mt-0.5">
-							{#each segKeys as key}
-								<div class="flex items-center gap-0.5"><span class="size-1.5 rounded-full" style="background: {segColors[key]};"></span><span class="text-[6px] font-bold text-slate-500 uppercase">{key}</span></div>
-							{/each}
-						</div>
-					</div>
-				</div>
-
-				<!-- S5: Cost Pareto Drivers -->
-				{@const segEntries = curLotAgg ? Object.entries(curLotAgg.costBySegment).sort((a, b) => b[1] - a[1]).slice(0, 4) : []}
-				{@const driverTotal = curLotAgg?.totalCost || 1}
-				<div class="mb-1">
-					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Top Cost Drivers</h4>
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Cost Variance</h4>
 					<div class="space-y-0.5">
-						{#each segEntries as [cat, amount]}
-							{@const pct = (amount / driverTotal) * 100}
-							{@const prevAmt = prevLotAgg ? prevLotAgg.costBySegment[cat as keyof typeof prevLotAgg.costBySegment] : null}
-							{@const driverDelta = prevAmt !== null ? amount - prevAmt : null}
-							<div class="flex items-center gap-1.5 text-[7px]">
-								<span class="w-14 font-bold text-slate-500 uppercase truncate">{cat}</span>
-								<span class="font-mono font-bold text-white">{fmt(amount)}</span>
-								<span class="text-slate-500">{pct.toFixed(0)}%</span>
-								{#if driverDelta !== null}
-									<span style="color: {driverDelta <= 0 ? '#bef264' : '#ef4444'};">{driverDelta <= 0 ? '▼' : '▲'}{fmt(Math.abs(driverDelta))}</span>
+						{#each lotBatchCosts.toSorted((a, b) => b.totalCost - a.totalCost) as bc}
+							{@const devPct = batchCostAvg > 0 ? ((bc.totalCost - batchCostAvg) / batchCostAvg) * 100 : 0}
+							<button class="w-full flex items-center gap-1.5 text-[7px] hover:bg-white/5 rounded px-1 py-0.5 transition-colors"
+								onclick={() => selectBatch(bc.batch_id)}>
+								<span class="w-10 font-bold text-slate-500">{bc.batch_number.replace('SG-', '')}</span>
+								<span class="font-mono font-bold text-white">{fmt(bc.totalCost)}</span>
+								<span class="font-mono" style="color: {devPct <= 0 ? '#bef264' : '#ef4444'};">
+									{devPct <= 0 ? '▼' : '▲'}{Math.abs(devPct).toFixed(1)}%
+								</span>
+								{#if bc.costPerKg}
+									<span class="text-slate-500 ml-auto">{fmt(bc.costPerKg)}/kg</span>
 								{/if}
-							</div>
+							</button>
 						{/each}
 					</div>
 				</div>
@@ -1651,6 +1595,28 @@
 								<div class="flex items-center gap-0.5"><span class="size-1.5 rounded-full" style="background: {segColors[key]};"></span><span class="text-[6px] font-bold text-slate-500 uppercase">{key}</span></div>
 							{/each}
 						</div>
+					</div>
+				</div>
+
+				<!-- Top Cost Drivers -->
+				{@const segEntries = curLotAgg ? Object.entries(curLotAgg.costBySegment).sort((a, b) => b[1] - a[1]).slice(0, 4) : []}
+				{@const driverTotal = curLotAgg?.totalCost || 1}
+				<div class="mb-1">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Top Cost Drivers</h4>
+					<div class="space-y-0.5">
+						{#each segEntries as [cat, amount]}
+							{@const pct = (amount / driverTotal) * 100}
+							{@const prevAmt = prevLotAgg ? prevLotAgg.costBySegment[cat as keyof typeof prevLotAgg.costBySegment] : null}
+							{@const driverDelta = prevAmt !== null ? amount - prevAmt : null}
+							<div class="flex items-center gap-1.5 text-[7px]">
+								<span class="w-14 font-bold text-slate-500 uppercase truncate">{cat}</span>
+								<span class="font-mono font-bold text-white">{fmt(amount)}</span>
+								<span class="text-slate-500">{pct.toFixed(0)}%</span>
+								{#if driverDelta !== null}
+									<span style="color: {driverDelta <= 0 ? '#bef264' : '#ef4444'};">{driverDelta <= 0 ? '▼' : '▲'}{fmt(Math.abs(driverDelta))}</span>
+								{/if}
+							</div>
+						{/each}
 					</div>
 				</div>
 				{/if}
