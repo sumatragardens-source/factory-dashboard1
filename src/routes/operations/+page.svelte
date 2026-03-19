@@ -16,6 +16,33 @@
 	const lotsRemaining = Math.max(0, totalBatchCount - lotsProcessed);
 	const kgRemaining = Math.max(0, TOTAL_INTAKE_KG - (lotsProcessed * 100));
 
+	// Run-level KPI values (independent of lot selection)
+	const runActiveBatches = data.activeBatchProgress.filter(b => b.status === 'In Progress').length;
+	const runCompBatches = data.activeBatchProgress.filter(b => b.final_product_g != null).length;
+	const runRemBatches = Math.max(0, totalBatchCount - runCompBatches);
+	const runCompPct = totalBatchCount > 0 ? (runCompBatches / totalBatchCount * 100) : 0;
+	const runEtohIssued = data.activeBatchProgress.reduce((s, b) => s + (b.etoh_vol_L ?? 0), 0);
+	const runEtohRecovered = data.activeBatchProgress.reduce((s, b) => s + (b.etoh_recovered_L ?? 0), 0);
+	const runEtohLost = data.activeBatchProgress.reduce((s, b) => s + (b.etoh_lost_L ?? 0), 0);
+	const runEtohRecoveryPct = runEtohIssued > 0 ? (runEtohRecovered / runEtohIssued * 100) : 0;
+	const runFinalProductG = data.activeBatchProgress.reduce((s, b) => s + (b.final_product_g ?? 0), 0);
+	const runFinalProductKg = runFinalProductG / 1000;
+	const runExtractRate = TOTAL_INTAKE_KG > 0 ? (runFinalProductKg / TOTAL_INTAKE_KG * 100) : 0;
+	const runOperationDays = (() => {
+		const batches = data.activeBatchProgress;
+		const startDates = batches.map(b => b.started_at || b.created_at).filter((d): d is string => d != null).map(d => new Date(d).getTime());
+		if (startDates.length === 0) return 1;
+		const earliest = Math.min(...startDates);
+		const allComplete = batches.every(b => b.status === 'Completed' || b.status === 'Pending Review');
+		let latest: number;
+		if (allComplete) {
+			const endDates = batches.map(b => b.completed_at).filter((d): d is string => d != null).map(d => new Date(d).getTime());
+			latest = endDates.length > 0 ? Math.max(...endDates) : Math.max(...startDates);
+		} else { latest = Date.now(); }
+		return Math.max(1, Math.ceil((latest - earliest) / (1000 * 60 * 60 * 24)));
+	})();
+	const runDailyYieldKg = runFinalProductKg / runOperationDays;
+
 	// KPI: Completed lots
 	const completedLots = pm.completedCount;
 	const completedKg = data.totalFinalYield.producedKg;
@@ -747,19 +774,19 @@
 		<div class="bg-bg-card border border-border-card p-3 rounded group/kpi1 relative">
 			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Active Batches</p>
 			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black text-text-primary">{lotActiveBatches}</p>
-				<span class="text-[11px] font-bold text-text-muted">/ {lotBatches().length}</span>
+				<p class="text-3xl font-black text-text-primary">{runActiveBatches}</p>
+				<span class="text-[11px] font-bold text-text-muted">/ {totalBatchCount}</span>
 			</div>
 			<div class="mt-2 h-1 w-full bg-border-card rounded-full overflow-hidden">
-				<div class="h-full bg-primary rounded-full" style="width: {lotCompletePct}%"></div>
+				<div class="h-full bg-primary rounded-full" style="width: {runCompPct}%"></div>
 			</div>
-			<p class="text-[11px] text-text-muted mt-1">{lotCompletedBatches} completed · {lotRemainingBatches} remaining</p>
+			<p class="text-[11px] text-text-muted mt-1">{runCompBatches} completed · {runRemBatches} remaining</p>
 			<div class="absolute left-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi1:opacity-100 transition-opacity duration-150">
 				<div class="space-y-1.5 text-xs">
-					<div class="flex justify-between"><span class="text-text-muted">Total Batches</span><span class="font-bold text-text-primary">{lotBatches().length}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">In Progress</span><span class="font-bold text-blue-400">{lotActiveBatches}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Completed</span><span class="font-bold text-primary">{lotCompletedBatches}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Leaf Input</span><span class="font-bold text-text-primary">{Math.round(lotIntakeKg).toLocaleString()} kg</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Total Batches</span><span class="font-bold text-text-primary">{totalBatchCount}</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">In Progress</span><span class="font-bold text-blue-400">{runActiveBatches}</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Completed</span><span class="font-bold text-primary">{runCompBatches}</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Leaf Input</span><span class="font-bold text-text-primary">{Math.round(TOTAL_INTAKE_KG).toLocaleString()} kg</span></div>
 				</div>
 			</div>
 		</div>
@@ -768,20 +795,22 @@
 		<div class="bg-bg-card border border-border-card p-3 rounded group/kpi2 relative">
 			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">EtOH Recovery</p>
 			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black text-text-primary">{lotEtohRecoveryPct.toFixed(1)}%</p>
-				{#if lotEtohRecoveryPct >= 95}
-					<span class="text-[11px] font-bold text-primary">&#9650; {(lotEtohRecoveryPct - 95).toFixed(1)}%</span>
+				<p class="text-3xl font-black text-text-primary">{runEtohRecoveryPct.toFixed(1)}%</p>
+				{#if runEtohRecoveryPct >= 95}
+					<span class="text-[11px] font-bold text-primary">&#9650; {(runEtohRecoveryPct - 95).toFixed(1)}%</span>
+				{:else if runEtohRecoveryPct >= 80}
+					<span class="text-[11px] font-bold text-amber-400">&#9660; {(95 - runEtohRecoveryPct).toFixed(1)}%</span>
 				{:else}
-					<span class="text-[11px] font-bold text-red-400">&#9660; {(95 - lotEtohRecoveryPct).toFixed(1)}%</span>
+					<span class="text-[11px] font-bold text-red-400">&#9660; {(95 - runEtohRecoveryPct).toFixed(1)}%</span>
 				{/if}
 			</div>
 			<p class="text-[11px] text-text-muted mt-2">LIMIT: >95.0%</p>
 			<div class="absolute left-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi2:opacity-100 transition-opacity duration-150">
 				<div class="space-y-1.5 text-xs">
-					<div class="flex justify-between"><span class="text-text-muted">EtOH Issued</span><span class="font-bold text-text-primary">{lotEtohIssued.toFixed(0)} L</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">EtOH Recovered</span><span class="font-bold text-text-primary">{lotEtohRecovered.toFixed(0)} L</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">EtOH Lost</span><span class="font-bold text-red-400">{lotEtohLost.toFixed(1)} L</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Recovery Rate</span><span class="font-bold text-text-primary">{lotEtohRecoveryPct.toFixed(1)}%</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">EtOH Issued</span><span class="font-bold text-text-primary">{runEtohIssued.toFixed(0)} L</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">EtOH Recovered</span><span class="font-bold text-text-primary">{runEtohRecovered.toFixed(0)} L</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">EtOH Lost</span><span class="font-bold text-red-400">{runEtohLost.toFixed(1)} L</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Recovery Rate</span><span class="font-bold text-text-primary">{runEtohRecoveryPct.toFixed(1)}%</span></div>
 					<div class="flex justify-between"><span class="text-text-muted">Target</span><span class="font-bold text-text-primary">&gt;95.0%</span></div>
 				</div>
 			</div>
@@ -822,7 +851,7 @@
 			<div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi4:opacity-100 transition-opacity duration-150">
 				<div class="space-y-1.5 text-xs">
 					<div class="flex justify-between"><span class="text-text-muted">Total Cost</span><span class="font-bold text-text-primary">{fmt(costTotal)}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Final Product</span><span class="font-bold text-text-primary">{lotFinalProductKg.toFixed(2)} kg</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Final Product</span><span class="font-bold text-text-primary">{runFinalProductKg.toFixed(2)} kg</span></div>
 					<div class="flex justify-between"><span class="text-text-muted">Target</span><span class="font-bold text-text-primary">{fmt(costPerKgTarget)}/kg</span></div>
 				</div>
 			</div>
@@ -832,22 +861,22 @@
 		<div class="bg-bg-card border border-border-card p-3 rounded group/kpi5 relative">
 			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Daily Yield</p>
 			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black text-text-primary">{Math.round(lotDailyYieldKg * 1000).toLocaleString()}</p>
+				<p class="text-3xl font-black text-text-primary">{Math.round(runDailyYieldKg * 1000).toLocaleString()}</p>
 				<span class="text-[11px] text-text-muted">g/day</span>
 			</div>
 			<div class="flex items-baseline gap-2 mt-1">
-				{#if lotDailyYieldKg >= dailyYieldTarget}
-					<span class="text-[11px] font-bold text-primary">&#9650; +{((lotDailyYieldKg - dailyYieldTarget) / dailyYieldTarget * 100).toFixed(0)}%</span>
+				{#if runDailyYieldKg >= dailyYieldTarget}
+					<span class="text-[11px] font-bold text-primary">&#9650; +{((runDailyYieldKg - dailyYieldTarget) / dailyYieldTarget * 100).toFixed(0)}%</span>
 				{:else}
-					<span class="text-[11px] font-bold text-red-400">&#9660; -{((dailyYieldTarget - lotDailyYieldKg) / dailyYieldTarget * 100).toFixed(0)}%</span>
+					<span class="text-[11px] font-bold text-red-400">&#9660; -{((dailyYieldTarget - runDailyYieldKg) / dailyYieldTarget * 100).toFixed(0)}%</span>
 				{/if}
 			</div>
 			<p class="text-[11px] text-text-muted mt-1">TARGET: {Math.round(dailyYieldTarget * 1000).toLocaleString()} g/day</p>
 			<div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi5:opacity-100 transition-opacity duration-150">
 				<div class="space-y-1.5 text-xs">
-					<div class="flex justify-between"><span class="text-text-muted">Total Produced</span><span class="font-bold text-text-primary">{lotFinalProductKg.toFixed(2)} kg</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Operation Days</span><span class="font-bold text-text-primary">{lotOperationDays()}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Daily Avg</span><span class="font-bold text-text-primary">{Math.round(lotDailyYieldKg * 1000).toLocaleString()} g</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Total Produced</span><span class="font-bold text-text-primary">{runFinalProductKg.toFixed(2)} kg</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Operation Days</span><span class="font-bold text-text-primary">{runOperationDays}</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Daily Avg</span><span class="font-bold text-text-primary">{Math.round(runDailyYieldKg * 1000).toLocaleString()} g</span></div>
 					<div class="flex justify-between"><span class="text-text-muted">Daily Target</span><span class="font-bold text-text-primary">{Math.round(dailyYieldTarget * 1000).toLocaleString()} g</span></div>
 				</div>
 			</div>
@@ -857,15 +886,15 @@
 		<div class="bg-bg-card border border-border-card p-3 rounded group/kpi6 relative">
 			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Final Yield</p>
 			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black text-text-primary">{lotFinalProductKg.toFixed(3)}</p>
+				<p class="text-3xl font-black text-text-primary">{runFinalProductKg.toFixed(3)}</p>
 				<span class="text-[11px] text-text-muted">kg</span>
 			</div>
-			<p class="text-[11px] text-text-muted mt-1">Extract rate: {lotExtractRate.toFixed(2)}%</p>
+			<p class="text-[11px] text-text-muted mt-1">Extract rate: {runExtractRate.toFixed(2)}%</p>
 			<div class="absolute right-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi6:opacity-100 transition-opacity duration-150">
 				<div class="space-y-1.5 text-xs">
-					<div class="flex justify-between"><span class="text-text-muted">Leaf Input</span><span class="font-bold text-text-primary">{Math.round(lotIntakeKg).toLocaleString()} kg</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Final Product</span><span class="font-bold text-text-primary">{lotFinalProductKg.toFixed(2)} kg</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Extract Rate</span><span class="font-bold text-text-primary">{lotExtractRate.toFixed(2)}%</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Leaf Input</span><span class="font-bold text-text-primary">{Math.round(TOTAL_INTAKE_KG).toLocaleString()} kg</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Final Product</span><span class="font-bold text-text-primary">{runFinalProductKg.toFixed(2)} kg</span></div>
+					<div class="flex justify-between"><span class="text-text-muted">Extract Rate</span><span class="font-bold text-text-primary">{runExtractRate.toFixed(2)}%</span></div>
 					<div class="flex justify-between"><span class="text-text-muted">Target</span><span class="font-bold text-text-primary">{extractTarget}%</span></div>
 				</div>
 			</div>
@@ -1053,7 +1082,7 @@
 			<span class="font-mono font-bold text-text-primary">{lotEtohIssued.toFixed(0)} L</span>
 			<span class="text-white/10">|</span>
 			<span class="text-[11px] text-text-muted uppercase">Recovery</span>
-			<span class="font-mono font-bold" style="color: {lotEtohRecoveryPct >= 95 ? '#bef264' : '#ef4444'};">{lotEtohRecoveryPct.toFixed(1)}%</span>
+			<span class="font-mono font-bold" style="color: {lotEtohRecoveryPct >= 95 ? '#bef264' : lotEtohRecoveryPct >= 80 ? '#fbbf24' : '#ef4444'};">{lotEtohRecoveryPct.toFixed(1)}%</span>
 			<span class="text-white/10">|</span>
 			<span class="text-[11px] text-text-muted uppercase">Yield</span>
 			<span class="font-mono font-bold text-text-primary">{lotFinalProductKg.toFixed(3)} kg</span>
@@ -1103,7 +1132,7 @@
 				</div>
 				<div class="flex items-center gap-1">
 					<span class="text-[11px] text-text-muted/30 uppercase">Recovery</span>
-					<span class="text-sm font-medium" style="color: {projectedSolventRecovery >= 95 ? '#bef264' : '#ef4444'};">{projectedSolventRecovery.toFixed(1)}%</span>
+					<span class="text-sm font-medium" style="color: {projectedSolventRecovery >= 95 ? '#bef264' : projectedSolventRecovery >= 80 ? '#fbbf24' : '#ef4444'};">{projectedSolventRecovery.toFixed(1)}%</span>
 				</div>
 			</div>
 		</div>
