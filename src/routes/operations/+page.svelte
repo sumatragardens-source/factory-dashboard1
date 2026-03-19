@@ -746,11 +746,11 @@
 
 	const inventoryConfig: Record<string, { threshold: number; usagePerLot: number }> = {
 		'Dried Leaf': { threshold: 500, usagePerLot: 200 },
-		'Ethanol (70%)': { threshold: 200, usagePerLot: 80 },
+		'Ethanol 70%': { threshold: 200, usagePerLot: 80 },
 		'D-Limonene': { threshold: 50, usagePerLot: 15 },
-		'Acetic Acid': { threshold: 20, usagePerLot: 5 },
+		'Acetic Acid (glacial)': { threshold: 20, usagePerLot: 5 },
 		'NaOH Flakes': { threshold: 10, usagePerLot: 3 },
-		'K2CO3': { threshold: 10, usagePerLot: 2 }
+		'K₂CO₃': { threshold: 10, usagePerLot: 2 }
 	};
 
 	function getInventoryStatus(qty: number, threshold: number) {
@@ -842,9 +842,9 @@
 			<div class="flex items-baseline gap-2 mt-1">
 				<p class="text-3xl font-black text-text-primary">{fmt(data.avgCostPerKg)}</p>
 				{#if data.avgCostPerKg <= costPerKgTarget}
-					<span class="text-[11px] font-bold text-primary">&#9650; -{((costPerKgTarget - data.avgCostPerKg) / costPerKgTarget * 100).toFixed(0)}%</span>
+					<span class="text-[11px] font-bold text-primary">&#9660; {((costPerKgTarget - data.avgCostPerKg) / costPerKgTarget * 100).toFixed(0)}%</span>
 				{:else}
-					<span class="text-[11px] font-bold text-red-400">&#9660; +{((data.avgCostPerKg - costPerKgTarget) / costPerKgTarget * 100).toFixed(0)}%</span>
+					<span class="text-[11px] font-bold text-red-400">&#9650; +{((data.avgCostPerKg - costPerKgTarget) / costPerKgTarget * 100).toFixed(0)}%</span>
 				{/if}
 			</div>
 			<p class="text-[11px] text-text-muted mt-2">TARGET: {fmt(costPerKgTarget)}/kg</p>
