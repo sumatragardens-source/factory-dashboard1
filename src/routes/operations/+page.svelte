@@ -1262,8 +1262,8 @@
 			<!-- Mode toggle -->
 			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
 				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {costMode === 'lot' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'lot' ? 'background: rgba(236, 91, 19, 0.15);' : ''} onclick={() => costMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {costMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'batch' ? 'background: rgba(236, 91, 19, 0.15);' : ''} onclick={() => costMode = 'batch'}>Cost Drivers</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {costMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'history' ? 'background: rgba(236, 91, 19, 0.15);' : ''} onclick={() => costMode = 'history'}>Ton History</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {costMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'batch' ? 'background: rgba(236, 91, 19, 0.15);' : ''} onclick={() => costMode = 'batch'}>Lot History</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {costMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'history' ? 'background: rgba(236, 91, 19, 0.15);' : ''} onclick={() => costMode = 'history'}>Cost Drivers</button>
 			</div>
 		{:else if carouselIndex === 1}
 			<!-- ═══ SOLVENT INTELLIGENCE ═══ -->
@@ -1318,8 +1318,8 @@
 			<!-- Mode toggle -->
 			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
 				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'lot' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'lot' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'batch' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'batch'}>Batch Breakdown</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'history' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'history'}>Ton History</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'batch' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'batch'}>Lot History</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {ethanolMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={ethanolMode === 'history' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => ethanolMode = 'history'}>Batch Breakdown</button>
 			</div>
 		{:else}
 			<!-- ═══ YIELD & QUALITY ═══ -->
@@ -1376,8 +1376,8 @@
 			<!-- Mode toggle (4 modes for yield) -->
 			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
 				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'lot' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'lot' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'batch' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'batch'}>Batch Contrib.</button>
-				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'history' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'history'}>Ton History</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'batch' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'batch'}>Lot History</button>
+				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'history' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'history'}>Batch Contrib.</button>
 				<button class="flex-1 px-1.5 py-px text-[6.5px] font-medium uppercase tracking-wider transition-colors {yieldMode === 'quality' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={yieldMode === 'quality' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => yieldMode = 'quality'}>Quality</button>
 			</div>
 		{/if}
@@ -1427,29 +1427,30 @@
 					</div>
 				</div>
 
-				<!-- S2: Cost/KG per Lot Bar Chart — HERO -->
-				{@const lotCpks = lots.map(l => lotSummaries.get(l)?.avgCostPerKg ?? 0)}
-				{@const cpkMax = Math.max(...lotCpks, TARGETS.costPerKg) * 1.05}
-				{@const cpkMin = Math.max(0, Math.min(...lotCpks.filter(v => v > 0)) * 0.9)}
-				{@const tgtBot = ((TARGETS.costPerKg - cpkMin) / (cpkMax - cpkMin)) * 100}
+				<!-- S2: Batch Cost Bar Chart — HERO -->
+				{@const lotBatchCosts = data.runBatchCosts.filter(c => c.supplier_lot === activeLot && c.totalCost > 0)}
+				{@const batchCostMax = Math.max(...lotBatchCosts.map(c => c.totalCost), 1)}
+				{@const batchCostAvg = lotBatchCosts.length > 0 ? lotBatchCosts.reduce((s, c) => s + c.totalCost, 0) / lotBatchCosts.length : 0}
+				{@const avgLinePct = batchCostAvg > 0 ? (batchCostAvg / batchCostMax) * 100 : 0}
+				{#if lotBatchCosts.length > 0}
 				<div class="mb-2">
-					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Cost/KG per Lot</h4>
-					<div class="relative flex items-end gap-1 px-1" style="height: 110px;">
-						<!-- $350 target line -->
-						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {tgtBot}%; border-color: rgba(239,68,68,0.4);"></div>
-						<span class="absolute text-[6px] font-mono text-red-400/60 right-1" style="bottom: {tgtBot + 1}%;">{fmt(TARGETS.costPerKg)}</span>
-						{#each lots as lot, li}
-							{@const cpk = lotSummaries.get(lot)?.avgCostPerKg ?? 0}
-							{@const hPct = cpk > 0 ? ((cpk - cpkMin) / (cpkMax - cpkMin)) * 100 : 0}
-							{@const isCurrent = lot === activeLot}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
-								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{cpk > 0 ? fmt(cpk) : '—'}</span>
-								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(cpk, lotCpks, isCurrent)}; min-height: 4px;"></div>
-								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Cost — {activeLot?.replace('LOT-', 'L')}</h4>
+					<div class="relative flex items-end gap-1 px-1 h-[110px]">
+						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {avgLinePct}%; border-color: rgba(255,255,255,0.25);"></div>
+						<span class="absolute text-[6px] font-mono text-slate-400 right-1" style="bottom: {avgLinePct + 1}%;">avg {fmt(batchCostAvg)}</span>
+						{#each lotBatchCosts as bc}
+							{@const hPct = (bc.totalCost / batchCostMax) * 100}
+							{@const isOver = bc.totalCost > batchCostAvg}
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(bc.batch_id)}
+								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [bc.batch_number, `Total: ${fmt(bc.totalCost)}`, bc.costPerKg ? `$/kg: ${fmt(bc.costPerKg)}` : ''] }} onmouseleave={() => chartTooltip = null}>
+								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{fmt(bc.totalCost)}</span>
+								<div class="w-full rounded-t transition-all {selectedBatchId === bc.batch_id ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {isOver ? 'rgba(239,68,68,0.6)' : 'rgba(190,242,100,0.6)'}; min-height: 4px;"></div>
+								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{bc.batch_number.replace('SG-', '')}</span>
 							</button>
 						{/each}
 					</div>
 				</div>
+				{/if}
 
 				<!-- S3: Cost Variance Heatmap -->
 				{@const lotCostSegs = data.batchCostBreakdown.filter(s => s.supplierLot === activeLot)}
@@ -1568,100 +1569,95 @@
 				</div>
 				{/if}
 			{:else if costMode === 'batch'}
-				<!-- Cost Drivers: ranked by totalCost DESC -->
-				{#if runCostAgg}
-					<p class="text-[8px] text-text-muted/50 mb-1.5">Budget pace: <span class="text-text-secondary font-medium">{fmt(runCostAgg.projectedTotal)}</span> projected | <span class="text-text-secondary font-medium">{fmt(runCostAgg.totalCost)}</span> spent ({(runCostAgg.totalCost / (runCostAgg.projectedTotal || 1) * 100).toFixed(0)}%)</p>
-				{/if}
-				<!-- Header row -->
-				<div class="flex items-center gap-1.5 px-1.5 py-0.5 text-[7px] font-bold text-text-muted/40 uppercase tracking-wider border-b border-border-subtle mb-0.5">
-					<span class="w-16 flex-none">Batch</span>
-					<span class="w-3 flex-none"></span>
-					<span class="flex-1">Cost</span>
-					<span class="w-14 text-right flex-none">Total</span>
-					<span class="w-12 text-right flex-none">$/kg</span>
-					<span class="w-12 text-right flex-none">vs Avg</span>
-				</div>
-				<div class="flex-1 overflow-y-auto mb-2">
-					<div class="space-y-0.5">
-						{#each [...data.runBatchCosts].sort((a, b) => b.totalCost - a.totalCost) as bc}
-							{@const overrun = bc.totalCost - (runCostAgg?.avgCostPerBatch ?? 0)}
-							{@const hasAnomaly = batchAnomalyMap.get(bc.batch_id)?.some(a => a.metric === 'cost')}
-							<button class="w-full flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors text-left {selectedBatchId === bc.batch_id ? 'bg-primary/10 ring-1 ring-primary/30' : 'hover:bg-bg-card-hover'}" onclick={() => { selectBatch(bc.batch_id); }}>
-								<span class="text-[8px] font-medium text-text-secondary w-16 flex-none truncate">{bc.batch_number.replace('SG-', '')}</span>
-								<span class="h-1.5 w-1.5 rounded-full flex-none {bc.status === 'Completed' ? 'bg-primary' : bc.status === 'In Progress' ? 'bg-blue-500' : bc.status === 'Pending Review' ? 'bg-amber-500' : bc.status === 'Rejected' ? 'bg-red-500' : 'bg-border-card'}"></span>
-								<div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(30, 30, 30, 0.8);">
-									<div class="h-full rounded-full" style="width: {avgBatchCostForBar > 0 ? Math.min(100, (bc.totalCost / avgBatchCostForBar) * 50) : 0}%; background: rgba(236, 91, 19, 0.6);"></div>
-								</div>
-								<span class="text-[8px] font-medium text-text-secondary w-14 text-right flex-none">{fmt(bc.totalCost)}</span>
-								<span class="text-[7px] text-text-muted/50 w-12 text-right flex-none">{bc.costPerKg ? fmt(bc.costPerKg) : '—'}</span>
-								<span class="text-[7px] w-12 text-right flex-none" style="color: {overrun > 0 ? '#ef4444' : '#bef264'};">{overrun > 0 ? '+' : ''}{Math.round(overrun)}</span>
-								{#if hasAnomaly}<span class="h-1.5 w-1.5 rounded-full bg-red-500 flex-none"></span>{/if}
+				<!-- Lot History: Cost/KG Per Lot + Cost Breakdown -->
+				{#if true}
+				{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
+				{@const prevLot = previousLotId}
+				{@const prevLotAgg = prevLot ? lotSummaries.get(prevLot) : null}
+				{@const lots = allLots()}
+
+				<!-- Cost/KG per Lot Bar Chart -->
+				{@const lotCpks = lots.map(l => lotSummaries.get(l)?.avgCostPerKg ?? 0)}
+				{@const cpkMax = Math.max(...lotCpks, TARGETS.costPerKg) * 1.05}
+				{@const cpkMin = Math.max(0, Math.min(...lotCpks.filter(v => v > 0)) * 0.9)}
+				{@const tgtBot = ((TARGETS.costPerKg - cpkMin) / (cpkMax - cpkMin)) * 100}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Cost/KG per Lot</h4>
+					<div class="relative flex items-end gap-1 px-1" style="height: 110px;">
+						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {tgtBot}%; border-color: rgba(239,68,68,0.4);"></div>
+						<span class="absolute text-[6px] font-mono text-red-400/60 right-1" style="bottom: {tgtBot + 1}%;">{fmt(TARGETS.costPerKg)}</span>
+						{#each lots as lot, li}
+							{@const cpk = lotSummaries.get(lot)?.avgCostPerKg ?? 0}
+							{@const hPct = cpk > 0 ? ((cpk - cpkMin) / (cpkMax - cpkMin)) * 100 : 0}
+							{@const isCurrent = lot === activeLot}
+							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectedLot = lot}>
+								<span class="text-[6px] font-mono font-bold mb-0.5 text-white">{cpk > 0 ? fmt(cpk) : '—'}</span>
+								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(cpk, lotCpks, isCurrent)}; min-height: 4px;"></div>
+								<span class="text-[5px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
 							</button>
 						{/each}
 					</div>
 				</div>
-				<!-- Cost Pareto: top 3 categories -->
-				{#if runCostAgg}
-					<div class="flex gap-1.5 mb-2">
-						{#each runCostAgg.costByCategory.slice(0, 3) as cat, i}
-							<span class="text-[7px] px-1.5 py-0.5 rounded" style="background: rgba(236, 91, 19, {[0.15, 0.10, 0.07][i]}); color: #ec5b13;">{cat.category}: {(cat.total / runCostAgg.totalCost * 100).toFixed(0)}%</span>
-						{/each}
-					</div>
-				{/if}
-				<!-- Bottom -->
-				<div class="grid grid-cols-5 gap-1 border-t pt-2 mt-auto" style="border-color: rgba(30, 30, 30, 0.8);">
-					{#if selectedBatchId && selectedCostRow}
-						{@const rank = [...data.runBatchCosts].filter(c => c.totalCost > 0).sort((a,b) => a.totalCost - b.totalCost).findIndex(c => c.batch_id === selectedBatchId) + 1}
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Rank</p><p class="text-[9px] font-semibold text-text-secondary">#{rank}/{batchCostValues.length}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">vs Avg</p><p class="text-[9px] font-semibold" style="color: {selectedCostRow.totalCost <= (runCostAgg?.avgCostPerBatch ?? 0) ? '#bef264' : '#ef4444'};">{Math.round(selectedCostRow.totalCost - (runCostAgg?.avgCostPerBatch ?? 0))}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Cost/KG</p><p class="text-[9px] font-semibold text-text-secondary">{selectedCostRow.costPerKg ? fmt(selectedCostRow.costPerKg) : '—'}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Overrun</p><p class="text-[9px] font-semibold" style="color: {selectedCostRow.totalCost > (runCostAgg?.avgCostPerBatch ?? 0) ? '#ef4444' : '#bef264'};">{((selectedCostRow.totalCost - (runCostAgg?.avgCostPerBatch ?? 0)) / (runCostAgg?.avgCostPerBatch || 1) * 100).toFixed(0)}%</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Anomalies</p><p class="text-[9px] font-semibold">{batchAnomalyMap.get(selectedBatchId)?.filter(a => a.metric === 'cost').length ?? 0}</p></div>
-					{:else}
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Lowest</p><p class="text-[9px] font-semibold text-text-secondary">{batchCostValues.length ? fmt(Math.min(...batchCostValues)) : '—'}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Highest</p><p class="text-[9px] font-semibold text-text-secondary">{batchCostValues.length ? fmt(Math.max(...batchCostValues)) : '—'}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Median</p><p class="text-[9px] font-semibold text-text-secondary">{sortedBatchCostValues.length ? fmt(sortedBatchCostValues[Math.floor(sortedBatchCostValues.length / 2)]) : '—'}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Anomalies</p><p class="text-[9px] font-semibold" style="color: {data.batchAnomalies.filter(a => a.metric === 'cost').length > 0 ? '#ef4444' : 'inherit'};">{data.batchAnomalies.filter(a => a.metric === 'cost').length}</p></div>
-						<div><p class="text-[7px] text-text-muted/40 uppercase">Batches</p><p class="text-[9px] font-semibold text-text-secondary">{batchCostValues.length}/{runBatchCount}</p></div>
-					{/if}
-				</div>
-			{:else}
-				<!-- Ton History: cost/kg trend across runs -->
-				<div class="flex-1 flex flex-col">
-					{#if historyCostChart}
-						<svg viewBox="0 0 {CW} {CH + 20}" class="w-full">
-							<defs><linearGradient id="histCostGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ec5b13" stop-opacity="0.22" /><stop offset="100%" stop-color="#ec5b13" stop-opacity="0.02" /></linearGradient></defs>
-							<path d={historyCostChart.area} fill="url(#histCostGrad)" /><path d={historyCostChart.line} fill="none" stroke="#ec5b13" stroke-width="1.5" opacity="0.7" />
-							{#each historyCostChart.points as pt, pi}
-								<circle cx={pt.x} cy={pt.y} r={historyRuns[pi]?.runId === data.activeRunId ? 3 : 1.5} fill="#ec5b13" opacity={historyRuns[pi]?.runId === data.activeRunId ? 1 : 0.45} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [historyRunLabels[pi], `Cost/KG: ${fmt(historyCostPerKgValues[pi])}`] }} onmouseleave={() => chartTooltip = null} />
-								<text x={pt.x} y={CH + 18} text-anchor="middle" fill="#666666" font-size="5">{historyRunLabels[pi]}</text>
-							{/each}
-						</svg>
-						<!-- Comparison table with delta-vs-previous -->
-						<div class="mt-1 space-y-0.5">
-							{#each historyRuns as hr, hi}
-								{@const prevCost = hi > 0 ? historyRuns[hi - 1].costPerKg : null}
-								{@const delta = prevCost !== null ? hr.costPerKg - prevCost : null}
-								<div class="flex items-center gap-1.5 px-1 py-0.5 rounded text-[7px] {hr.runId === data.activeRunId ? 'bg-primary/5' : ''}">
-									<span class="font-medium text-text-secondary w-12 flex-none">{hr.runNumber}</span>
-									<span class="text-text-muted/40 w-14 flex-none">{fmt(hr.totalCost)}</span>
-									<span class="text-text-muted/40 w-14 flex-none">{fmt(hr.avgCostPerBatch)}/lot</span>
-									<span class="text-text-muted/40 w-12 flex-none">{fmt(hr.costPerKg)}/kg</span>
-									<span class="flex-1 text-right" style="color: {delta === null ? '#6B7280' : delta <= 0 ? '#bef264' : '#ef4444'};">{delta !== null ? (delta <= 0 ? '' : '+') + fmt(delta) : '—'}</span>
+
+				<!-- Cost Breakdown — Current vs Previous -->
+				{@const segColors = { leaf: '#bef264', solvent: '#ec5b13', chemicals: '#ef4444', labor: '#9ca3af', electricity: '#f59e0b', testing: '#4b5563' }}
+				{@const segKeys = ['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const}
+				{@const curSegs = curLotAgg?.costBySegment ?? { leaf: 0, solvent: 0, chemicals: 0, labor: 0, electricity: 0, testing: 0 }}
+				{@const curTotal = Object.values(curSegs).reduce((a, b) => a + b, 0) || 1}
+				{@const prevSegs = prevLotAgg?.costBySegment ?? null}
+				{@const prevTotal = prevSegs ? Object.values(prevSegs).reduce((a, b) => a + b, 0) || 1 : 1}
+				<div class="mb-2">
+					<h4 class="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Cost Breakdown — Current vs Previous</h4>
+					<div class="space-y-1">
+						<div>
+							<span class="text-[6px] font-bold text-slate-500 uppercase">CURRENT ({activeLot?.replace('LOT-', 'L')})</span>
+							<div class="flex h-4 w-full rounded-sm overflow-hidden mt-0.5">
+								{#each segKeys as key}
+									{@const pct = (curSegs[key] / curTotal) * 100}
+									{#if pct > 0}
+										<div class="h-full flex items-center justify-center overflow-hidden" style="width: {pct}%; background: {segColors[key]}; border-right: 1px solid #161616;" title="{key}: {pct.toFixed(0)}%">
+										{#if pct >= 12}
+											<span class="text-[5px] font-mono font-bold text-black/70 truncate px-0.5">{fmt(curSegs[key])}</span>
+										{/if}
+									</div>
+									{/if}
+								{/each}
+							</div>
+						</div>
+						<div>
+							<span class="text-[6px] font-bold text-slate-500 uppercase">PREVIOUS ({prevLot ? prevLot.replace('LOT-', 'L') : '—'})</span>
+							{#if prevSegs}
+								<div class="flex h-4 w-full rounded-sm overflow-hidden mt-0.5">
+									{#each segKeys as key}
+										{@const pct = (prevSegs[key] / prevTotal) * 100}
+										{#if pct > 0}
+											<div class="h-full opacity-50 flex items-center justify-center overflow-hidden" style="width: {pct}%; background: {segColors[key]}; border-right: 1px solid #161616;">
+												{#if pct >= 12}
+													<span class="text-[5px] font-mono font-bold text-black/70 truncate px-0.5">{fmt(prevSegs[key])}</span>
+												{/if}
+											</div>
+										{/if}
+									{/each}
 								</div>
+							{:else}
+								<div class="h-4 w-full rounded-sm mt-0.5 flex items-center justify-center" style="background: rgba(255,255,255,0.03);">
+									<span class="text-[6px] text-slate-600 italic">No previous lot data</span>
+								</div>
+							{/if}
+						</div>
+						<div class="flex flex-wrap gap-2 mt-0.5">
+							{#each segKeys as key}
+								<div class="flex items-center gap-0.5"><span class="size-1.5 rounded-full" style="background: {segColors[key]};"></span><span class="text-[6px] font-bold text-slate-500 uppercase">{key}</span></div>
 							{/each}
 						</div>
-					{:else}
-						<div class="flex-1 flex items-center justify-center"><span class="text-[9px] text-text-muted/40">Need 2+ runs for history</span></div>
-					{/if}
+					</div>
 				</div>
-				<!-- Bottom -->
-				<div class="grid grid-cols-5 gap-1 border-t pt-2 mt-auto" style="border-color: rgba(30, 30, 30, 0.8);">
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Cost/Batch</p><p class="text-[9px] font-semibold text-text-secondary">{runCostAgg ? fmt(runCostAgg.avgCostPerBatch) : '—'}</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Cost/KG</p><p class="text-[9px] font-semibold text-text-secondary">{rs ? fmt(rs.costPerKg) : '—'}</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Projected</p><p class="text-[9px] font-semibold text-text-secondary">{runCostAgg ? fmt(runCostAgg.projectedTotal) : '—'}</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Anomalies</p><p class="text-[9px] font-semibold" style="color: {anomalyCount > 0 ? '#ef4444' : 'inherit'};">{data.batchAnomalies.filter(a => a.metric === 'cost').length}</p></div>
-					<div><p class="text-[7px] text-text-muted/40 uppercase">Run Rank</p><p class="text-[9px] font-semibold text-text-secondary">#{currentRunRank.cost}/{currentRunRank.total}</p></div>
+				{/if}
+			{:else}
+				<!-- Cost Drivers — coming soon -->
+				<div class="flex-1 flex flex-col items-center justify-center">
+					<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">construction</span>
+					<p class="text-[8px] text-slate-500 italic">Cost drivers analysis coming soon</p>
 				</div>
 			{/if}
 		{:else if carouselIndex === 1}
