@@ -28,6 +28,7 @@
 	"dependencies": {
 		"@sveltejs/adapter-vercel": "^6.3.3",
 		"better-sqlite3": "^12.8.0",
-		"jose": "^6.2.1"
+		"jose": "^6.2.1",
+		"jspdf": "^4.2.1"
 	}
 }

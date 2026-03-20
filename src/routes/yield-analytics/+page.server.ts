@@ -1,5 +1,5 @@
 import { getDb } from '$lib/data/db';
-import { getStageName } from '$lib/constants/stageNames';
+import { getProcessStageName } from '$lib/constants/stageNames';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
@@ -103,10 +103,10 @@ export const load: PageServerLoad = () => {
 		const stage4Avg = db.prepare(`SELECT COALESCE(AVG(overall_yield_pct), 0) as avg FROM stage4_records`).get() as any;
 
 		const stageYields = [
-			{ stage: getStageName(1), pct: Number(stage1Avg.avg.toFixed(1)) },
-			{ stage: getStageName(2), pct: Number(stage2Avg.avg.toFixed(1)) },
-			{ stage: getStageName(3), pct: Number(stage3Avg.avg.toFixed(1)) },
-			{ stage: getStageName(4), pct: Number(stage4Avg.avg.toFixed(1)) },
+			{ stage: getProcessStageName(1), pct: Number(stage1Avg.avg.toFixed(1)) },
+			{ stage: getProcessStageName(2), pct: Number(stage2Avg.avg.toFixed(1)) },
+			{ stage: getProcessStageName(3), pct: Number(stage3Avg.avg.toFixed(1)) },
+			{ stage: getProcessStageName(4), pct: Number(stage4Avg.avg.toFixed(1)) },
 		];
 
 		// Yield loss waterfall (per-stage mass loss)

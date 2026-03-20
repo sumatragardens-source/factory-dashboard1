@@ -1,13 +1,15 @@
-import { getBatchById, getBatchStages } from '$lib/data/repositories/batchRepo';
+import { getBatchById, getBatchStages, updateBatchStatus } from '$lib/data/repositories/batchRepo';
 import { getBatchCosts } from '$lib/data/repositories/costingRepo';
 import { getDeviationsByBatch } from '$lib/data/repositories/deviationRepo';
 import { getLabResultsByBatch } from '$lib/data/repositories/labResultRepo';
-import { getApprovalsByBatch } from '$lib/data/repositories/approvalRepo';
+import { getApprovalsByBatch, createApproval, decideApproval } from '$lib/data/repositories/approvalRepo';
 import { getMachineEventsByBatch } from '$lib/data/repositories/machineRepo';
 import { getStage1Record, getStage2Record, getStage3Record, getStage4Record } from '$lib/data/repositories/stageRepo';
 import { calculateTotalBatchCost, calculateCostPerKg } from '$lib/calculations/costing';
-import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import { canTransition } from '$lib/constants/batchStates';
+import type { BatchState } from '$lib/constants/batchStates';
+import { error, fail } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = ({ params }) => {
 	try {
@@ -61,5 +63,69 @@ export const load: PageServerLoad = ({ params }) => {
 			stage3: null,
 			stage4: null
 		};
+	}
+};
+
+export const actions: Actions = {
+	approve: async ({ request, params }) => {
+		const batchId = Number(params.id);
+		const batch = getBatchById(batchId);
+		if (!batch) return fail(404, { error: 'Batch not found' });
+		if (!canTransition(batch.status as BatchState, 'Completed')) {
+			return fail(400, { error: 'Batch cannot be approved in its current state' });
+		}
+
+		const formData = await request.formData();
+		const decidedBy = (formData.get('decided_by') as string) || 'Supervisor';
+
+		// Create or update the approval record
+		const approvals = getApprovalsByBatch(batchId);
+		const pending = approvals.find((a) => a.approval_type === 'batch_review' && a.status === 'Pending');
+		if (pending) {
+			decideApproval(pending.id, { decided_by: decidedBy, status: 'Approved', decision_notes: null });
+		} else {
+			const approvalId = createApproval({ batch_id: batchId, approval_type: 'batch_review', requested_by: decidedBy });
+			decideApproval(approvalId, { decided_by: decidedBy, status: 'Approved', decision_notes: null });
+		}
+
+		updateBatchStatus(batchId, 'Completed');
+		return { success: true, action: 'approved' };
+	},
+
+	reject: async ({ request, params }) => {
+		const batchId = Number(params.id);
+		const batch = getBatchById(batchId);
+		if (!batch) return fail(404, { error: 'Batch not found' });
+		if (!canTransition(batch.status as BatchState, 'Rejected')) {
+			return fail(400, { error: 'Batch cannot be rejected in its current state' });
+		}
+
+		const formData = await request.formData();
+		const decidedBy = (formData.get('decided_by') as string) || 'Supervisor';
+		const reason = (formData.get('reason') as string) || null;
+
+		const approvals = getApprovalsByBatch(batchId);
+		const pending = approvals.find((a) => a.approval_type === 'batch_review' && a.status === 'Pending');
+		if (pending) {
+			decideApproval(pending.id, { decided_by: decidedBy, status: 'Rejected', decision_notes: reason });
+		} else {
+			const approvalId = createApproval({ batch_id: batchId, approval_type: 'batch_review', requested_by: decidedBy });
+			decideApproval(approvalId, { decided_by: decidedBy, status: 'Rejected', decision_notes: reason });
+		}
+
+		updateBatchStatus(batchId, 'Rejected');
+		return { success: true, action: 'rejected' };
+	},
+
+	reopen: async ({ request, params }) => {
+		const batchId = Number(params.id);
+		const batch = getBatchById(batchId);
+		if (!batch) return fail(404, { error: 'Batch not found' });
+		if (!canTransition(batch.status as BatchState, 'In Progress')) {
+			return fail(400, { error: 'Batch cannot be reopened in its current state' });
+		}
+
+		updateBatchStatus(batchId, 'In Progress');
+		return { success: true, action: 'reopened' };
 	}
 };

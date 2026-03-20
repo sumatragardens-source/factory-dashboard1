@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { getStageName } from '$lib/constants/stageNames';
+	import { getProcessStageName } from '$lib/constants/stageNames';
 
 	let { data } = $props();
 
 	function resolveStageRelevance(text: string): string {
-		return text.replace(/Stage (\d)/g, (_, n) => getStageName(Number(n)));
+		return text.replace(/Stage (\d)/g, (_, n) => getProcessStageName(Number(n)));
 	}
 </script>
 

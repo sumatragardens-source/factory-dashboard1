@@ -1,6 +1,5 @@
 import { getDb } from '$lib/data/db';
 import { getAllDeviations, getOpenDeviations } from '$lib/data/repositories/deviationRepo';
-import { getStageName } from '$lib/constants/stageNames';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {

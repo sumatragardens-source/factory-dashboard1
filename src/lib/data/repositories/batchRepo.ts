@@ -74,6 +74,10 @@ export function startStage(batchId: number, stageNumber: number): void {
 	txn();
 }
 
+export function updateBatchStatus(batchId: number, status: string): void {
+	getDb().prepare('UPDATE batches SET status = ?, updated_at = datetime(\'now\') WHERE id = ?').run(status, batchId);
+}
+
 export function finalizeStage(batchId: number, stageNumber: number, finalizedBy: string): void {
 	const db = getDb();
 	const txn = db.transaction(() => {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getStageName } from '$lib/constants/stageNames';
+	import { getProcessStageName } from '$lib/constants/stageNames';
 
 	let {
 		batchId = null,
@@ -93,7 +93,7 @@
 			<div class="px-4 py-2 border-b border-border-card/50">
 				<div class="flex gap-0.5">
 					{#each detail.stages as stage}
-						<div class="flex-1 h-1.5 rounded-full {stageColor(stage.status)}" title="{getStageName(stage.stage_number)}: {stage.status}"></div>
+						<div class="flex-1 h-1.5 rounded-full {stageColor(stage.status)}" title="{getProcessStageName(stage.stage_number)}: {stage.status}"></div>
 					{/each}
 				</div>
 				<p class="text-[7px] text-text-muted/40 mt-1">{detail.stages.filter((s: any) => s.status === 'Finalized').length}/4 stages complete</p>
@@ -148,7 +148,7 @@
 						{#each detail.stages as stage}
 							<div class="flex items-center gap-2 text-[8px]">
 								<span class="w-3 h-3 rounded-full flex-none {stageColor(stage.status)}"></span>
-								<span class="flex-1 text-text-secondary">{getStageName(stage.stage_number)}</span>
+								<span class="flex-1 text-text-secondary">{getProcessStageName(stage.stage_number)}</span>
 								<span class="text-text-muted/40">
 									{#if stage.finalized_at}
 										{stage.finalized_at.split(' ')[0]}

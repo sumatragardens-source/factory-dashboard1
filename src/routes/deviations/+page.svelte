@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getStageName } from '$lib/constants/stageNames';
+	import { getProcessStageName } from '$lib/constants/stageNames';
 
 	let { data } = $props();
 
@@ -102,7 +102,7 @@
 					<tr class="border-b border-border-subtle hover:bg-bg-card-hover/50">
 						<td class="px-6 py-3">
 							<p class="text-sm font-bold text-text-primary">{dev.batch_number}</p>
-							<p class="text-[10px] text-text-muted">{getStageName(dev.stage_number)}</p>
+							<p class="text-[10px] text-text-muted">{getProcessStageName(dev.stage_number)}</p>
 						</td>
 						<td class="px-6 py-3">
 							<p class="text-sm text-text-primary">{dev.deviation_type}</p>
@@ -140,7 +140,7 @@
 				<div class="space-y-4">
 					{#each data.deviations.filter((d: any) => d.root_cause) as dev}
 						<div class="border-l-2 border-primary pl-3">
-							<p class="text-xs font-bold text-text-primary">{dev.batch_number} · {getStageName(dev.stage_number)}</p>
+							<p class="text-xs font-bold text-text-primary">{dev.batch_number} · {getProcessStageName(dev.stage_number)}</p>
 							<p class="text-xs text-text-secondary mt-1">{dev.root_cause}</p>
 						</div>
 					{/each}

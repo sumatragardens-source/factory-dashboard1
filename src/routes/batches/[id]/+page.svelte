@@ -1,16 +1,31 @@
 <script lang="ts">
-	import { getStageName } from '$lib/constants/stageNames';
+	import { enhance } from '$app/forms';
+	import { getProcessStageName } from '$lib/constants/stageNames';
 	import { fmt } from '$lib/config/costs';
+	import { generateBatchPDF } from '$lib/utils/pdfExport';
 
 	let { data } = $props();
 	let activeTab = $state('overview');
+	let rejectReason = $state('');
 
 	const stageIcons = ['eco', 'science', 'swap_horiz', 'air'];
 	const progress = $derived((data.stages.filter((s: any) => s.status === 'Finalized').length / 4) * 100);
 	const activityEvents = $derived([
 		...data.deviations.map((d: any) => ({ type: 'deviation', icon: 'warning', desc: `${d.deviation_type}: ${d.parameter} (${d.severity})`, ts: d.created_at })),
 		...data.approvals.map((a: any) => ({ type: 'approval', icon: 'verified', desc: `${a.approval_type.replace(/_/g, ' ')} — ${a.status}`, ts: a.requested_at })),
-		...data.machineEvents.map((m: any) => ({ type: 'machine', icon: 'precision_manufacturing', desc: `${m.machine_name}: ${m.previous_status} → ${m.new_status}`, ts: m.created_at }))
+		...data.machineEvents.map((m: any) => ({ type: 'machine', icon: 'precision_manufacturing', desc: `${m.machine_name}: ${m.previous_status} → ${m.new_status}`, ts: m.created_at })),
+		...data.stages.filter((s: any) => s.started_at).map((s: any) => ({
+			type: 'stage_started',
+			icon: 'play_circle',
+			desc: `Stage ${s.stage_number} started`,
+			ts: s.started_at
+		})),
+		...data.stages.filter((s: any) => s.finalized_at).map((s: any) => ({
+			type: 'stage_finalized',
+			icon: 'check_circle',
+			desc: `Stage ${s.stage_number} finalized${s.finalized_by ? ` by ${s.finalized_by}` : ''}`,
+			ts: s.finalized_at
+		}))
 	].sort((a: any, b: any) => new Date(b.ts).getTime() - new Date(a.ts).getTime()));
 </script>
 
@@ -45,7 +60,8 @@
 				</div>
 			</div>
 			<div class="flex gap-2">
-				<button disabled title="Coming soon" class="flex items-center gap-2 bg-primary/10 text-primary border border-primary/30 px-4 py-2 rounded font-bold text-sm opacity-50 cursor-not-allowed">
+				<button onclick={() => generateBatchPDF(data.batch, data.stages, data.stage1, data.stage2, data.stage3, data.stage4, data.costs, data.totalCost, data.costPerKg, data.labResults, data.deviations)}
+					class="flex items-center gap-2 bg-primary/10 text-primary border border-primary/30 px-4 py-2 rounded font-bold text-sm hover:bg-primary/20 transition-colors">
 					<span class="material-symbols-outlined text-lg">download</span>
 					Export Report
 				</button>
@@ -76,7 +92,7 @@
 						{isFinalized ? 'Done' : isCurrent ? 'Active' : 'Pending'}
 					</p>
 					<p class="text-[10px] font-bold mt-1 leading-tight {isCurrent ? 'text-text-primary' : isFinalized ? 'text-text-secondary' : 'text-text-muted'}">
-						{getStageName(stage.stage_number)}
+						{getProcessStageName(stage.stage_number)}
 					</p>
 				</div>
 			{/each}
@@ -161,7 +177,7 @@
 					<div class="bg-bg-card rounded-xl shadow-sm border border-primary/10 flex flex-col">
 						<div class="p-6 border-b border-primary/5 flex justify-between items-center">
 							<div>
-								<h3 class="text-xl font-bold text-text-primary">{data.batch.status === 'Completed' ? 'All Stages Complete' : `Active Stage: ${getStageName(data.batch.current_stage)}`}</h3>
+								<h3 class="text-xl font-bold text-text-primary">{data.batch.status === 'Completed' ? 'All Stages Complete' : `Active Stage: ${getProcessStageName(data.batch.current_stage)}`}</h3>
 								<p class="text-sm text-text-muted">{data.stages.filter((s: any) => s.status === 'Finalized').length} of 4 stages complete</p>
 							</div>
 							<div class="bg-primary/10 px-3 py-1 rounded-full text-primary font-bold text-xs uppercase tracking-widest">
@@ -184,12 +200,55 @@
 
 							<!-- Next Action -->
 							{#if data.batch.status === 'In Progress'}
-								{@const nextStage = data.batch.current_stage < 4 ? data.batch.current_stage + 1 : null}
 								<a href="/batches/{data.batch.id}/stages/{data.batch.current_stage}"
 									class="w-full bg-primary text-white font-black py-4 rounded-lg shadow-xl shadow-primary/30 hover:shadow-primary/40 transition-all flex items-center justify-center gap-2 mb-3">
-									<span>Enter {getStageName(data.batch.current_stage)}</span>
+									<span>Enter {getProcessStageName(data.batch.current_stage)}</span>
 									<span class="material-symbols-outlined">arrow_forward</span>
 								</a>
+							{:else if data.batch.status === 'Pending Review'}
+								<div class="w-full flex flex-col gap-3">
+									<div class="flex items-center gap-2 text-amber-400 bg-amber-900/20 border border-amber-900/30 rounded-lg px-4 py-3">
+										<span class="material-symbols-outlined text-lg">hourglass_top</span>
+										<span class="text-sm font-bold">This batch is awaiting review</span>
+									</div>
+									<form method="POST" action="?/approve" use:enhance class="w-full">
+										<input type="hidden" name="decided_by" value={data.batch.operator_name ?? 'Supervisor'} />
+										<button type="submit"
+											class="w-full bg-primary text-white font-black py-4 rounded-lg shadow-xl shadow-primary/30 hover:shadow-primary/40 transition-all flex items-center justify-center gap-2">
+											<span class="material-symbols-outlined">check_circle</span>
+											<span>Approve Batch</span>
+										</button>
+									</form>
+									<form method="POST" action="?/reject" use:enhance class="w-full flex flex-col gap-2">
+										<input type="hidden" name="decided_by" value={data.batch.operator_name ?? 'Supervisor'} />
+										<input type="text" name="reason" bind:value={rejectReason} placeholder="Rejection reason..."
+											class="w-full bg-bg-input border border-border-card rounded-lg px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:border-red-500/50" />
+										<button type="submit"
+											class="w-full bg-red-900/30 text-red-400 border border-red-900/40 font-bold py-3 rounded-lg hover:bg-red-900/40 transition-all flex items-center justify-center gap-2">
+											<span class="material-symbols-outlined">cancel</span>
+											<span>Reject Batch</span>
+										</button>
+									</form>
+								</div>
+							{:else if data.batch.status === 'Rejected'}
+								<div class="w-full flex flex-col gap-3">
+									<div class="flex items-center gap-2 text-red-400 bg-red-900/20 border border-red-900/30 rounded-lg px-4 py-3">
+										<span class="material-symbols-outlined text-lg">block</span>
+										<span class="text-sm font-bold">This batch was rejected</span>
+									</div>
+									{#each data.approvals.filter((a: any) => a.status === 'Rejected') as rejection}
+										{#if rejection.decision_notes}
+											<p class="text-xs text-text-muted px-1">Reason: {rejection.decision_notes}</p>
+										{/if}
+									{/each}
+									<form method="POST" action="?/reopen" use:enhance class="w-full">
+										<button type="submit"
+											class="w-full bg-amber-900/30 text-amber-400 border border-amber-900/40 font-bold py-3 rounded-lg hover:bg-amber-900/40 transition-all flex items-center justify-center gap-2">
+											<span class="material-symbols-outlined">restart_alt</span>
+											<span>Return to In Progress</span>
+										</button>
+									</form>
+								</div>
 							{/if}
 						</div>
 					</div>
@@ -233,7 +292,7 @@
 								{#each data.deviations as dev}
 									<div class="p-2 rounded border-l-2 {dev.severity === 'Critical' ? 'bg-red-900/20 border-red-500' : dev.severity === 'Medium' ? 'bg-amber-900/20 border-amber-500' : 'bg-bg-card-hover border-border-card'}">
 										<p class="text-[11px] font-bold text-text-primary leading-tight">{dev.parameter}: {dev.actual_value} (expected {dev.expected_value})</p>
-										<p class="text-[10px] text-text-muted mt-1">{dev.status} · {getStageName(dev.stage_number)}</p>
+										<p class="text-[10px] text-text-muted mt-1">{dev.status} · {getProcessStageName(dev.stage_number)}</p>
 									</div>
 								{/each}
 							</div>
@@ -250,7 +309,7 @@
 								<div class="flex gap-3">
 									<div class="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 {stage.status === 'Finalized' ? 'bg-primary' : stage.status === 'In Progress' ? 'bg-blue-500' : 'bg-border-card'}"></div>
 									<div>
-										<p class="text-[11px] font-bold text-text-primary leading-tight">{getStageName(stage.stage_number)}</p>
+										<p class="text-[11px] font-bold text-text-primary leading-tight">{getProcessStageName(stage.stage_number)}</p>
 										<p class="text-[10px] text-text-muted mt-0.5">
 											{stage.status}
 											{#if stage.finalized_at} · {new Date(stage.finalized_at).toLocaleDateString()}{/if}
@@ -271,7 +330,7 @@
 							<div class="p-4 flex flex-col gap-3 max-h-48 overflow-y-auto">
 								{#each activityEvents as event}
 									<div class="flex gap-3">
-										<span class="material-symbols-outlined text-sm text-text-muted mt-0.5 shrink-0">{event.icon}</span>
+										<span class="material-symbols-outlined text-sm mt-0.5 shrink-0 {event.type === 'stage_started' ? 'text-blue-400' : event.type === 'stage_finalized' ? 'text-primary' : event.type === 'deviation' ? 'text-amber-400' : event.type === 'approval' ? 'text-primary' : 'text-text-muted'}">{event.icon}</span>
 										<div>
 											<p class="text-[11px] font-bold text-text-primary leading-tight">{event.desc}</p>
 											<p class="text-[10px] text-text-muted mt-0.5">{new Date(event.ts).toLocaleDateString()} {new Date(event.ts).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</p>
@@ -300,7 +359,7 @@
 									{/if}
 								</div>
 								<div>
-									<h3 class="text-sm font-bold text-text-primary">{getStageName(stage.stage_number)}</h3>
+									<h3 class="text-sm font-bold text-text-primary">{getProcessStageName(stage.stage_number)}</h3>
 									<p class="text-xs text-text-muted">{stage.status}{#if stage.finalized_by} · Finalized by {stage.finalized_by}{/if}</p>
 								</div>
 							</div>
@@ -463,8 +522,9 @@
 			<div class="bg-bg-card rounded-xl border border-border-card p-8 text-center">
 				<span class="material-symbols-outlined text-5xl text-text-muted mb-4">picture_as_pdf</span>
 				<h3 class="text-lg font-bold text-text-primary mb-2">Export Batch Report</h3>
-				<p class="text-sm text-text-muted mb-6">Generate a comprehensive PDF report for this batch including all stage data, lab results, and cost breakdown.</p>
-				<button disabled title="Coming soon" class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm flex items-center gap-2 mx-auto opacity-50 cursor-not-allowed">
+				<p class="text-sm text-text-muted mb-6">Download a comprehensive PDF report for this batch including all stage data, lab results, and cost breakdown.</p>
+				<button onclick={() => generateBatchPDF(data.batch, data.stages, data.stage1, data.stage2, data.stage3, data.stage4, data.costs, data.totalCost, data.costPerKg, data.labResults, data.deviations)}
+					class="bg-primary text-white px-6 py-3 rounded-lg font-bold text-sm flex items-center gap-2 mx-auto hover:brightness-110 transition-all">
 					<span class="material-symbols-outlined">picture_as_pdf</span>
 					Generate PDF
 				</button>

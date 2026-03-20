@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getStageName, stageToRecordTable } from '$lib/constants/stageNames';
+	import { getProcessStageName, stageToRecordTable } from '$lib/constants/stageNames';
 	let { data } = $props();
 	const filterOptions = [
 		{ value: 'all', label: 'All Time' },
@@ -20,7 +20,7 @@
 	<!-- Header -->
 	<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
 		<h1 class="text-2xl font-semibold text-text-primary">
-			Stage {data.stageNumber}: {getStageName(data.stageNumber)}
+			Stage {data.stageNumber}: {getProcessStageName(data.stageNumber)}
 		</h1>
 		<div class="flex gap-2">
 			{#each filterOptions as opt}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getStageName } from '$lib/constants/stageNames';
+	import { getProcessStageName } from '$lib/constants/stageNames';
 	import type { BatchState } from '$lib/constants/batchStates';
 
 	let { data } = $props();
@@ -125,7 +125,7 @@
 								<span class="text-xs font-bold {statusText[batch.status as BatchState]}">{batch.status}</span>
 							</div>
 						</td>
-						<td class="px-4 py-3 text-xs text-text-secondary max-w-48">{getStageName(batch.current_stage)}</td>
+						<td class="px-4 py-3 text-xs text-text-secondary max-w-48">{getProcessStageName(batch.current_stage)}</td>
 						<td class="px-4 py-3 text-xs text-text-secondary">{batch.supplier ?? '—'}</td>
 						<td class="px-4 py-3 text-xs font-mono text-text-secondary">{batch.leaf_input_kg}</td>
 						<td class="px-4 py-3 text-xs text-text-secondary">{batch.operator_name ?? '—'}</td>
