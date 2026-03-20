@@ -746,11 +746,11 @@
 
 	const inventoryConfig: Record<string, { threshold: number; usagePerLot: number }> = {
 		'Dried Leaf': { threshold: 500, usagePerLot: 200 },
-		'Ethanol (70%)': { threshold: 200, usagePerLot: 80 },
+		'Ethanol 70%': { threshold: 200, usagePerLot: 80 },
 		'D-Limonene': { threshold: 50, usagePerLot: 15 },
-		'Acetic Acid': { threshold: 20, usagePerLot: 5 },
+		'Acetic Acid (glacial)': { threshold: 20, usagePerLot: 5 },
 		'NaOH Flakes': { threshold: 10, usagePerLot: 3 },
-		'K2CO3': { threshold: 10, usagePerLot: 2 }
+		'K₂CO₃': { threshold: 10, usagePerLot: 2 }
 	};
 
 	function getInventoryStatus(qty: number, threshold: number) {
