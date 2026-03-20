@@ -1164,7 +1164,7 @@
 					<button onclick={() => selectBatch(batch.id)} style="display: grid; grid-template-columns: 72px repeat(7, 1fr) 12px 1fr 1fr 1fr;" class="items-center py-1 border-b rounded gap-1.5 transition-all w-full text-left {selectedBatchId === batch.id ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/30' : 'border-border-subtle hover:bg-bg-card-hover/30'}">
 						<!-- Lot ID + Position -->
 						<div class="hover:bg-bg-card-hover transition-colors rounded px-0.5 py-0.5 overflow-hidden">
-							<p class="text-sm font-bold text-text-primary truncate">{batch.batch_number.replace('SG-', '')}</p>
+							<p class="text-xs font-bold text-text-primary">{batch.batch_number.replace('SG-', '')}</p>
 							<p class="text-xs truncate {batchIdx === lotBatchCount - 1 ? 'font-bold text-white' : 'text-text-muted'}">{batchIdx + 1}/{lotBatchCount}</p>
 						</div>
 						<!-- 7 Stage cells -->
