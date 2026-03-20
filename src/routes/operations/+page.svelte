@@ -2496,11 +2496,7 @@
 				{@const lots = allLots()}
 				{@const lotYields = lots.map(l => lotSummaries.get(l)?.totalYieldKg ?? 0)}
 				{@const yieldMax = Math.max(...lotYields) * 1.15 || 1}
-				{@const lotRates = lots.map(l => lotSummaries.get(l)?.avgYieldPct ?? 0)}
-				{@const rateMin = Math.min(...lotRates.filter(r => r > 0)) - 0.1}
-				{@const rateMax = Math.max(...lotRates) + 0.1}
-				{@const rateRange = rateMax - rateMin || 1}
-				<div class="mb-2">
+					<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Yield per Lot</h4>
 					<div class="relative flex items-end gap-1 px-1" style="height: 110px;">
 						{#each lots as lot, li}
@@ -2515,25 +2511,9 @@
 								<span class="text-[11px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
 							</button>
 						{/each}
-						<svg class="absolute inset-0 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-							{#each lots as lot, li}
-								{@const rate = lotSummaries.get(lot)?.avgYieldPct ?? 0}
-								{@const dotX = ((li + 0.5) / lots.length) * 100}
-								{@const dotY = rate > 0 ? 100 - ((rate - rateMin) / rateRange) * 85 - 5 : 95}
-								{#if li > 0}
-									{@const prevRate = lotSummaries.get(lots[li - 1])?.avgYieldPct ?? 0}
-									{@const prevX = ((li - 0.5) / lots.length) * 100}
-									{@const prevY = prevRate > 0 ? 100 - ((prevRate - rateMin) / rateRange) * 85 - 5 : 95}
-									<line x1="{prevX}%" y1="{prevY}%" x2="{dotX}%" y2="{dotY}%" stroke="rgba(236,91,19,0.4)" stroke-width="0.5" vector-effect="non-scaling-stroke" />
-								{/if}
-								<circle cx="{dotX}%" cy="{dotY}%" r="1.5" fill="#ec5b13" vector-effect="non-scaling-stroke" />
-							{/each}
-						</svg>
 						<div class="flex items-center gap-3 mt-1 text-[11px] text-slate-500">
 							<span class="inline-block w-2 h-2 rounded-sm" style="background: rgba(190,242,100,0.6);"></span>
 							<span>Yield (kg)</span>
-							<span class="inline-block w-1.5 h-1.5 rounded-full" style="background: #ec5b13;"></span>
-							<span>Extract Rate (%)</span>
 						</div>
 					</div>
 				</div>
