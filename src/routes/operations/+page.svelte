@@ -427,22 +427,33 @@
 		return counts;
 	});
 	const lotBatchCount = $derived(lotBatches().length);
+	const runStageCounts = $derived(() => {
+		const counts: Record<number, number> = {};
+		for (const b of data.activeBatchProgress) {
+			for (const s of b.stages) {
+				if (s.status === 'Finalized') {
+					counts[s.stage_number] = (counts[s.stage_number] ?? 0) + 1;
+				}
+			}
+		}
+		return counts;
+	});
 	const mainSteps = $derived(() => {
-		function lotStageFill(stageNumber: number): number {
-			if (lotBatchCount === 0) return 0;
-			return Math.min(100, ((lotStageCounts()[stageNumber] ?? 0) / lotBatchCount) * 100);
+		function runStageFill(stageNumber: number): number {
+			if (runBatchCount === 0) return 0;
+			return Math.min(100, ((runStageCounts()[stageNumber] ?? 0) / runBatchCount) * 100);
 		}
 		return [
-			{ icon: 'fa-leaf', label: 'Raw Material', href: '/stages/1', fillPct: lotStageFill(1) },
-			{ icon: 'fa-flask-vial', label: 'EtOH', href: '/stages/2', fillPct: lotStageFill(2) },
-			{ icon: 'fa-fire', label: 'Distillation', href: '/stages/2', fillPct: lotStageFill(2) },
-			{ icon: 'fa-snowflake', label: 'Precipitation', href: '/stages/4', fillPct: lotStageFill(4), cluster: true },
-			{ icon: 'fa-gem', label: 'Final Yield', href: '/stages/4', fillPct: lotStageFill(4) }
+			{ icon: 'fa-leaf', label: 'Raw Material', href: '/stages/1', fillPct: runStageFill(1) },
+			{ icon: 'fa-flask-vial', label: 'EtOH', href: '/stages/2', fillPct: runStageFill(2) },
+			{ icon: 'fa-fire', label: 'Distillation', href: '/stages/2', fillPct: runStageFill(2) },
+			{ icon: 'fa-snowflake', label: 'Precipitation', href: '/stages/4', fillPct: runStageFill(4), cluster: true },
+			{ icon: 'fa-gem', label: 'Final Yield', href: '/stages/4', fillPct: runStageFill(4) }
 		].map(s => ({ ...s, ringFilled: (s.fillPct / 100) * RING_CIRC }));
 	});
 
 	// Lot sort: 'active' = in-progress first, 'completed' = completed first (bottom)
-	let lotSort: 'active' | 'completed' = $state('active');
+	let lotSort: 'active' | 'completed' = $state('completed');
 	const sortedBatches = $derived(() => {
 		const batches = [...lotBatches()];
 		if (lotSort === 'completed') {
@@ -1056,17 +1067,18 @@
 		<div class="flex items-center gap-2 mb-3 pb-2 border-b border-border-subtle pr-3">
 			<div class="flex items-center gap-1 flex-none overflow-x-auto min-w-0">
 				{#each allLots() as lot}
-					<button onclick={() => selectedLot = lot} class="px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded transition-colors {activeLot === lot ? 'text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}">{lot}</button>
+					<button onclick={() => selectedLot = lot} class="px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded transition-colors {activeLot === lot ? 'text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60 hover:bg-white/10'}">{lot}</button>
 				{/each}
 			</div>
 			<div class="flex-1 h-1.5 bg-border-card rounded-full overflow-hidden">
 				<div class="h-full bg-primary rounded-full transition-all" style="width: {lotCompletePct}%"></div>
 			</div>
 			<p class="text-[11px] text-text-muted whitespace-nowrap">{Math.round(lotIntakeKg)} kg · {lotBatches().length} batches</p>
-			<div class="flex gap-px rounded overflow-hidden flex-none" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'active' ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'active'}>Active</button>
-				<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'completed' ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'completed'}>Completed</button>
-			</div>
+			{#if lotActiveBatches > 0}
+				<span class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider text-blue-400 bg-blue-900/30 rounded">Active</span>
+			{:else}
+				<span class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider text-primary/60 bg-primary/10 rounded">Completed</span>
+			{/if}
 		</div>
 
 		{#if activeLot}
@@ -1113,27 +1125,13 @@
 					{/if}
 				</div>
 			</div>
-			<div class="flex-1 flex items-center gap-3 justify-end">
-				<div class="flex items-center gap-1">
-					<span class="text-[11px] text-text-muted/30 uppercase">Batches</span>
-					<span class="text-sm font-medium text-text-secondary">{runCompletedBatches}<span class="text-text-muted/30">/{runBatchCount}</span></span>
-				</div>
-				<div class="flex items-center gap-1">
-					<span class="text-[11px] text-text-muted/30 uppercase">Active</span>
+			<div class="flex-1 flex items-center gap-2 justify-end">
+				<span class="text-[11px] text-text-muted/40 uppercase">Batches</span>
+				<span class="text-sm font-medium text-text-secondary">{runCompletedBatches}<span class="text-text-muted/30">/{runBatchCount}</span></span>
+				{#if runInProgressBatches > 0}
+					<span class="text-[11px] text-text-muted/40 uppercase">Active</span>
 					<span class="text-sm font-medium text-blue-400">{runInProgressBatches}</span>
-				</div>
-				<div class="flex items-center gap-1">
-					<span class="text-[11px] text-text-muted/30 uppercase">Proj. Out</span>
-					<span class="text-sm font-medium text-text-secondary">{projectedFinalOutput.toFixed(1)} kg</span>
-				</div>
-				<div class="flex items-center gap-1">
-					<span class="text-[11px] text-text-muted/30 uppercase">Proj. Cost</span>
-					<span class="text-sm font-medium text-text-secondary">{fmt(projectedTotalCost)}</span>
-				</div>
-				<div class="flex items-center gap-1">
-					<span class="text-[11px] text-text-muted/30 uppercase">Recovery</span>
-					<span class="text-sm font-medium" style="color: {projectedSolventRecovery >= 95 ? '#bef264' : projectedSolventRecovery >= 80 ? '#fbbf24' : '#ef4444'};">{projectedSolventRecovery.toFixed(1)}%</span>
-				</div>
+				{/if}
 			</div>
 		</div>
 
@@ -1253,7 +1251,7 @@
 	</div>
 
 	<!-- Analytics Carousel - Intelligence Panels -->
-	<div class="{expandedCard !== null ? 'fixed inset-4 z-50' : 'col-span-6'} border border-white/10 rounded-xl px-4 pt-3 pb-2.5 flex flex-col {expandedCard === null ? 'min-h-[650px]' : ''}" style="background: #161616;">
+	<div class="{expandedCard !== null ? 'fixed inset-4 z-50' : 'col-span-6'} bg-bg-card border border-border-card rounded-xl px-4 pt-3 pb-2.5 flex flex-col {expandedCard === null ? 'min-h-[650px]' : ''}">
 		<div class="flex-shrink-0">
 		{#if carouselIndex === 0}
 			<!-- ═══ COST INTELLIGENCE ═══ -->
@@ -1447,7 +1445,7 @@
 
 				<!-- S1: KPI Strip -->
 				<div class="flex gap-1.5 mb-2 overflow-x-auto">
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Cost/KG</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg?.avgCostPerKg ? fmt(curLotAgg.avgCostPerKg) : '—'}</span>
 						{#if cpkDelta !== null}
@@ -1456,22 +1454,22 @@
 							<span class="text-sm font-bold text-slate-600">—</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Lot Cost</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg ? fmt(curLotAgg.totalCost) : '—'}</span>
 						{#if costDelta !== null}
 							<span class="text-xs font-bold" style="color: {costDelta <= 0 ? '#bef264' : '#ef4444'};">{costDelta <= 0 ? '▼' : '▲'} {fmt(Math.abs(costDelta))}</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Material Cost</span>
 						<span class="text-lg font-black font-mono text-white">{fmt(matCost)}</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Avg/Batch</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg && curLotAgg.batchCount > 0 ? fmt(curLotAgg.totalCost / curLotAgg.batchCount) : '—'}</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Best Lot</span>
 						<span class="text-lg font-black font-mono text-white">{bestLot ? bestLot.replace('LOT-', 'L') : '—'}</span>
 					</div>
@@ -1507,7 +1505,7 @@
 								}} onmouseleave={() => chartTooltip = null}>
 								<span class="text-xs font-mono font-bold mb-0.5 text-white">{fmt(bc.totalCost)}</span>
 								<div class="w-full rounded-t transition-all {selectedBatchId === bc.batch_id ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(bc.totalCost, batchCostVals, selectedBatchId === bc.batch_id)}; min-height: 4px;"></div>
-								<span class="text-[11px] font-bold text-slate-500 mt-0.5">{bc.batch_number.replace('SG-', '')}</span>
+								<span class="text-[11px] font-bold text-slate-500 mt-0.5">{bc.batch_number.replace('SG-', '').slice(-3)}</span>
 							</button>
 						{/each}
 					</div>
@@ -1522,9 +1520,9 @@
 				{@const segAvgs = segCats.map(cat => { const vals = lotCostSegs.map(s => s[cat]); return vals.reduce((a, b) => a + b, 0) / vals.length; })}
 				<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Cost Variance Heatmap</h4>
-					<div class="border border-white/10 rounded overflow-auto" style="max-height: 100px;">
+					<div class="border border-border-card rounded overflow-auto" style="max-height: 200px;">
 						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0" style="background: #0d0d0d;">
+							<thead class="sticky top-0" style="background: #111827;">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									{#each segLabels as label}
@@ -1559,15 +1557,15 @@
 					<div class="space-y-0.5">
 						{#each lotBatchCosts.toSorted((a, b) => b.totalCost - a.totalCost) as bc}
 							{@const devPct = batchCostAvg > 0 ? ((bc.totalCost - batchCostAvg) / batchCostAvg) * 100 : 0}
-							<button class="w-full flex items-center gap-1.5 text-sm hover:bg-white/5 rounded px-1 py-0.5 transition-colors"
+							<button class="w-full grid grid-cols-[70px_65px_55px_1fr] items-center text-sm hover:bg-white/5 rounded px-1 py-0.5 transition-colors"
 								onclick={() => selectBatch(bc.batch_id)}>
-								<span class="w-10 font-bold text-slate-500">{bc.batch_number.replace('SG-', '')}</span>
+								<span class="font-mono font-bold text-slate-500">{bc.batch_number.replace('SG-', '')}</span>
 								<span class="font-mono font-bold text-white">{fmt(bc.totalCost)}</span>
 								<span class="font-mono" style="color: {devPct <= 0 ? '#bef264' : '#ef4444'};">
 									{devPct <= 0 ? '▼' : '▲'}{Math.abs(devPct).toFixed(1)}%
 								</span>
 								{#if bc.costPerKg}
-									<span class="text-slate-500 ml-auto">{fmt(bc.costPerKg)}/kg</span>
+									<span class="font-mono text-slate-500 text-right">{fmt(bc.costPerKg)}/kg</span>
 								{/if}
 							</button>
 						{/each}
@@ -1705,7 +1703,7 @@
 				{#if shiftLots.length >= 2}
 				<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Category % Shift</h4>
-					<div class="border border-white/10 rounded overflow-hidden">
+					<div class="border border-border-card rounded overflow-hidden">
 						<table class="w-full text-left border-collapse">
 							<thead>
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
@@ -1741,7 +1739,7 @@
 					<div class="flex gap-2">
 						{#if bestLotH}
 						{@const ba = lotSummaries.get(bestLotH)}
-						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestLotH; costMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-page border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestLotH; costMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
 							<div class="text-xs font-mono font-bold text-white">{bestLotH.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{ba ? fmt(ba.avgCostPerKg) : '—'}/kg</div>
@@ -1749,7 +1747,7 @@
 						{/if}
 						{#if worstLotH}
 						{@const wa = lotSummaries.get(worstLotH)}
-						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstLotH; costMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-page border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstLotH; costMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
 							<div class="text-xs font-mono font-bold text-white">{worstLotH.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{wa ? fmt(wa.avgCostPerKg) : '—'}/kg</div>
@@ -1820,7 +1818,7 @@
 				<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Cost/KG by Category — {activeLot?.replace('LOT-', 'L')}</h4>
 					{#if lotYieldKg > 0}
-					<div class="border border-white/10 rounded overflow-hidden">
+					<div class="border border-border-card rounded overflow-hidden">
 						<table class="w-full text-left border-collapse">
 							<thead>
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
@@ -1857,7 +1855,7 @@
 				{@const varKeys = ['leaf','solvent','chemicals'] as const}
 				<div class="mb-1">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Sensitivity — ±10% Variable Cost</h4>
-					<div class="border border-white/10 rounded overflow-hidden">
+					<div class="border border-border-card rounded overflow-hidden">
 						<table class="w-full text-left border-collapse">
 							<thead>
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
@@ -1899,7 +1897,7 @@
 
 				<!-- S1: KPI Strip -->
 				<div class="flex gap-1.5 mb-2 overflow-x-auto">
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Recovery %</span>
 						<span class="text-sm font-black font-mono" style="color: {(curLotAgg?.avgRecoveryPct ?? 0) >= 85 ? '#bef264' : '#ef4444'};">{(curLotAgg?.avgRecoveryPct ?? 0).toFixed(1)}%</span>
 						{#if recDelta !== null}
@@ -1908,22 +1906,22 @@
 							<span class="text-sm font-bold text-slate-600">—</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Liters Issued</span>
 						<span class="text-lg font-black font-mono text-white">{(curLotAgg?.totalEthIssued ?? 0).toFixed(0)}L</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Liters Lost</span>
 						<span class="text-sm font-black font-mono" style="color: #ef4444;">{(curLotAgg?.totalEthLost ?? 0).toFixed(0)}L</span>
 						{#if lostDelta !== null}
 							<span class="text-xs font-bold" style="color: {lostDelta <= 0 ? '#bef264' : '#ef4444'};">{lostDelta <= 0 ? '▼' : '▲'} {Math.abs(lostDelta).toFixed(0)}L</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Cost Impact</span>
 						<span class="text-lg font-black font-mono text-white">{fmt(costImpact)}</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Best Batch</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg?.bestBatchRecovery ?? '—'}</span>
 					</div>
@@ -1984,9 +1982,9 @@
 				<!-- S5: Batch Table — current lot only -->
 				{@const lotEthBatches = data.runEthanolBreakdown.filter(e => e.supplier_lot === activeLot)}
 				{@const lotAvgRec = curLotAgg?.avgRecoveryPct ?? 0}
-				<div class="border border-white/10 rounded overflow-hidden" style="max-height: 70px;">
+				<div class="border border-border-card rounded overflow-hidden" style="max-height: 200px;">
 					<table class="w-full text-left border-collapse">
-						<thead class="sticky top-0" style="background: #0d0d0d;">
+						<thead class="sticky top-0" style="background: #111827;">
 							<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 								<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 								<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Issued</th>
@@ -2147,7 +2145,7 @@
 					<div class="flex gap-2">
 						{#if bestEthLot}
 						{@const ba = lotSummaries.get(bestEthLot)}
-						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestEthLot; ethanolMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-page border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestEthLot; ethanolMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
 							<div class="text-xs font-mono font-bold text-white">{bestEthLot.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{ba ? ba.avgRecoveryPct.toFixed(1) : '—'}% recovery</div>
@@ -2155,7 +2153,7 @@
 						{/if}
 						{#if worstEthLot}
 						{@const wa = lotSummaries.get(worstEthLot)}
-						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstEthLot; ethanolMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-page border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstEthLot; ethanolMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
 							<div class="text-xs font-mono font-bold text-white">{worstEthLot.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{wa ? wa.avgRecoveryPct.toFixed(1) : '—'}% recovery</div>
@@ -2170,9 +2168,9 @@
 				{#if deltaLots.length >= 2}
 				<div class="mb-1">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Lot-over-Lot Delta</h4>
-					<div class="border border-white/10 rounded overflow-hidden">
+					<div class="border border-border-card rounded overflow-hidden">
 						<table class="w-full text-left border-collapse">
-							<thead style="background: #0d0d0d;">
+							<thead style="background: #111827;">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 									<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Lot</th>
 									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Recovery</th>
@@ -2212,9 +2210,9 @@
 				<!-- Per-batch solvent table -->
 				<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Solvent Usage — {activeLot?.replace('LOT-', 'L')}</h4>
-					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
+					<div class="border border-border-card rounded overflow-hidden" style="max-height: 120px;">
 						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0" style="background: #0d0d0d;">
+							<thead class="sticky top-0" style="background: #111827;">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH In</th>
@@ -2297,7 +2295,7 @@
 
 				<!-- S1: KPI Strip -->
 				<div class="flex gap-1.5 mb-2 overflow-x-auto">
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Final Yield</span>
 						<span class="text-lg font-black font-mono text-white">{(curLotAgg?.totalYieldKg ?? 0).toFixed(2)} kg</span>
 						{#if yieldDeltaKg !== null}
@@ -2306,22 +2304,22 @@
 							<span class="text-sm font-bold text-slate-600">—</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Extract Rate</span>
 						<span class="text-sm font-black font-mono" style="color: #bef264;">{(curLotAgg?.avgYieldPct ?? 0).toFixed(2)}%</span>
 						{#if rateDelta !== null}
 							<span class="text-xs font-bold" style="color: {rateDelta >= 0 ? '#bef264' : '#ef4444'};">{rateDelta >= 0 ? '▲' : '▼'} {Math.abs(rateDelta).toFixed(2)}%</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Best Batch</span>
 						<span class="text-lg font-black font-mono text-white">{bestYieldBatch?.batch_number.replace('SG-', '') ?? '—'}</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Purity</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg?.avgPurity?.toFixed(1) ?? '—'}%</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-[#0d0d0d] border border-white/10 rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-page border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Yield Rank</span>
 						<span class="text-lg font-black font-mono text-white">#{yieldRank}/{lots.length}</span>
 					</div>
@@ -2547,7 +2545,7 @@
 					<div class="flex gap-2">
 						{#if bestYieldLot}
 						{@const ba = lotSummaries.get(bestYieldLot)}
-						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestYieldLot; yieldMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-page border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestYieldLot; yieldMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
 							<div class="text-xs font-mono font-bold text-white">{bestYieldLot.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{ba ? ba.avgYieldPct.toFixed(2) : '—'}% rate</div>
@@ -2555,7 +2553,7 @@
 						{/if}
 						{#if worstYieldLot}
 						{@const wa = lotSummaries.get(worstYieldLot)}
-						<button class="flex-1 bg-[#0d0d0d] border border-white/10 rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstYieldLot; yieldMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-page border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstYieldLot; yieldMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
 							<div class="text-xs font-mono font-bold text-white">{worstYieldLot.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{wa ? wa.avgYieldPct.toFixed(2) : '—'}% rate</div>
@@ -2570,9 +2568,9 @@
 				{#if compLots.length >= 2}
 				<div class="mb-1">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Lot Comparison</h4>
-					<div class="border border-white/10 rounded overflow-hidden">
+					<div class="border border-border-card rounded overflow-hidden">
 						<table class="w-full text-left border-collapse">
-							<thead style="background: #0d0d0d;">
+							<thead style="background: #111827;">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 									<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Lot</th>
 									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield (kg)</th>
@@ -2638,9 +2636,9 @@
 				{@const mbBatches = data.activeBatchProgress.filter(b => b.supplier_lot === activeLot)}
 				<div class="mb-1">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Mass Balance</h4>
-					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
+					<div class="border border-border-card rounded overflow-hidden" style="max-height: 120px;">
 						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0" style="background: #0d0d0d;">
+							<thead class="sticky top-0" style="background: #111827;">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Leaf (kg)</th>
@@ -2675,9 +2673,9 @@
 				<!-- HPLC Results Table -->
 				<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">HPLC Results</h4>
-					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 100px;">
+					<div class="border border-border-card rounded overflow-hidden" style="max-height: 200px;">
 						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0" style="background: #0d0d0d;">
+							<thead class="sticky top-0" style="background: #111827;">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Purity %</th>
@@ -2782,10 +2780,10 @@
 		</div>
 
 		<!-- Carousel navigation -->
-		<div class="flex-shrink-0 flex items-center justify-center gap-1.5 pt-2" style="border-top: 1px solid rgba(30, 30, 30, 0.8);">
-			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 0 ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 0}>Cost</button>
-			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 1 ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 1}>Ethanol</button>
-			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 2 ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 2}>Yield</button>
+		<div class="flex-shrink-0 flex items-center justify-center gap-px pt-2 rounded overflow-hidden" style="border-top: 1px solid rgba(30, 30, 30, 0.8);">
+			<button class="px-3 py-1 text-xs font-medium uppercase tracking-wider transition-colors {carouselIndex === 0 ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 0}>Cost</button>
+			<button class="px-3 py-1 text-xs font-medium uppercase tracking-wider transition-colors {carouselIndex === 1 ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 1}>Ethanol</button>
+			<button class="px-3 py-1 text-xs font-medium uppercase tracking-wider transition-colors {carouselIndex === 2 ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 2}>Yield</button>
 		</div>
 	</div>
 
@@ -2805,7 +2803,7 @@
 					{@const status = getInventoryStatus(mat.on_hand_qty, cfg.threshold)}
 					{@const barPct = Math.min(100, (mat.on_hand_qty / (cfg.threshold * 2)) * 100)}
 					{@const lotsRemaining = cfg.usagePerLot > 0 ? (mat.on_hand_qty / cfg.usagePerLot) : 0}
-					<div class="bg-bg-card border border-border-card rounded p-3 {mat.on_hand_qty <= cfg.threshold ? 'border-red-500/30' : ''}">
+					<a href="/inventory" class="bg-bg-card border border-border-card rounded p-3 cursor-pointer hover:border-white/20 transition-colors block {mat.on_hand_qty <= cfg.threshold ? 'border-red-500/30' : ''}">
 						<div class="flex justify-between items-start mb-2">
 							<span class="text-xs font-bold uppercase tracking-wider text-text-muted">{mat.name}</span>
 							<span class="text-xs font-bold px-2 py-0.5 rounded-full {status.bgColor} {status.color}">{status.label}</span>
@@ -2816,7 +2814,7 @@
 							<div class="h-full {getBarColor(mat.on_hand_qty, cfg.threshold)} rounded-full transition-all" style="width: {barPct}%"></div>
 						</div>
 						<div class="text-[11px] text-text-muted mt-2">~{cfg.usagePerLot} {mat.unit}/lot · <span class="text-text-primary font-bold">{lotsRemaining.toFixed(1)} lots</span> remaining</div>
-					</div>
+					</a>
 				{/if}
 			{/each}
 		</div>
