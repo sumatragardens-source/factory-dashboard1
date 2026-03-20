@@ -1559,11 +1559,11 @@
 					<div class="space-y-0.5">
 						{#each lotBatchCosts.toSorted((a, b) => b.totalCost - a.totalCost) as bc}
 							{@const devPct = batchCostAvg > 0 ? ((bc.totalCost - batchCostAvg) / batchCostAvg) * 100 : 0}
-							<button class="w-full flex items-center gap-1.5 text-sm hover:bg-white/5 rounded px-1 py-0.5 transition-colors"
+							<button class="w-full flex items-center gap-2 text-sm hover:bg-white/5 rounded px-1 py-0.5 transition-colors"
 								onclick={() => selectBatch(bc.batch_id)}>
-								<span class="w-10 font-bold text-slate-500">{bc.batch_number.replace('SG-', '')}</span>
+								<span class="w-16 font-bold text-slate-500 font-mono">{bc.batch_number.replace('SG-', '')}</span>
 								<span class="font-mono font-bold text-white">{fmt(bc.totalCost)}</span>
-								<span class="font-mono" style="color: {devPct <= 0 ? '#bef264' : '#ef4444'};">
+								<span class="font-mono whitespace-nowrap" style="color: {devPct <= 0 ? '#bef264' : '#ef4444'};">
 									{devPct <= 0 ? '▼' : '▲'}{Math.abs(devPct).toFixed(1)}%
 								</span>
 								{#if bc.costPerKg}
