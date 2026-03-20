@@ -30,7 +30,8 @@
 				<i class="fa-solid fa-leaf text-bg-dark text-xs"></i>
 			</a>
 			<!-- Flyout nav panel -->
-			<div class="absolute left-0 top-full mt-1 w-56 bg-bg-card border border-border-card rounded-xl flex-col shadow-xl shadow-black/30 z-50 opacity-0 pointer-events-none group-hover/nav:opacity-100 group-hover/nav:pointer-events-auto transition-opacity duration-200 hidden group-hover/nav:flex">
+			<div class="absolute left-0 top-full pt-1 w-56 z-50 opacity-0 pointer-events-none group-hover/nav:opacity-100 group-hover/nav:pointer-events-auto transition-opacity duration-200 hidden group-hover/nav:flex flex-col">
+			<div class="bg-bg-card border border-border-card rounded-xl flex-col shadow-xl shadow-black/30 flex">
 				<div class="p-4 border-b border-border-card">
 					<h1 class="text-sm font-black tracking-tighter text-text-primary uppercase">Sumatra Gardens</h1>
 					<p class="text-[9px] uppercase tracking-widest text-text-muted font-bold mt-0.5">Factory Operations</p>
@@ -59,6 +60,7 @@
 						New Batch
 					</a>
 				</div>
+			</div>
 			</div>
 		</div>
 
