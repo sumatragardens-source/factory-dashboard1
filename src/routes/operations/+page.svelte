@@ -2380,32 +2380,49 @@
 				<!-- Stage Yields: Grinding=material retention, Extraction=EtOH recovery, A/B Phase=D-Limo recovery, Drying=mass after moisture removal -->
 				{@const curStages = getLotStageYields(activeLot)}
 				{@const prevStages = getLotStageYields(prevLot)}
-				{@const stageNames = ['Grinding', 'Extraction', 'A/B Phase', 'Drying'] as const}
+				{@const yieldStageNames = ['Raw Leaf to Powder', 'Ethanol Extraction', 'Acid/Base Extraction and Partitioning', 'Back Extraction, Precipitation, Drying, and Final Product'] as const}
 				{@const stageKeys = ['grinding', 'extraction', 'abPhase', 'drying'] as const}
 				{@const stageThresholds = { grinding: { green: 93, orange: 88 }, extraction: { green: 82, orange: 78 }, abPhase: { green: 95, orange: 90 }, drying: { green: 70, orange: 60 } }}
+				{@const curBarColor = '#a3e635'}
+				{@const prevBarColor = '#38bdf8'}
 				<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Stage Yield — Current vs Previous</h4>
-					<div class="space-y-1">
+					<div class="space-y-1.5">
 						{#each stageKeys as key, si}
 							{@const curVal = curStages[key]}
 							{@const prevVal = prevStages[key]}
-							{@const thresholds = stageThresholds[key]}
-							{@const stageColor = curVal >= thresholds.green ? '#bef264' : curVal >= thresholds.orange ? '#f59e0b' : '#ef4444'}
 							<div class="flex items-center gap-1.5">
-								<span class="w-24 text-sm font-bold text-slate-500 uppercase">{stageNames[si]}</span>
+								<span class="min-w-[140px] w-[140px] text-xs font-bold text-slate-500 leading-tight">{yieldStageNames[si]}</span>
 								<div class="flex-1 flex flex-col gap-0.5">
-									<div class="h-2 w-full rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
-										<div class="h-full rounded-sm" style="width: {Math.min(100, curVal)}%; background: {stageColor};"></div>
+									<div class="h-2.5 w-full rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
+										<div class="h-full rounded-sm" style="width: {Math.min(100, curVal)}%; background: {curBarColor};"></div>
 									</div>
 									{#if prevLot}
-										<div class="h-1 w-full rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.03);">
-											<div class="h-full rounded-sm opacity-40" style="width: {Math.min(100, prevVal)}%; background: {stageColor};"></div>
+										<div class="h-1.5 w-full rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.03);">
+											<div class="h-full rounded-sm" style="width: {Math.min(100, prevVal)}%; background: {prevBarColor};"></div>
 										</div>
 									{/if}
 								</div>
-								<span class="text-sm font-mono font-bold w-10 text-right" style="color: {stageColor};">{curVal.toFixed(0)}%</span>
+								<div class="flex flex-col items-end w-12">
+									<span class="text-sm font-mono font-bold" style="color: {curBarColor};">{curVal.toFixed(0)}%</span>
+									{#if prevLot}
+										<span class="text-xs font-mono" style="color: {prevBarColor};">{prevVal.toFixed(0)}%</span>
+									{/if}
+								</div>
 							</div>
 						{/each}
+					</div>
+					<div class="flex items-center gap-3 mt-1.5">
+						<div class="flex items-center gap-1">
+							<span class="size-2.5 rounded-sm" style="background: {curBarColor};"></span>
+							<span class="text-xs text-slate-400">Current ({activeLot?.replace('LOT-', 'L') ?? '—'})</span>
+						</div>
+						{#if prevLot}
+							<div class="flex items-center gap-1">
+								<span class="size-2.5 rounded-sm" style="background: {prevBarColor};"></span>
+								<span class="text-xs text-slate-400">Previous ({prevLot.replace('LOT-', 'L')})</span>
+							</div>
+						{/if}
 					</div>
 				</div>
 
