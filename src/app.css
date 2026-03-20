@@ -6,14 +6,14 @@
 	--color-primary-dark: #4ADE80;
 	/* Dark backgrounds */
 	--color-bg-light: #E5E7EB;
-	--color-bg-dark: #111827;
-	--color-bg-page: #111827;
-	--color-bg-card: #1F2937;
-	--color-bg-card-hover: #374151;
-	--color-bg-input: #374151;
+	--color-bg-dark: #0B1120;
+	--color-bg-page: #0B1120;
+	--color-bg-card: #111827;
+	--color-bg-card-hover: #1F2937;
+	--color-bg-input: #1F2937;
 	/* Borders */
-	--color-border-card: #374151;
-	--color-border-subtle: #1F2937;
+	--color-border-card: #1F2937;
+	--color-border-subtle: #111827;
 	/* Text */
 	--color-text-primary: #FFFFFF;
 	--color-text-secondary: #E5E7EB;
