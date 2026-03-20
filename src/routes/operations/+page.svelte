@@ -1253,7 +1253,7 @@
 	</div>
 
 	<!-- Analytics Carousel - Intelligence Panels -->
-	<div class="{expandedCard !== null ? 'fixed inset-4 z-50' : 'col-span-6'} bg-bg-page border border-border-card rounded-xl px-4 pt-3 pb-2.5 flex flex-col {expandedCard === null ? 'min-h-[650px]' : ''}">
+	<div class="{expandedCard !== null ? 'fixed inset-4 z-50' : 'col-span-6'} bg-bg-card border border-border-card rounded-xl px-4 pt-3 pb-2.5 flex flex-col {expandedCard === null ? 'min-h-[650px]' : ''}">
 		<div class="flex-shrink-0">
 		{#if carouselIndex === 0}
 			<!-- ═══ COST INTELLIGENCE ═══ -->
@@ -1447,7 +1447,7 @@
 
 				<!-- S1: KPI Strip -->
 				<div class="flex gap-1.5 mb-2 overflow-x-auto">
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Cost/KG</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg?.avgCostPerKg ? fmt(curLotAgg.avgCostPerKg) : '—'}</span>
 						{#if cpkDelta !== null}
@@ -1456,22 +1456,22 @@
 							<span class="text-sm font-bold text-slate-600">—</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Lot Cost</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg ? fmt(curLotAgg.totalCost) : '—'}</span>
 						{#if costDelta !== null}
 							<span class="text-xs font-bold" style="color: {costDelta <= 0 ? '#bef264' : '#ef4444'};">{costDelta <= 0 ? '▼' : '▲'} {fmt(Math.abs(costDelta))}</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Material Cost</span>
 						<span class="text-lg font-black font-mono text-white">{fmt(matCost)}</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Avg/Batch</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg && curLotAgg.batchCount > 0 ? fmt(curLotAgg.totalCost / curLotAgg.batchCount) : '—'}</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Best Lot</span>
 						<span class="text-lg font-black font-mono text-white">{bestLot ? bestLot.replace('LOT-', 'L') : '—'}</span>
 					</div>
@@ -1741,7 +1741,7 @@
 					<div class="flex gap-2">
 						{#if bestLotH}
 						{@const ba = lotSummaries.get(bestLotH)}
-						<button class="flex-1 bg-bg-card border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestLotH; costMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestLotH; costMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
 							<div class="text-xs font-mono font-bold text-white">{bestLotH.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{ba ? fmt(ba.avgCostPerKg) : '—'}/kg</div>
@@ -1749,7 +1749,7 @@
 						{/if}
 						{#if worstLotH}
 						{@const wa = lotSummaries.get(worstLotH)}
-						<button class="flex-1 bg-bg-card border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstLotH; costMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstLotH; costMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
 							<div class="text-xs font-mono font-bold text-white">{worstLotH.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{wa ? fmt(wa.avgCostPerKg) : '—'}/kg</div>
@@ -1899,7 +1899,7 @@
 
 				<!-- S1: KPI Strip -->
 				<div class="flex gap-1.5 mb-2 overflow-x-auto">
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Recovery %</span>
 						<span class="text-sm font-black font-mono" style="color: {(curLotAgg?.avgRecoveryPct ?? 0) >= 85 ? '#bef264' : '#ef4444'};">{(curLotAgg?.avgRecoveryPct ?? 0).toFixed(1)}%</span>
 						{#if recDelta !== null}
@@ -1908,22 +1908,22 @@
 							<span class="text-sm font-bold text-slate-600">—</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Liters Issued</span>
 						<span class="text-lg font-black font-mono text-white">{(curLotAgg?.totalEthIssued ?? 0).toFixed(0)}L</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Liters Lost</span>
 						<span class="text-sm font-black font-mono" style="color: #ef4444;">{(curLotAgg?.totalEthLost ?? 0).toFixed(0)}L</span>
 						{#if lostDelta !== null}
 							<span class="text-xs font-bold" style="color: {lostDelta <= 0 ? '#bef264' : '#ef4444'};">{lostDelta <= 0 ? '▼' : '▲'} {Math.abs(lostDelta).toFixed(0)}L</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Cost Impact</span>
 						<span class="text-lg font-black font-mono text-white">{fmt(costImpact)}</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Best Batch</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg?.bestBatchRecovery ?? '—'}</span>
 					</div>
@@ -2147,7 +2147,7 @@
 					<div class="flex gap-2">
 						{#if bestEthLot}
 						{@const ba = lotSummaries.get(bestEthLot)}
-						<button class="flex-1 bg-bg-card border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestEthLot; ethanolMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestEthLot; ethanolMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
 							<div class="text-xs font-mono font-bold text-white">{bestEthLot.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{ba ? ba.avgRecoveryPct.toFixed(1) : '—'}% recovery</div>
@@ -2155,7 +2155,7 @@
 						{/if}
 						{#if worstEthLot}
 						{@const wa = lotSummaries.get(worstEthLot)}
-						<button class="flex-1 bg-bg-card border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstEthLot; ethanolMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstEthLot; ethanolMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
 							<div class="text-xs font-mono font-bold text-white">{worstEthLot.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{wa ? wa.avgRecoveryPct.toFixed(1) : '—'}% recovery</div>
@@ -2297,7 +2297,7 @@
 
 				<!-- S1: KPI Strip -->
 				<div class="flex gap-1.5 mb-2 overflow-x-auto">
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Final Yield</span>
 						<span class="text-lg font-black font-mono text-white">{(curLotAgg?.totalYieldKg ?? 0).toFixed(2)} kg</span>
 						{#if yieldDeltaKg !== null}
@@ -2306,22 +2306,22 @@
 							<span class="text-sm font-bold text-slate-600">—</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Extract Rate</span>
 						<span class="text-sm font-black font-mono" style="color: #bef264;">{(curLotAgg?.avgYieldPct ?? 0).toFixed(2)}%</span>
 						{#if rateDelta !== null}
 							<span class="text-xs font-bold" style="color: {rateDelta >= 0 ? '#bef264' : '#ef4444'};">{rateDelta >= 0 ? '▲' : '▼'} {Math.abs(rateDelta).toFixed(2)}%</span>
 						{/if}
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Best Batch</span>
 						<span class="text-lg font-black font-mono text-white">{bestYieldBatch?.batch_number.replace('SG-', '') ?? '—'}</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Purity</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg?.avgPurity?.toFixed(1) ?? '—'}%</span>
 					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-card border border-border-card rounded p-2 flex flex-col gap-0.5">
+					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
 						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Yield Rank</span>
 						<span class="text-lg font-black font-mono text-white">#{yieldRank}/{lots.length}</span>
 					</div>
@@ -2527,7 +2527,7 @@
 					<div class="flex gap-2">
 						{#if bestYieldLot}
 						{@const ba = lotSummaries.get(bestYieldLot)}
-						<button class="flex-1 bg-bg-card border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestYieldLot; yieldMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestYieldLot; yieldMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
 							<div class="text-xs font-mono font-bold text-white">{bestYieldLot.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{ba ? ba.avgYieldPct.toFixed(2) : '—'}% rate</div>
@@ -2535,7 +2535,7 @@
 						{/if}
 						{#if worstYieldLot}
 						{@const wa = lotSummaries.get(worstYieldLot)}
-						<button class="flex-1 bg-bg-card border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstYieldLot; yieldMode = 'lot'; }}>
+						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstYieldLot; yieldMode = 'lot'; }}>
 							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
 							<div class="text-xs font-mono font-bold text-white">{worstYieldLot.replace('LOT-', 'L')}</div>
 							<div class="text-sm font-mono text-slate-400">{wa ? wa.avgYieldPct.toFixed(2) : '—'}% rate</div>
