@@ -1253,7 +1253,7 @@
 	</div>
 
 	<!-- Analytics Carousel - Intelligence Panels -->
-	<div class="{expandedCard !== null ? 'fixed inset-4 z-50' : 'col-span-6'} border border-white/10 rounded-xl px-4 pt-3 pb-2.5 flex flex-col {expandedCard === null ? 'min-h-[650px]' : ''}" style="background: #161616;">
+	<div class="{expandedCard !== null ? 'fixed inset-4 z-50' : 'col-span-6'} bg-bg-page border border-border-card rounded-xl px-4 pt-3 pb-2.5 flex flex-col {expandedCard === null ? 'min-h-[650px]' : ''}">
 		<div class="flex-shrink-0">
 		{#if carouselIndex === 0}
 			<!-- ═══ COST INTELLIGENCE ═══ -->
