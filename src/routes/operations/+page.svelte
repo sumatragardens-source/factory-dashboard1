@@ -1507,7 +1507,7 @@
 								}} onmouseleave={() => chartTooltip = null}>
 								<span class="text-xs font-mono font-bold mb-0.5 text-white">{fmt(bc.totalCost)}</span>
 								<div class="w-full rounded-t transition-all {selectedBatchId === bc.batch_id ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(bc.totalCost, batchCostVals, selectedBatchId === bc.batch_id)}; min-height: 4px;"></div>
-								<span class="text-[11px] font-bold text-slate-500 mt-0.5">{bc.batch_number.replace('SG-', '')}</span>
+								<span class="{lotBatchCosts.length > 7 ? 'text-[9px]' : 'text-[11px]'} font-bold text-slate-500 mt-0.5">{lotBatchCosts.length > 7 ? bc.batch_number.replace('SG-', '').slice(-3) : bc.batch_number.replace('SG-', '')}</span>
 							</button>
 						{/each}
 					</div>
