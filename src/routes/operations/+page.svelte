@@ -1063,9 +1063,11 @@
 				<div class="h-full bg-primary rounded-full transition-all" style="width: {lotCompletePct}%"></div>
 			</div>
 			<p class="text-[11px] text-text-muted whitespace-nowrap">{Math.round(lotIntakeKg)} kg · {lotBatches().length} batches</p>
-			<div class="flex gap-px rounded overflow-hidden flex-none" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'active' ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'active'}>Active</button>
-				<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'completed' ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'completed'}>Completed</button>
+			<div class="flex gap-px rounded overflow-hidden flex-none whitespace-nowrap" style="border: 1px solid rgba(30, 30, 30, 0.8);">
+				{#if lotActiveBatches > 0}
+					<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'active' ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'active'}>Active</button>
+				{/if}
+				<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'completed' || lotActiveBatches === 0 ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'completed'}>Completed</button>
 			</div>
 		</div>
 
