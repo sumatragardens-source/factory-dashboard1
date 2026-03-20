@@ -1524,7 +1524,7 @@
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Cost Variance Heatmap</h4>
 					<div class="border border-white/10 rounded overflow-auto" style="max-height: 180px; scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
 						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0" style="background: #0d0d0d;">
+							<thead class="sticky top-0 bg-bg-card">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									{#each segLabels as label}
@@ -1986,7 +1986,7 @@
 				{@const lotAvgRec = curLotAgg?.avgRecoveryPct ?? 0}
 				<div class="border border-white/10 rounded overflow-hidden" style="max-height: 70px;">
 					<table class="w-full text-left border-collapse">
-						<thead class="sticky top-0" style="background: #0d0d0d;">
+						<thead class="sticky top-0 bg-bg-card">
 							<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 								<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 								<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Issued</th>
@@ -2214,7 +2214,7 @@
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Solvent Usage — {activeLot?.replace('LOT-', 'L')}</h4>
 					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
 						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0" style="background: #0d0d0d;">
+							<thead class="sticky top-0 bg-bg-card">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH In</th>
@@ -2620,7 +2620,7 @@
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Mass Balance</h4>
 					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
 						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0" style="background: #0d0d0d;">
+							<thead class="sticky top-0 bg-bg-card">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Leaf (kg)</th>
@@ -2657,7 +2657,7 @@
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">HPLC Results</h4>
 					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 100px;">
 						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0" style="background: #0d0d0d;">
+							<thead class="sticky top-0 bg-bg-card">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Purity %</th>
