@@ -2391,40 +2391,6 @@
 					</div>
 				</div>
 
-				<!-- S4: Batch Yield Scatter -->
-				{@const scatterBatches = data.runYieldBreakdown.filter(y => y.supplier_lot === activeLot && y.final_product_g != null).map(y => {
-					const eth = data.runEthanolBreakdown.find(e => e.batch_id === y.batch_id);
-					return { batchId: y.batch_id, recoveryPct: eth?.recovery_pct ?? 0, yieldG: y.final_product_g ?? 0 };
-				}).filter(s => s.recoveryPct > 0)}
-				{#if scatterBatches.length > 0}
-				{@const avgRecX = scatterBatches.reduce((s, b) => s + b.recoveryPct, 0) / scatterBatches.length}
-				{@const avgYieldY = scatterBatches.reduce((s, b) => s + b.yieldG, 0) / scatterBatches.length}
-				{@const xMin = Math.min(...scatterBatches.map(s => s.recoveryPct)) - 1}
-				{@const xMax = Math.max(...scatterBatches.map(s => s.recoveryPct)) + 1}
-				{@const yMin = Math.min(...scatterBatches.map(s => s.yieldG)) - 10}
-				{@const yMax = Math.max(...scatterBatches.map(s => s.yieldG)) + 10}
-				{@const crossX = 30 + ((avgRecX - xMin) / (xMax - xMin || 1)) * 440}
-				{@const crossY = 5 + (1 - (avgYieldY - yMin) / (yMax - yMin || 1)) * 60}
-				<div class="mb-2 overflow-hidden h-48">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Recovery vs Yield</h4>
-					<svg viewBox="0 0 500 75" class="w-full" overflow="hidden" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;">
-						<!-- Crosshairs -->
-						<line x1={crossX} y1="5" x2={crossX} y2="65" stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 3" stroke-width="0.5" />
-						<line x1="30" y1={crossY} x2="470" y2={crossY} stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 3" stroke-width="0.5" />
-						<!-- Dots -->
-						{#each scatterBatches as sb}
-							{@const sx = 30 + ((sb.recoveryPct - xMin) / (xMax - xMin || 1)) * 440}
-							{@const sy = 5 + (1 - (sb.yieldG - yMin) / (yMax - yMin || 1)) * 60}
-							{@const above = sb.yieldG >= avgYieldY}
-							<circle cx={sx} cy={sy} r="4" fill={above ? '#bef264' : '#ef4444'} opacity="0.8" style="cursor: pointer;" onclick={() => selectBatch(sb.batchId)} onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [`Recovery: ${sb.recoveryPct.toFixed(1)}%`, `Yield: ${sb.yieldG.toFixed(0)}g`] }} onmouseleave={() => chartTooltip = null} />
-						{/each}
-						<!-- Axis labels -->
-						<text x="250" y="73" text-anchor="middle" fill="#666666" font-size="11">Recovery %</text>
-						<text x="5" y="35" text-anchor="start" fill="#666666" font-size="11" transform="rotate(-90, 5, 35)">Yield g</text>
-					</svg>
-				</div>
-				{/if}
-
 				<!-- S5: Quality Specs -->
 				{@const mitVal = curLotAgg?.avgMitragynine ?? null}
 				{@const purVal = curLotAgg?.avgPurity ?? null}
