@@ -2372,7 +2372,7 @@
 							{@const thresholds = stageThresholds[key]}
 							{@const stageColor = curVal >= thresholds.green ? '#bef264' : curVal >= thresholds.orange ? '#f59e0b' : '#ef4444'}
 							<div class="flex items-center gap-1.5">
-								<span class="w-14 text-sm font-bold text-slate-500 uppercase truncate">{stageNames[si]}</span>
+								<span class="w-24 text-sm font-bold text-slate-500 uppercase">{stageNames[si]}</span>
 								<div class="flex-1 flex flex-col gap-0.5">
 									<div class="h-2 w-full rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
 										<div class="h-full rounded-sm" style="width: {Math.min(100, curVal)}%; background: {stageColor};"></div>
