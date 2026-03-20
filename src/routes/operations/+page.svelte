@@ -1064,8 +1064,8 @@
 			</div>
 			<p class="text-[11px] text-text-muted whitespace-nowrap">{Math.round(lotIntakeKg)} kg · {lotBatches().length} batches</p>
 			<div class="flex gap-px rounded overflow-hidden flex-none" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'active' ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'active'}>Active</button>
-				<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'completed' ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'completed'}>Completed</button>
+				<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'active' ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'active'}>Active</button>
+				<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'completed' ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'completed'}>Completed</button>
 			</div>
 		</div>
 
@@ -1259,7 +1259,7 @@
 			<!-- ═══ COST INTELLIGENCE ═══ -->
 			<div class="flex items-center justify-between mb-1.5">
 				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined text-[14px] text-primary opacity-50">payments</span>
+					<span class="material-symbols-outlined text-[14px] text-primary">payments</span>
 					<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Cost Intelligence</h3>
 					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
 						<span class="material-symbols-outlined text-sm">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
@@ -1311,15 +1311,15 @@
 
 			<!-- Mode toggle -->
 			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'lot' ? 'text-text-primary bg-primary/15' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => costMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'batch' ? 'text-text-primary bg-primary/15' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => costMode = 'batch'}>Lot History</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'history' ? 'text-text-primary bg-primary/15' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => costMode = 'history'}>Cost Drivers</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'lot' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => costMode = 'lot'}>Run Summary</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'batch' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => costMode = 'batch'}>Lot History</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'history' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => costMode = 'history'}>Cost Drivers</button>
 			</div>
 		{:else if carouselIndex === 1}
 			<!-- ═══ SOLVENT INTELLIGENCE ═══ -->
 			<div class="flex items-center justify-between mb-1.5">
 				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined text-[14px] text-primary opacity-50">water_drop</span>
+					<span class="material-symbols-outlined text-[14px] text-primary">water_drop</span>
 					<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Solvent Intelligence</h3>
 					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
 						<span class="material-symbols-outlined text-sm">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
@@ -1367,15 +1367,15 @@
 
 			<!-- Mode toggle -->
 			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode === 'lot' ? 'text-text-primary bg-primary/15' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => ethanolMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode === 'batch' ? 'text-text-primary bg-primary/15' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => ethanolMode = 'batch'}>Lot History</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode === 'history' ? 'text-text-primary bg-primary/15' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => ethanolMode = 'history'}>Batch Breakdown</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode === 'lot' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => ethanolMode = 'lot'}>Run Summary</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode === 'batch' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => ethanolMode = 'batch'}>Lot History</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode === 'history' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => ethanolMode = 'history'}>Batch Breakdown</button>
 			</div>
 		{:else}
 			<!-- ═══ YIELD & QUALITY ═══ -->
 			<div class="flex items-center justify-between mb-1.5">
 				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined text-[14px] text-primary opacity-50">science</span>
+					<span class="material-symbols-outlined text-[14px] text-primary">science</span>
 					<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Yield & Quality</h3>
 					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
 						<span class="material-symbols-outlined text-sm">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
@@ -1425,10 +1425,10 @@
 
 			<!-- Mode toggle (4 modes for yield) -->
 			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'lot' ? 'text-text-primary bg-primary/15' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'batch' ? 'text-text-primary bg-primary/15' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'batch'}>Lot History</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'history' ? 'text-text-primary bg-primary/15' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'history'}>Batch Contrib.</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'quality' ? 'text-text-primary bg-primary/15' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'quality'}>Quality</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'lot' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'lot'}>Run Summary</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'batch' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'batch'}>Lot History</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'history' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'history'}>Batch Contrib.</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'quality' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'quality'}>Quality</button>
 			</div>
 		{/if}
 		</div>
@@ -1448,7 +1448,7 @@
 				<!-- S1: KPI Strip -->
 				<div class="flex gap-1.5 mb-2 overflow-x-auto">
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Cost/KG</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Cost/KG</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg?.avgCostPerKg ? fmt(curLotAgg.avgCostPerKg) : '—'}</span>
 						{#if cpkDelta !== null}
 							<span class="text-xs font-bold" style="color: {cpkDelta <= 0 ? '#bef264' : '#ef4444'};">{cpkDelta <= 0 ? '▼' : '▲'} {fmt(Math.abs(cpkDelta))} vs prev</span>
@@ -1457,22 +1457,22 @@
 						{/if}
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Total Lot Cost</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Lot Cost</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg ? fmt(curLotAgg.totalCost) : '—'}</span>
 						{#if costDelta !== null}
 							<span class="text-xs font-bold" style="color: {costDelta <= 0 ? '#bef264' : '#ef4444'};">{costDelta <= 0 ? '▼' : '▲'} {fmt(Math.abs(costDelta))}</span>
 						{/if}
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Material Cost</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Material Cost</span>
 						<span class="text-lg font-black font-mono text-white">{fmt(matCost)}</span>
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Avg/Batch</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Avg/Batch</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg && curLotAgg.batchCount > 0 ? fmt(curLotAgg.totalCost / curLotAgg.batchCount) : '—'}</span>
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Best Lot</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Best Lot</span>
 						<span class="text-lg font-black font-mono text-white">{bestLot ? bestLot.replace('LOT-', 'L') : '—'}</span>
 					</div>
 				</div>
@@ -1525,7 +1525,7 @@
 					<div class="border border-white/10 rounded overflow-auto" style="max-height: 180px; scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
 						<table class="w-full text-left border-collapse">
 							<thead class="sticky top-0 bg-bg-card">
-								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
+								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									{#each segLabels as label}
 										<th class="px-1 py-0.5 text-center" style="border-bottom: 1px solid #1e1e1e;">{label}</th>
@@ -1708,7 +1708,7 @@
 					<div class="border border-white/10 rounded overflow-hidden">
 						<table class="w-full text-left border-collapse">
 							<thead>
-								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
+								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
 									<th class="px-1.5 py-0.5"></th>
 									{#each shiftLots as sl}
 										<th class="px-1 py-0.5 text-center">{sl.replace('LOT-', 'L')}</th>
@@ -1823,7 +1823,7 @@
 					<div class="border border-white/10 rounded overflow-hidden">
 						<table class="w-full text-left border-collapse">
 							<thead>
-								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
+								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
 									<th class="px-1.5 py-0.5">Category</th>
 									<th class="px-1 py-0.5 text-right">$/kg</th>
 									<th class="px-1 py-0.5 text-right">% of Total</th>
@@ -1860,7 +1860,7 @@
 					<div class="border border-white/10 rounded overflow-hidden">
 						<table class="w-full text-left border-collapse">
 							<thead>
-								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
+								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
 									<th class="px-1.5 py-0.5">Category</th>
 									<th class="px-1 py-0.5 text-right">Current $/kg</th>
 									<th class="px-1 py-0.5 text-right">-10%</th>
@@ -1900,7 +1900,7 @@
 				<!-- S1: KPI Strip -->
 				<div class="flex gap-1.5 mb-2 overflow-x-auto">
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Recovery %</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Recovery %</span>
 						<span class="text-sm font-black font-mono" style="color: {(curLotAgg?.avgRecoveryPct ?? 0) >= 85 ? '#bef264' : '#ef4444'};">{(curLotAgg?.avgRecoveryPct ?? 0).toFixed(1)}%</span>
 						{#if recDelta !== null}
 							<span class="text-xs font-bold" style="color: {recDelta >= 0 ? '#bef264' : '#ef4444'};">{recDelta >= 0 ? '▲' : '▼'} {Math.abs(recDelta).toFixed(1)}% vs prev</span>
@@ -1909,22 +1909,22 @@
 						{/if}
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Liters Issued</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Liters Issued</span>
 						<span class="text-lg font-black font-mono text-white">{(curLotAgg?.totalEthIssued ?? 0).toFixed(0)}L</span>
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Liters Lost</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Liters Lost</span>
 						<span class="text-sm font-black font-mono" style="color: #ef4444;">{(curLotAgg?.totalEthLost ?? 0).toFixed(0)}L</span>
 						{#if lostDelta !== null}
 							<span class="text-xs font-bold" style="color: {lostDelta <= 0 ? '#bef264' : '#ef4444'};">{lostDelta <= 0 ? '▼' : '▲'} {Math.abs(lostDelta).toFixed(0)}L</span>
 						{/if}
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Cost Impact</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Cost Impact</span>
 						<span class="text-lg font-black font-mono text-white">{fmt(costImpact)}</span>
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Best Batch</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Best Batch</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg?.bestBatchRecovery ?? '—'}</span>
 					</div>
 				</div>
@@ -1987,7 +1987,7 @@
 				<div class="border border-white/10 rounded overflow-hidden" style="max-height: 70px;">
 					<table class="w-full text-left border-collapse">
 						<thead class="sticky top-0 bg-bg-card">
-							<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
+							<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
 								<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 								<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Issued</th>
 								<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Recov.</th>
@@ -2173,7 +2173,7 @@
 					<div class="border border-white/10 rounded overflow-hidden">
 						<table class="w-full text-left border-collapse">
 							<thead style="background: #0d0d0d;">
-								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
+								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
 									<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Lot</th>
 									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Recovery</th>
 									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">vs Prev</th>
@@ -2215,7 +2215,7 @@
 					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
 						<table class="w-full text-left border-collapse">
 							<thead class="sticky top-0 bg-bg-card">
-								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
+								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH In</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH Out</th>
@@ -2298,7 +2298,7 @@
 				<!-- S1: KPI Strip -->
 				<div class="flex gap-1.5 mb-2 overflow-x-auto">
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Final Yield</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Final Yield</span>
 						<span class="text-lg font-black font-mono text-white">{(curLotAgg?.totalYieldKg ?? 0).toFixed(2)} kg</span>
 						{#if yieldDeltaKg !== null}
 							<span class="text-xs font-bold" style="color: {yieldDeltaKg >= 0 ? '#bef264' : '#ef4444'};">{yieldDeltaKg >= 0 ? '▲' : '▼'} {Math.abs(yieldDeltaKg).toFixed(2)}kg</span>
@@ -2307,22 +2307,22 @@
 						{/if}
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Extract Rate</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Extract Rate</span>
 						<span class="text-sm font-black font-mono" style="color: #bef264;">{(curLotAgg?.avgYieldPct ?? 0).toFixed(2)}%</span>
 						{#if rateDelta !== null}
 							<span class="text-xs font-bold" style="color: {rateDelta >= 0 ? '#bef264' : '#ef4444'};">{rateDelta >= 0 ? '▲' : '▼'} {Math.abs(rateDelta).toFixed(2)}%</span>
 						{/if}
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Best Batch</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Best Batch</span>
 						<span class="text-lg font-black font-mono text-white">{bestYieldBatch?.batch_number.replace('SG-', '') ?? '—'}</span>
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Purity</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Purity</span>
 						<span class="text-lg font-black font-mono text-white">{curLotAgg?.avgPurity?.toFixed(1) ?? '—'}%</span>
 					</div>
 					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-500 uppercase tracking-widest">Yield Rank</span>
+						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Yield Rank</span>
 						<span class="text-lg font-black font-mono text-white">#{yieldRank}/{lots.length}</span>
 					</div>
 				</div>
@@ -2553,7 +2553,7 @@
 					<div class="border border-white/10 rounded overflow-hidden">
 						<table class="w-full text-left border-collapse">
 							<thead style="background: #0d0d0d;">
-								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
+								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
 									<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Lot</th>
 									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield (kg)</th>
 									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Rate %</th>
@@ -2621,7 +2621,7 @@
 					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
 						<table class="w-full text-left border-collapse">
 							<thead class="sticky top-0 bg-bg-card">
-								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
+								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Leaf (kg)</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Powder (kg)</th>
@@ -2658,7 +2658,7 @@
 					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 100px;">
 						<table class="w-full text-left border-collapse">
 							<thead class="sticky top-0 bg-bg-card">
-								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
+								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
 									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Purity %</th>
 									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Mitragynine %</th>
@@ -2763,9 +2763,9 @@
 
 		<!-- Carousel navigation -->
 		<div class="flex-shrink-0 flex items-center justify-center gap-1.5 pt-2" style="border-top: 1px solid rgba(30, 30, 30, 0.8);">
-			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 0 ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 0}>Cost</button>
-			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 1 ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 1}>Ethanol</button>
-			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 2 ? 'text-text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 2}>Yield</button>
+			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 0 ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 0}>Cost</button>
+			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 1 ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 1}>Ethanol</button>
+			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 2 ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 2}>Yield</button>
 		</div>
 	</div>
 
