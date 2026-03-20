@@ -1522,7 +1522,7 @@
 				{@const segAvgs = segCats.map(cat => { const vals = lotCostSegs.map(s => s[cat]); return vals.reduce((a, b) => a + b, 0) / vals.length; })}
 				<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Cost Variance Heatmap</h4>
-					<div class="border border-white/10 rounded overflow-auto" style="max-height: 100px;">
+					<div class="border border-white/10 rounded overflow-auto" style="max-height: 180px; scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
 						<table class="w-full text-left border-collapse">
 							<thead class="sticky top-0" style="background: #0d0d0d;">
 								<tr class="text-xs font-bold text-slate-500 uppercase tracking-widest">
