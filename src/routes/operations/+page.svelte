@@ -1259,7 +1259,7 @@
 			<!-- ═══ COST INTELLIGENCE ═══ -->
 			<div class="flex items-center justify-between mb-1.5">
 				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined text-[14px] opacity-50" style="color: #ec5b13;">payments</span>
+					<span class="material-symbols-outlined text-[14px] opacity-50" style="color: #bef264;">payments</span>
 					<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Cost Intelligence</h3>
 					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
 						<span class="material-symbols-outlined text-sm">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
@@ -1311,9 +1311,9 @@
 
 			<!-- Mode toggle -->
 			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'lot' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'lot' ? 'background: rgba(236, 91, 19, 0.15);' : ''} onclick={() => costMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'batch' ? 'background: rgba(236, 91, 19, 0.15);' : ''} onclick={() => costMode = 'batch'}>Lot History</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'history' ? 'background: rgba(236, 91, 19, 0.15);' : ''} onclick={() => costMode = 'history'}>Cost Drivers</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'lot' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'lot' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => costMode = 'lot'}>Run Summary</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'batch' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'batch' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => costMode = 'batch'}>Lot History</button>
+				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'history' ? 'text-text-primary' : 'text-text-muted/35 hover:text-text-muted/60'}" style={costMode === 'history' ? 'background: rgba(190, 242, 100, 0.15);' : ''} onclick={() => costMode = 'history'}>Cost Drivers</button>
 			</div>
 		{:else if carouselIndex === 1}
 			<!-- ═══ SOLVENT INTELLIGENCE ═══ -->
