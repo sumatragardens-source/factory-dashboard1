@@ -1143,7 +1143,7 @@
 		{#if data.activeBatchProgress.length === 0}
 			<p class="text-xs text-text-muted">No active lots</p>
 		{:else}
-			<div class="pr-1 overflow-y-auto overflow-x-hidden flex-1 min-h-0" style="scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
+			<div class="pr-1 overflow-y-auto overflow-x-hidden flex-1" style="scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
 				<!-- Header -->
 				<div style="display: grid; grid-template-columns: 72px repeat(7, 1fr) 12px 1fr 1fr 1fr;" class="text-xs font-bold text-text-muted uppercase tracking-wider pb-1.5 border-b border-border-subtle gap-1.5 sticky top-0 bg-bg-card z-10">
 					<button onclick={selectRun} class="text-left transition-colors {selectedBatchId === null ? 'text-primary' : 'text-text-muted hover:text-primary/70'}">{activeLot ?? runLabel}</button>
