@@ -250,6 +250,39 @@
 	let chartTooltip: { x: number; y: number; lines: string[] } | null = $state(null);
 	let expandedCard: 0 | 1 | 2 | null = $state(null);
 
+	const costCategoryMeta: Record<string, { label: string; color: string; svg: string }> = {
+		leaf: {
+			label: 'Raw Leaf',
+			color: '#a3e635',
+			svg: `<svg viewBox="0 0 16 16" class="w-full h-full"><path d="M13 2s-4 0-7 3C3 8 2 13 2 13s5-1 8-4c3-3 3-7 3-7zM7.5 8.5l-3 3" fill="none" stroke="#a3e635" stroke-width="1.5" stroke-linecap="round"/></svg>`
+		},
+		solvent: {
+			label: 'Solvent (Ethanol)',
+			color: '#f97316',
+			svg: `<svg viewBox="0 0 16 16" class="w-full h-full"><path d="M8 2C8 2 3 7.5 3 10a5 5 0 0010 0C13 7.5 8 2 8 2z" fill="#f97316"/></svg>`
+		},
+		chemicals: {
+			label: 'Chemicals',
+			color: '#ef4444',
+			svg: `<svg viewBox="0 0 16 16" class="w-full h-full"><path d="M6 2v4L3 12a1.5 1.5 0 001.5 2h7a1.5 1.5 0 001.5-2L10 6V2M5 2h6" fill="none" stroke="#ef4444" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+		},
+		labor: {
+			label: 'Labor',
+			color: '#9ca3af',
+			svg: `<svg viewBox="0 0 16 16" class="w-full h-full"><circle cx="8" cy="5" r="2.5" fill="#9ca3af"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5" fill="#9ca3af"/></svg>`
+		},
+		electricity: {
+			label: 'Electricity',
+			color: '#eab308',
+			svg: `<svg viewBox="0 0 16 16" class="w-full h-full"><path d="M9 1L4 9h4l-1 6 5-8H8l1-6z" fill="#eab308"/></svg>`
+		},
+		testing: {
+			label: 'Lab Testing',
+			color: '#6b7280',
+			svg: `<svg viewBox="0 0 16 16" class="w-full h-full"><path d="M6 2v5l-3 6a1 1 0 001 1.5h8a1 1 0 001-1.5L10 7V2M5 2h6M5 9h6" fill="none" stroke="#6b7280" stroke-width="1.3" stroke-linecap="round"/></svg>`
+		}
+	};
+
 	// Selection state: null = whole production run, number = specific batch id
 	let selectedBatchId: number | null = $state(null);
 	type CompareMode = 'current' | 'previous' | 'avg5' | 'avg10';
@@ -1610,7 +1643,7 @@
 				</div>
 
 				<!-- Cost Breakdown — Current vs Previous -->
-				{@const segColors = { leaf: '#bef264', solvent: '#ec5b13', chemicals: '#ef4444', labor: '#9ca3af', electricity: '#f59e0b', testing: '#4b5563' }}
+				{@const segColors = { leaf: '#a3e635', solvent: '#f97316', chemicals: '#ef4444', labor: '#9ca3af', electricity: '#eab308', testing: '#6b7280' }}
 				{@const segKeys = ['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const}
 				{@const curSegs = curLotAgg?.costBySegment ?? { leaf: 0, solvent: 0, chemicals: 0, labor: 0, electricity: 0, testing: 0 }}
 				{@const curTotal = Object.values(curSegs).reduce((a, b) => a + b, 0) || 1}
@@ -1657,7 +1690,7 @@
 						</div>
 						<div class="flex flex-wrap gap-2 mt-0.5">
 							{#each segKeys as key}
-								<div class="flex items-center gap-0.5"><span class="size-1.5 rounded-full" style="background: {segColors[key]};"></span><span class="text-xs font-bold text-slate-500 uppercase">{key}</span></div>
+								<div class="flex items-center gap-1" title="{costCategoryMeta[key]?.label ?? key}"><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span class="text-xs font-bold text-slate-400">{costCategoryMeta[key]?.label ?? key}</span></div>
 							{/each}
 						</div>
 					</div>
@@ -1674,7 +1707,8 @@
 							{@const prevAmt = prevLotAgg ? prevLotAgg.costBySegment[cat as keyof typeof prevLotAgg.costBySegment] : null}
 							{@const driverDelta = prevAmt !== null ? amount - prevAmt : null}
 							<div class="flex items-center gap-1.5 text-sm">
-								<span class="w-14 font-bold text-slate-500 uppercase truncate">{cat}</span>
+								<span class="w-5 h-5 flex-none" title="{costCategoryMeta[cat]?.label ?? cat}">{@html costCategoryMeta[cat]?.svg ?? ''}</span>
+								<span class="font-bold text-slate-400 capitalize">{costCategoryMeta[cat]?.label ?? cat}</span>
 								<span class="font-mono font-bold text-white">{fmt(amount)}</span>
 								<span class="text-slate-500">{pct.toFixed(0)}%</span>
 								{#if driverDelta !== null}
@@ -1706,7 +1740,7 @@
 									{@const vals = shiftLots.map(l => { const a = lotSummaries.get(l); const segs = a?.costBySegment; if (!segs) return 0; const tot = Object.values(segs).reduce((s, v) => s + v, 0) || 1; return (segs[key] / tot) * 100; })}
 									{@const trend = vals.length >= 2 ? vals[vals.length - 1] - vals[0] : 0}
 									<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
-										<td class="px-1.5 py-0.5 uppercase text-slate-500 font-bold">{key}</td>
+										<td class="px-1.5 py-0.5 flex items-center gap-1" title="{costCategoryMeta[key]?.label ?? key}"><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span class="text-slate-400 font-bold">{costCategoryMeta[key]?.label ?? key}</span></td>
 										{#each vals as v}
 											<td class="px-1 py-0.5 text-center" style="color: {trend <= -2 ? '#bef264' : trend >= 2 ? '#ef4444' : '#cbd5e1'};">{v.toFixed(0)}%</td>
 										{/each}
@@ -1755,7 +1789,7 @@
 				})).sort((a, b) => b.total - a.total)}
 				{@const grandTotal = catTotals.reduce((s, c) => s + c.total, 0) || 1}
 				{@const paretoMax = catTotals[0]?.total || 1}
-				{@const driverSegColors = { leaf: '#bef264', solvent: '#ec5b13', chemicals: '#ef4444', labor: '#9ca3af', electricity: '#f59e0b', testing: '#4b5563' } as Record<string, string>}
+				{@const driverSegColors = { leaf: '#a3e635', solvent: '#f97316', chemicals: '#ef4444', labor: '#9ca3af', electricity: '#eab308', testing: '#6b7280' } as Record<string, string>}
 
 				<!-- 4a: Pareto Chart -->
 				<div class="mb-2">
@@ -1764,7 +1798,7 @@
 						{#each catTotals as { cat, total }, ci}
 							{@const cumPct = catTotals.slice(0, ci + 1).reduce((s, c) => s + c.total, 0) / grandTotal * 100}
 							<div class="flex items-center gap-1.5">
-								<span class="w-14 text-sm font-bold text-slate-500 uppercase truncate">{cat}</span>
+								<span class="w-5 h-5 flex-none" title="{costCategoryMeta[cat]?.label ?? cat}">{@html costCategoryMeta[cat]?.svg ?? ''}</span>
 								<div class="flex-1 h-3 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.03);">
 									<div class="h-full rounded-sm" style="width: {(total / paretoMax) * 100}%; background: {driverSegColors[cat] ?? '#9ca3af'};"
 										onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [cat, fmt(total), `${(total / grandTotal * 100).toFixed(1)}% of total`] }} onmouseleave={() => chartTooltip = null}></div>
@@ -1820,7 +1854,7 @@
 									{@const cpk = curSegsD[key] / lotYieldKg}
 									{@const pctOfTotal = totalCpk > 0 ? (cpk / totalCpk) * 100 : 0}
 									<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
-										<td class="px-1.5 py-0.5 flex items-center gap-1"><span class="size-1.5 rounded-full" style="background: {driverSegColors[key]};"></span><span class="uppercase text-slate-400">{key}</span></td>
+										<td class="px-1.5 py-0.5 flex items-center gap-1" title="{costCategoryMeta[key]?.label ?? key}"><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span class="text-slate-400">{costCategoryMeta[key]?.label ?? key}</span></td>
 										<td class="px-1 py-0.5 text-right text-white">{fmt(cpk)}</td>
 										<td class="px-1 py-0.5 text-right text-slate-400">{pctOfTotal.toFixed(1)}%</td>
 									</tr>
@@ -1859,7 +1893,7 @@
 									{@const impactDown = cpk * -0.1}
 									{@const impactUp = cpk * 0.1}
 									<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
-										<td class="px-1.5 py-0.5 uppercase text-slate-400">{key}</td>
+										<td class="px-1.5 py-0.5 flex items-center gap-1" title="{costCategoryMeta[key]?.label ?? key}"><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span class="text-slate-400">{costCategoryMeta[key]?.label ?? key}</span></td>
 										<td class="px-1 py-0.5 text-right text-white">{fmt(cpk)}</td>
 										<td class="px-1 py-0.5 text-right" style="color: #bef264;">{fmt(impactDown)}</td>
 										<td class="px-1 py-0.5 text-right" style="color: #ef4444;">+{fmt(impactUp)}</td>
