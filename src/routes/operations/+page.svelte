@@ -1097,23 +1097,7 @@
 				<button onclick={selectRun} class="flex items-center gap-1 px-1.5 py-0.5 rounded text-sm font-bold uppercase tracking-wider transition-colors {selectedBatchId === null ? 'text-primary bg-primary/15' : 'text-text-muted/50 hover:text-text-muted/70'}">
 					{runLabel}
 				</button>
-				<div class="relative">
-					<button onclick={() => compareDropdownOpen = !compareDropdownOpen} class="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium text-text-muted/40 hover:text-text-muted/60 transition-colors" style="border: 1px solid rgba(55, 65, 81, 0.25);">
-						{compareModeLabels[compareMode]}
-						<span class="material-symbols-outlined text-sm">expand_more</span>
-					</button>
-					{#if compareDropdownOpen}
-						<div class="absolute top-full left-0 mt-1 z-40 bg-bg-card border border-border-card rounded shadow-lg py-1 min-w-[110px]">
-							{#each Object.entries(compareModeLabels) as [key, label]}
-								{#if key === 'current' || (key === 'previous' && hasHistory) || (key === 'avg5' && data.runHistory.filter(r => r.status === 'Completed').length >= 1)}
-									<button class="w-full px-2 py-1 text-xs text-left transition-colors {compareMode === key ? 'text-primary bg-primary/10' : 'text-text-muted hover:bg-bg-card-hover'}" onclick={() => setCompareMode(key)}>{label}</button>
-								{:else}
-									<button class="w-full px-2 py-1 text-xs text-left text-text-muted/25 cursor-not-allowed" disabled>{label} <span class="text-[11px]">(soon)</span></button>
-								{/if}
-							{/each}
-						</div>
-					{/if}
-				</div>
+				<span class="text-xs text-text-muted/50">{runLabel} · {runCompletedBatches}/{runBatchCount} batches</span>
 			</div>
 			<div class="flex-1 flex items-center gap-3 justify-end">
 				<div class="flex items-center gap-1">
