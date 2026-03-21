@@ -1,5 +1,5 @@
 import { getDb } from '../db';
-import type { Batch, BatchStage, Deviation, Approval, Machine, LabResult, ProductionRun, ProductionRunSummary, BatchCostSummary, BatchEthanolSummary, BatchYieldSummary, RunHistorySummary, AnomalyFlag, QualityCorrelationPoint } from '$lib/domain/types';
+import type { Batch, BatchStage, Deviation, Approval, Machine, LabResult, ProductionRun, ProductionRunSummary, BatchCostSummary, BatchEthanolSummary, BatchYieldSummary, RunHistorySummary, AnomalyFlag, QualityCorrelationPoint, Stage1Record, Stage2Record, Stage3Record, Stage4Record } from '$lib/domain/types';
 import { getBatchCosts } from './costingRepo';
 import { calculateTotalBatchCost, calculateCostPerKg } from '$lib/calculations/costing';
 
@@ -715,11 +715,11 @@ export function getOperationsPipelineMetrics(): OperationsPipelineMetrics {
 		FROM stage2_records s2
 		JOIN batches b ON b.id = s2.batch_id
 		WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}
-	`).get() as any;
+	`).get() as { batch_count: number; ethanol_used: number; filtration_output: number; recovered: number; lost: number; extract_total: number };
 
-	const s3 = db.prepare(`SELECT COALESCE(SUM(s3.dlimo_recovered_L), 0) as lim_recovered, COALESCE(SUM(s3.dlimo_lost_L), 0) as lim_lost FROM stage3_records s3 JOIN batches b ON b.id = s3.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`).get() as any;
+	const s3 = db.prepare(`SELECT COALESCE(SUM(s3.dlimo_recovered_L), 0) as lim_recovered, COALESCE(SUM(s3.dlimo_lost_L), 0) as lim_lost FROM stage3_records s3 JOIN batches b ON b.id = s3.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`).get() as { lim_recovered: number; lim_lost: number };
 
-	const s4 = db.prepare(`SELECT COALESCE(SUM(s4.wet_precipitate_g / 1000.0), 0) as precipitate_total, COALESCE(SUM(s4.final_product_g / 1000.0), 0) as final_total FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`).get() as any;
+	const s4 = db.prepare(`SELECT COALESCE(SUM(s4.wet_precipitate_g / 1000.0), 0) as precipitate_total, COALESCE(SUM(s4.final_product_g / 1000.0), 0) as final_total FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`).get() as { precipitate_total: number; final_total: number };
 
 	const completedCount = (db.prepare(`SELECT COUNT(*) as cnt FROM batches WHERE status = 'Completed' AND production_run_id = ${ACTIVE_RUN_ID_SQL}`).get() as { cnt: number }).cnt;
 
@@ -1079,18 +1079,17 @@ export function getBatchDetailForDrawer(batchId: number, runId: number): BatchDe
 	if (!batch) return null;
 
 	const stages = db.prepare('SELECT * FROM batch_stages WHERE batch_id = ? ORDER BY stage_number').all(batchId) as BatchStage[];
-	const stage1 = db.prepare('SELECT * FROM stage1_records WHERE batch_id = ?').get(batchId) || null;
-	const stage2 = db.prepare('SELECT * FROM stage2_records WHERE batch_id = ?').get(batchId) || null;
-	const stage3 = db.prepare('SELECT * FROM stage3_records WHERE batch_id = ?').get(batchId) || null;
-	const stage4 = db.prepare('SELECT * FROM stage4_records WHERE batch_id = ?').get(batchId) || null;
+	const stage1 = db.prepare('SELECT * FROM stage1_records WHERE batch_id = ?').get(batchId) as Stage1Record | undefined ?? null;
+	const stage2 = db.prepare('SELECT * FROM stage2_records WHERE batch_id = ?').get(batchId) as Stage2Record | undefined ?? null;
+	const stage3 = db.prepare('SELECT * FROM stage3_records WHERE batch_id = ?').get(batchId) as Stage3Record | undefined ?? null;
+	const stage4 = db.prepare('SELECT * FROM stage4_records WHERE batch_id = ?').get(batchId) as Stage4Record | undefined ?? null;
 
 	const costsByCategory = db.prepare(`
 		SELECT cost_category as category, COALESCE(SUM(total_cost), 0) as total
 		FROM batch_costs WHERE batch_id = ? GROUP BY cost_category ORDER BY total DESC
 	`).all(batchId) as { category: string; total: number }[];
 	const totalCost = costsByCategory.reduce((s, c) => s + c.total, 0);
-	const s4 = stage4 as any;
-	const finalProductKg = s4?.final_product_g ? s4.final_product_g / 1000.0 : null;
+	const finalProductKg = stage4?.final_product_g ? stage4.final_product_g / 1000.0 : null;
 	const costPerKg = finalProductKg ? Number((totalCost / finalProductKg).toFixed(2)) : null;
 
 	const deviations = db.prepare('SELECT * FROM deviations WHERE batch_id = ? ORDER BY created_at DESC').all(batchId) as Deviation[];
