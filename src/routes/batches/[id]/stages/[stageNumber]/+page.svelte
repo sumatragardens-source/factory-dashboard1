@@ -3,8 +3,9 @@
 	import { enhance } from '$app/forms';
 	import { calculateLeafDryMass, calculateGrindThroughput, calculateDryingLoss, calculateOverallDryYield } from '$lib/calculations/yield';
 	import { fmt } from '$lib/config/costs';
+	import type { PageData } from './$types';
 
-	let { data, form } = $props();
+	let { data, form }: { data: PageData; form: any } = $props();
 
 	const stageIcons = ['eco', 'science', 'swap_horiz', 'air'];
 
@@ -55,7 +56,7 @@
 		return s4FinalProduct > 0 && leafDry > 0 ? calculateOverallDryYield(s4FinalProduct, leafDry) : null;
 	});
 
-	const currentStage = $derived(data.stages.find((s: any) => s.stage_number === data.stageNumber));
+	const currentStage = $derived(data.stages.find((s) => s.stage_number === data.stageNumber));
 	const isFinalized = $derived(currentStage?.status === 'Finalized');
 
 	const disabledClass = 'w-full bg-bg-input/50 border-border-card rounded-lg text-sm text-text-muted cursor-not-allowed';
@@ -130,7 +131,7 @@
 			</header>
 
 			{#if data.alerts?.length > 0}
-				{@const unacked = data.alerts.filter((a: any) => !a.acknowledged)}
+				{@const unacked = data.alerts.filter((a) => !a.acknowledged)}
 				{#if unacked.length > 0}
 					<div class="mx-8 mt-4 space-y-2">
 						{#each unacked as alert}
@@ -315,7 +316,7 @@
 									<span class="material-symbols-outlined text-xs align-middle mr-1">input</span>
 									From Stage 1: Raw Leaf to Powder
 								</h4>
-								{#if data.stage1 && data.stages.find((s: any) => s.stage_number === 1)?.status === 'Finalized'}
+								{#if data.stage1 && data.stages.find((s) => s.stage_number === 1)?.status === 'Finalized'}
 									<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
 										<div><p class="text-[10px] text-text-muted">Net Leaf</p><p class="text-sm font-bold text-text-primary">{data.stage1.net_leaf_kg} kg</p></div>
 										<div><p class="text-[10px] text-text-muted">Powder Output</p><p class="text-sm font-bold text-text-primary">{data.stage1.powder_output_kg} kg</p></div>
@@ -476,7 +477,7 @@
 									<span class="material-symbols-outlined text-xs align-middle mr-1">input</span>
 									From Stage 2: Ethanol Extraction
 								</h4>
-								{#if data.stage2 && data.stages.find((s: any) => s.stage_number === 2)?.status === 'Finalized'}
+								{#if data.stage2 && data.stages.find((s) => s.stage_number === 2)?.status === 'Finalized'}
 									<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
 										<div><p class="text-[10px] text-text-muted">Crude Extract</p><p class="text-sm font-bold text-text-primary">{data.stage2.crude_extract_wt_kg} kg</p></div>
 										<div><p class="text-[10px] text-text-muted">EtOH Issued</p><p class="text-sm font-bold text-text-primary">{data.stage2.etoh_vol_L} L</p></div>
@@ -613,7 +614,7 @@
 									<span class="material-symbols-outlined text-xs align-middle mr-1">input</span>
 									From Stage 3: Acid/Base Extraction
 								</h4>
-								{#if data.stage3 && data.stages.find((s: any) => s.stage_number === 3)?.status === 'Finalized'}
+								{#if data.stage3 && data.stages.find((s) => s.stage_number === 3)?.status === 'Finalized'}
 									<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
 										<div><p class="text-[10px] text-text-muted">D-Limo Issued</p><p class="text-sm font-bold text-text-primary">{data.stage3.dlimo_vol_L} L</p></div>
 										<div><p class="text-[10px] text-text-muted">D-Limo Recovered</p><p class="text-sm font-bold text-text-primary">{data.stage3.dlimo_recovered_L} L</p></div>

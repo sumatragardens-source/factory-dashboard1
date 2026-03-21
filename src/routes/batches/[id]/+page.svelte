@@ -3,30 +3,31 @@
 	import { getProcessStageName } from '$lib/constants/stageNames';
 	import { fmt } from '$lib/config/costs';
 	import { generateBatchPDF } from '$lib/utils/pdfExport';
+	import type { PageData } from './$types';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 	let activeTab = $state('overview');
 	let rejectReason = $state('');
 
 	const stageIcons = ['eco', 'science', 'swap_horiz', 'air'];
-	const progress = $derived((data.stages.filter((s: any) => s.status === 'Finalized').length / 4) * 100);
+	const progress = $derived((data.stages.filter((s) => s.status === 'Finalized').length / 4) * 100);
 	const activityEvents = $derived([
-		...data.deviations.map((d: any) => ({ type: 'deviation', icon: 'warning', desc: `${d.deviation_type}: ${d.parameter} (${d.severity})`, ts: d.created_at })),
-		...data.approvals.map((a: any) => ({ type: 'approval', icon: 'verified', desc: `${a.approval_type.replace(/_/g, ' ')} — ${a.status}`, ts: a.requested_at })),
-		...data.machineEvents.map((m: any) => ({ type: 'machine', icon: 'precision_manufacturing', desc: `${m.machine_name}: ${m.previous_status} → ${m.new_status}`, ts: m.created_at })),
-		...data.stages.filter((s: any) => s.started_at).map((s: any) => ({
-			type: 'stage_started',
+		...data.deviations.map((d) => ({ type: 'deviation' as const, icon: 'warning', desc: `${d.deviation_type}: ${d.parameter} (${d.severity})`, ts: d.created_at })),
+		...data.approvals.map((a) => ({ type: 'approval' as const, icon: 'verified', desc: `${a.approval_type.replace(/_/g, ' ')} — ${a.status}`, ts: a.requested_at })),
+		...data.machineEvents.map((m) => ({ type: 'machine' as const, icon: 'precision_manufacturing', desc: `${m.machine_name}: ${m.previous_status} → ${m.new_status}`, ts: m.created_at })),
+		...data.stages.filter((s) => s.started_at).map((s) => ({
+			type: 'stage_started' as const,
 			icon: 'play_circle',
 			desc: `Stage ${s.stage_number} started`,
 			ts: s.started_at
 		})),
-		...data.stages.filter((s: any) => s.finalized_at).map((s: any) => ({
-			type: 'stage_finalized',
+		...data.stages.filter((s) => s.finalized_at).map((s) => ({
+			type: 'stage_finalized' as const,
 			icon: 'check_circle',
 			desc: `Stage ${s.stage_number} finalized${s.finalized_by ? ` by ${s.finalized_by}` : ''}`,
 			ts: s.finalized_at
 		}))
-	].sort((a: any, b: any) => new Date(b.ts).getTime() - new Date(a.ts).getTime()));
+	].sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime()));
 </script>
 
 {#if data.batch}
@@ -178,7 +179,7 @@
 						<div class="p-6 border-b border-primary/5 flex justify-between items-center">
 							<div>
 								<h3 class="text-xl font-bold text-text-primary">{data.batch.status === 'Completed' ? 'All Stages Complete' : `Active Stage: ${getProcessStageName(data.batch.current_stage)}`}</h3>
-								<p class="text-sm text-text-muted">{data.stages.filter((s: any) => s.status === 'Finalized').length} of 4 stages complete</p>
+								<p class="text-sm text-text-muted">{data.stages.filter((s) => s.status === 'Finalized').length} of 4 stages complete</p>
 							</div>
 							<div class="bg-primary/10 px-3 py-1 rounded-full text-primary font-bold text-xs uppercase tracking-widest">
 								{data.batch.status}
@@ -236,7 +237,7 @@
 										<span class="material-symbols-outlined text-lg">block</span>
 										<span class="text-sm font-bold">This batch was rejected</span>
 									</div>
-									{#each data.approvals.filter((a: any) => a.status === 'Rejected') as rejection}
+									{#each data.approvals.filter((a) => a.status === 'Rejected') as rejection}
 										{#if rejection.decision_notes}
 											<p class="text-xs text-text-muted px-1">Reason: {rejection.decision_notes}</p>
 										{/if}

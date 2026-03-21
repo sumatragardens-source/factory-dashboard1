@@ -56,14 +56,8 @@
 	const intakePct = TOTAL_INTAKE_KG > 0 ? Math.min(100, (processedKg / TOTAL_INTAKE_KG) * 100) : 0;
 	const remainingKg = Math.max(0, TOTAL_INTAKE_KG - processedKg);
 
-	// Filtration & distillation rates
-	const filtrationLossL = Number((pm.ethanol70TotalL - pm.filtrationOutputL).toFixed(1));
-	const filtrationPct = pm.ethanol70TotalL > 0 ? (pm.filtrationOutputL / pm.ethanol70TotalL * 100).toFixed(1) : '0';
-	const distillationPct = pm.filtrationOutputL > 0 ? (pm.ethanolRecoveredL / pm.filtrationOutputL * 100).toFixed(1) : '0';
-
 	// Solvent recovery rates
 	const ethRecoveryRate = data.solventTotals.ethanol_issued > 0 ? (data.solventTotals.ethanol_recovered / data.solventTotals.ethanol_issued * 100) : 0;
-	const limRecoveryRate = data.solventTotals.limonene_issued > 0 ? (data.solventTotals.limonene_recovered / data.solventTotals.limonene_issued * 100) : 0;
 
 	// Pipeline: 5 main icons connected by lines with 4 notch circles between them
 	const RING_SIZE = 76;
@@ -151,27 +145,15 @@
 	const DAILY_BUDGET = TARGETS.dailyBudget;
 	const YIELD_TARGET = extractTarget; // 1.5
 
-	// Stage yields (% of each stage's input retained)
-	const grindingYield = processedKg > 0 ? (pm.totalPowderKg / processedKg * 100) : 0;
-	const extractionYield = pm.totalPowderKg > 0 ? (pm.extractTotalKg / pm.totalPowderKg * 100) : 0;
-
 	// Cost KPI helpers
 	const costPerBatch = pm.completedCount > 0 ? costTotal / pm.completedCount : 0;
 	const budgetVariance = data.dailyOpCost - DAILY_BUDGET;
-
-	// Sorted cost categories for bars (monochromatic steel-blue, opacity ranked)
-	const sortedCostCategories = [...costCategories].sort((a, b) => b.value - a.value);
-	const maxCost = Math.max(...costCategories.map(c => c.value), 1);
-	const costBarOpacities = [0.85, 0.65, 0.50, 0.38, 0.25];
 
 	// Chart dimensions (wide panoramic, shallow signal-monitor)
 	const CW = 240, CH = 44;
 
 	// Filtration return & concentration metrics
 	const filtrationReturnL = pm.filtrationOutputL;
-	const filtrateConcentration = pm.extractTotalKg > 0 && filtrationReturnL > 0
-		? (pm.extractTotalKg / filtrationReturnL * 1000) : 0; // g/L
-	const estimatedDissolvedKg = pm.extractTotalKg;
 	const distillationRecoveryPct = ethRecoveryRate; // overall solvent recovery %
 	const distillationDelta = distillationRecoveryPct - ETH_RECOVERY_TARGET;
 
@@ -234,14 +216,6 @@
 	let selectedBatchId: number | null = $state(null);
 	type CompareMode = 'current' | 'previous' | 'avg5' | 'avg10';
 	let compareMode: CompareMode = $state('current');
-	let compareDropdownOpen = $state(false);
-	const compareModeLabels: Record<CompareMode, string> = {
-		current: 'Current Ton',
-		previous: 'Previous Ton',
-		avg5: '5-Ton Average',
-		avg10: '10-Ton Average'
-	};
-
 	function selectBatch(id: number) {
 		if (selectedBatchId === id) {
 			// Double-click opens drawer
@@ -253,11 +227,6 @@
 	function selectRun() {
 		selectedBatchId = null;
 	}
-	function setCompareMode(mode: string) {
-		compareMode = mode as CompareMode;
-		compareDropdownOpen = false;
-	}
-
 	// Derived: selected batch detail from run breakdowns
 	const selectedCostRow = $derived(selectedBatchId ? data.runBatchCosts.find(c => c.batch_id === selectedBatchId) : null);
 	const selectedEthRow = $derived(selectedBatchId ? data.runEthanolBreakdown.find(e => e.batch_id === selectedBatchId) : null);
@@ -461,12 +430,9 @@
 		: extractEfficiency;
 	const yieldDelta = extractEfficiency - avgYield;
 
-	const totalEthLoss = data.solventTotals.ethanol_lost;
-
 	// Run history derived values
 	const currentRunHistory = $derived(data.runHistory.find(r => r.runId === data.activeRunId));
 	const previousRunHistory = $derived(data.runHistory.find(r => r.runId !== data.activeRunId && r.status === 'Completed'));
-	const hasHistory = $derived(data.runHistory.length >= 2);
 
 	const comparisonTarget = $derived.by(() => {
 		if (compareMode === 'previous') return previousRunHistory;

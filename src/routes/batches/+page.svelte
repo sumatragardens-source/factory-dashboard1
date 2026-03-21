@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { getProcessStageName } from '$lib/constants/stageNames';
 	import type { BatchState } from '$lib/constants/batchStates';
+	import type { PageData } from './$types';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	let statusFilter = $state('All');
 	let showNewForm = $state(false);
@@ -10,7 +11,7 @@
 	const supplierOptions = ['Supplier A - Kalimantan', 'Supplier B - Kalimantan'];
 
 	const filteredBatches = $derived(
-		statusFilter === 'All' ? data.batches : data.batches.filter((b: any) => b.status === statusFilter)
+		statusFilter === 'All' ? data.batches : data.batches.filter((b) => b.status === statusFilter)
 	);
 
 	const statusDot: Record<string, string> = {
@@ -93,7 +94,7 @@
 					{statusFilter === st ? 'bg-primary/20 text-text-primary' : 'bg-bg-card text-text-muted hover:bg-bg-card-hover border border-border-card'}"
 				onclick={() => statusFilter = st}
 			>
-				{st} {st === 'All' ? `(${data.batches.length})` : `(${data.batches.filter((b: any) => b.status === st).length})`}
+				{st} {st === 'All' ? `(${data.batches.length})` : `(${data.batches.filter((b) => b.status === st).length})`}
 			</button>
 		{/each}
 	</div>
