@@ -2,6 +2,8 @@
 	import { getStageName } from '$lib/constants/stageNames';
 	import { fmt, TARGETS, UNIT_RATES } from '$lib/config/costs';
 	import BatchDrawer from '$lib/components/ui/BatchDrawer.svelte';
+	import { smoothPath, computeTargetY, rollingAvg, costBarColorByRange } from '$lib/utils/chartGeometry';
+	import { getLotStageYields } from '$lib/calculations/yield';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -143,39 +145,6 @@
 	];
 	const costTotal = cb.total;
 
-	// Smooth area chart generation (Catmull-Rom interpolation)
-	function smoothPath(values: number[], w: number, h: number, pad = 10) {
-		if (values.length < 2) return { line: '', area: '', points: [] as { x: number; y: number }[] };
-		const min = Math.min(...values);
-		const max = Math.max(...values, min + 0.01);
-		const range = max - min;
-		const pts = values.map((v, i) => ({
-			x: pad + (i / (values.length - 1)) * (w - 2 * pad),
-			y: pad + (1 - (v - min) / range) * (h - 2 * pad)
-		}));
-		let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
-		for (let i = 0; i < pts.length - 1; i++) {
-			const p0 = pts[Math.max(0, i - 1)];
-			const p1 = pts[i];
-			const p2 = pts[i + 1];
-			const p3 = pts[Math.min(pts.length - 1, i + 2)];
-			const t = 0.3;
-			const c1x = (p1.x + (p2.x - p0.x) * t).toFixed(1);
-			const c1y = (p1.y + (p2.y - p0.y) * t).toFixed(1);
-			const c2x = (p2.x - (p3.x - p1.x) * t).toFixed(1);
-			const c2y = (p2.y - (p3.y - p1.y) * t).toFixed(1);
-			d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
-		}
-		const area = `${d} L${pts[pts.length - 1].x.toFixed(1)},${h} L${pts[0].x.toFixed(1)},${h} Z`;
-		return { line: d, area, points: pts };
-	}
-
-	function computeTargetY(target: number, values: number[], h: number, pad = 10): number {
-		const min = Math.min(...values, target);
-		const max = Math.max(...values, target, min + 0.01);
-		return pad + (1 - (target - min) / (max - min)) * (h - 2 * pad);
-	}
-
 	// Target constants
 	const ETH_RECOVERY_TARGET = 95;
 	const DAILY_BUDGET = TARGETS.dailyBudget;
@@ -184,29 +153,6 @@
 	// Stage yields (% of each stage's input retained)
 	const grindingYield = processedKg > 0 ? (pm.totalPowderKg / processedKg * 100) : 0;
 	const extractionYield = pm.totalPowderKg > 0 ? (pm.extractTotalKg / pm.totalPowderKg * 100) : 0;
-
-	function costBarColorByRange(cpk: number, allCpks: number[], isCurrent: boolean): string {
-		const alpha = isCurrent ? 0.8 : 0.5;
-		const valid = allCpks.filter(v => v > 0);
-		if (valid.length < 2 || cpk <= 0) return `rgba(190,242,100,${alpha})`;
-		const mn = Math.min(...valid);
-		const mx = Math.max(...valid);
-		if (mx === mn) return `rgba(190,242,100,${alpha})`;
-		const t = (cpk - mn) / (mx - mn);
-		let r, g, b;
-		if (t < 0.5) {
-			const u = t * 2;
-			r = Math.round(190 + (245 - 190) * u);
-			g = Math.round(242 + (158 - 242) * u);
-			b = Math.round(100 + (11 - 100) * u);
-		} else {
-			const u = (t - 0.5) * 2;
-			r = Math.round(245 + (239 - 245) * u);
-			g = Math.round(158 + (68 - 158) * u);
-			b = Math.round(11 + (68 - 11) * u);
-		}
-		return `rgba(${r},${g},${b},${alpha})`;
-	}
 
 	// Cost KPI helpers
 	const costPerBatch = pm.completedCount > 0 ? costTotal / pm.completedCount : 0;
@@ -724,14 +670,6 @@
 		};
 	});
 
-	function rollingAvg(values: number[], window: number): number[] {
-		return values.map((_, i) => {
-			const start = Math.max(0, i - window + 1);
-			const slice = values.slice(start, i + 1);
-			return slice.reduce((a, b) => a + b, 0) / slice.length;
-		});
-	}
-
 	const batchSequenceEthanol = $derived.by(() => {
 		return data.runEthanolBreakdown
 			.filter(e => e.recovery_pct != null)
@@ -744,37 +682,9 @@
 			}));
 	});
 
-	function getLotStageYields(lotId: string | null): { grinding: number; extraction: number; abPhase: number; drying: number } {
+	function getLotStageYieldsForLot(lotId: string | null) {
 		if (!lotId) return { grinding: 0, extraction: 0, abPhase: 0, drying: 0 };
-		const batches = data.activeBatchProgress.filter(b => b.supplier_lot === lotId);
-		if (batches.length === 0) return { grinding: 0, extraction: 0, abPhase: 0, drying: 0 };
-
-		// Grinding: only batches with powder data
-		const withPowder = batches.filter(b => b.powder_output_kg != null);
-		const grindLeaf = withPowder.reduce((s, b) => s + (b.leaf_input_kg ?? 0), 0);
-		const grindPowder = withPowder.reduce((s, b) => s + (b.powder_output_kg ?? 0), 0);
-
-		// Extraction: EtOH solvent recovery rate
-		const withEtoh = batches.filter(b => b.etoh_vol_L != null && b.etoh_vol_L > 0);
-		const extIssued = withEtoh.reduce((s, b) => s + (b.etoh_vol_L ?? 0), 0);
-		const extRecovered = withEtoh.reduce((s, b) => s + (b.etoh_recovered_L ?? 0), 0);
-
-		// A/B Phase: d-Limonene solvent recovery rate
-		const withDlimo = batches.filter(b => b.dlimo_vol_L != null && b.dlimo_vol_L > 0);
-		const abIssued = withDlimo.reduce((s, b) => s + (b.dlimo_vol_L ?? 0), 0);
-		const abRecovered = withDlimo.reduce((s, b) => s + (b.dlimo_recovered_L ?? 0), 0);
-
-		// Drying: only batches with final product data
-		const withFinal = batches.filter(b => b.final_product_g != null);
-		const dryPrecip = withFinal.reduce((s, b) => s + ((b.wet_precipitate_g ?? 0) / 1000), 0);
-		const dryFinal = withFinal.reduce((s, b) => s + ((b.final_product_g ?? 0) / 1000), 0);
-
-		return {
-			grinding: grindLeaf > 0 ? (grindPowder / grindLeaf) * 100 : 0,
-			extraction: extIssued > 0 ? (extRecovered / extIssued) * 100 : 0,
-			abPhase: abIssued > 0 ? (abRecovered / abIssued) * 100 : 0,
-			drying: dryPrecip > 0 ? (dryFinal / dryPrecip) * 100 : 0
-		};
+		return getLotStageYields(data.activeBatchProgress.filter(b => b.supplier_lot === lotId));
 	}
 
 	const inventoryConfig: Record<string, { threshold: number; usagePerLot: number }> = {
@@ -2378,8 +2288,8 @@
 
 				<!-- S3: Stage Yield — Current vs Previous -->
 				<!-- Stage Yields: Grinding=material retention, Extraction=EtOH recovery, A/B Phase=D-Limo recovery, Drying=mass after moisture removal -->
-				{@const curStages = getLotStageYields(activeLot)}
-				{@const prevStages = getLotStageYields(prevLot)}
+				{@const curStages = getLotStageYieldsForLot(activeLot)}
+				{@const prevStages = getLotStageYieldsForLot(prevLot)}
 				{@const yieldStageNames = ['Raw Leaf to Powder', 'Ethanol Extraction', 'Acid/Base Extraction and Partitioning', 'Back Extraction, Precipitation, Drying, and Final Product'] as const}
 				{@const stageKeys = ['grinding', 'extraction', 'abPhase', 'drying'] as const}
 				{@const stageThresholds = { grinding: { green: 93, orange: 88 }, extraction: { green: 82, orange: 78 }, abPhase: { green: 95, orange: 90 }, drying: { green: 70, orange: 60 } }}
