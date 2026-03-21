@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { fmt } from '$lib/config/costs';
-	let { data } = $props();
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	// Waterfall positioning logic
 	const maxHeight = 320;
@@ -33,7 +35,7 @@
 	const recoveryDelta = Number((data.bulletChart.current - data.bulletChart.rolling10).toFixed(1));
 
 	// Worst batches: sort by lost descending, take top 5
-	const worstBatches = [...data.batchPerformance].sort((a: any, b: any) => b.lost - a.lost).slice(0, 5);
+	const worstBatches = [...data.batchPerformance].sort((a, b) => b.lost - a.lost).slice(0, 5);
 	const maxBatchLoss = worstBatches.length > 0 ? worstBatches[0].lost : 1;
 </script>
 

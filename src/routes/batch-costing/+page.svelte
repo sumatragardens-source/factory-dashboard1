@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { fmt, TARGETS } from '$lib/config/costs';
-	let { data } = $props();
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	// Derived KPI values
 	const materialCost = data.avgPerBatch * data.materialPct / 100;
@@ -12,7 +14,7 @@
 		: 0;
 
 	// Max stage total for bar scaling
-	const maxStageTotal = Math.max(...data.stageAccumulation.map((s: any) => s.total), 1);
+	const maxStageTotal = Math.max(...data.stageAccumulation.map((s) => s.total), 1);
 
 	// Segment color override
 	function segColor(label: string): string {

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { getProcessStageName } from '$lib/constants/stageNames';
+	import type { PageData } from './$types';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 
 	const severityColors: Record<string, string> = {
 		Critical: 'text-red-400 bg-red-900/20',
@@ -130,7 +131,7 @@
 	</div>
 
 	<!-- Bottom row: Root Cause + Corrective Actions for resolved -->
-	{#if data.deviations.some((d: any) => d.root_cause || d.corrective_action)}
+	{#if data.deviations.some((d) => d.root_cause || d.corrective_action)}
 		<div class="mt-6 grid grid-cols-2 gap-6">
 			<div class="bg-bg-card border border-border-card rounded p-6">
 				<h3 class="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
@@ -138,7 +139,7 @@
 					Root Cause Analysis
 				</h3>
 				<div class="space-y-4">
-					{#each data.deviations.filter((d: any) => d.root_cause) as dev}
+					{#each data.deviations.filter((d) => d.root_cause) as dev}
 						<div class="border-l-2 border-primary pl-3">
 							<p class="text-xs font-bold text-text-primary">{dev.batch_number} · {getProcessStageName(dev.stage_number)}</p>
 							<p class="text-xs text-text-secondary mt-1">{dev.root_cause}</p>
@@ -152,7 +153,7 @@
 					Corrective Actions
 				</h3>
 				<div class="space-y-4">
-					{#each data.deviations.filter((d: any) => d.corrective_action) as dev}
+					{#each data.deviations.filter((d) => d.corrective_action) as dev}
 						<div class="border-l-2 border-primary pl-3">
 							<p class="text-xs font-bold text-text-primary">{dev.batch_number} · {dev.deviation_type}</p>
 							<p class="text-xs text-text-secondary mt-1">{dev.corrective_action}</p>

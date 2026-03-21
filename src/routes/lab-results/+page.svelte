@@ -1,9 +1,11 @@
 <script lang="ts">
-	let { data } = $props();
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	let selectedId = $state(data.selected?.id ?? null);
 
-	let selected = $derived(data.labResults.find((r: any) => r.id === selectedId) ?? data.labResults[0] ?? null);
+	let selected = $derived(data.labResults.find(r => r.id === selectedId) ?? data.labResults[0] ?? null);
 
 	const statusBadge: Record<string, string> = {
 		Completed: 'text-primary bg-primary/10',

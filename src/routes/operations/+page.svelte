@@ -498,7 +498,7 @@
 	const criticalAnomalyCount = $derived(data.batchAnomalies.filter(a => a.severity === 'critical').length);
 
 	// Comparison delta helper
-	function compDelta(current: number, compare: { [key: string]: any } | null | undefined, key: string): number | null {
+	function compDelta(current: number, compare: Record<string, number | null | undefined> | null | undefined, key: string): number | null {
 		if (!compare || compare[key] == null) return null;
 		return current - compare[key];
 	}

@@ -1,20 +1,22 @@
 <script lang="ts">
-	let { data } = $props();
+	import type { PageData } from './$types';
+
+	let { data }: { data: PageData } = $props();
 
 	const hasData = data.batchTable.length > 0;
 
 	// Best/worst batch by overall_yield_pct
-	const validBatches = data.batchTable.filter((b: any) => b.overall_yield_pct != null);
+	const validBatches = data.batchTable.filter(b => b.overall_yield_pct != null);
 	const bestBatch = validBatches.length > 0
-		? validBatches.reduce((a: any, b: any) => a.overall_yield_pct > b.overall_yield_pct ? a : b)
+		? validBatches.reduce((a, b) => (a.overall_yield_pct ?? 0) > (b.overall_yield_pct ?? 0) ? a : b)
 		: null;
 	const worstBatch = validBatches.length > 0
-		? validBatches.reduce((a: any, b: any) => a.overall_yield_pct < b.overall_yield_pct ? a : b)
+		? validBatches.reduce((a, b) => (a.overall_yield_pct ?? 0) < (b.overall_yield_pct ?? 0) ? a : b)
 		: null;
 
 	// Bar chart: most recent 20 batches
 	const chartBatches = data.batchTable.slice(-20);
-	const maxYield = Math.max(...chartBatches.map((b: any) => b.overall_yield_pct ?? 0), 1);
+	const maxYield = Math.max(...chartBatches.map(b => b.overall_yield_pct ?? 0), 1);
 </script>
 
 <div class="min-h-screen bg-[#0d0d0d] text-white p-4">

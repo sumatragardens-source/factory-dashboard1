@@ -3,9 +3,9 @@
 	import { enhance } from '$app/forms';
 	import { calculateLeafDryMass, calculateGrindThroughput, calculateDryingLoss, calculateOverallDryYield } from '$lib/calculations/yield';
 	import { fmt } from '$lib/config/costs';
-	import type { PageData } from './$types';
+	import type { ActionData, PageData } from './$types';
 
-	let { data, form }: { data: PageData; form: any } = $props();
+	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	const stageIcons = ['eco', 'science', 'swap_horiz', 'air'];
 
