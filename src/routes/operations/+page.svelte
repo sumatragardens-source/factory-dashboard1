@@ -597,6 +597,62 @@
 		if (qty <= threshold * 1.5) return 'bg-amber-400';
 		return 'bg-green-400';
 	}
+
+	// ── Batch cost chart derived data ──
+	const batchCostChart = $derived.by(() => {
+		const lotBatchCosts = data.runBatchCosts.filter(c => c.supplier_lot === activeLot && c.totalCost > 0);
+		const batchCostVals = lotBatchCosts.map(c => c.totalCost);
+		const batchCostMax = Math.max(...batchCostVals) * 1.05;
+		const batchCostMin = Math.max(0, Math.min(...batchCostVals) * 0.9);
+		const batchCostAvg = lotBatchCosts.length > 0 ? lotBatchCosts.reduce((s, c) => s + c.totalCost, 0) / lotBatchCosts.length : 0;
+		const avgLinePct = batchCostAvg > 0 && batchCostMax > batchCostMin ? ((batchCostAvg - batchCostMin) / (batchCostMax - batchCostMin)) * 100 : 0;
+		return { lotBatchCosts, batchCostVals, batchCostMax, batchCostMin, batchCostAvg, avgLinePct };
+	});
+
+	// ── Recovery trend chart derived data ──
+	const recoveryTrendChart = $derived.by(() => {
+		const seq = batchSequenceEthanol;
+		if (seq.length < 2) return null;
+		const recoveryValues = seq.map(s => s.recoveryPct);
+		const rolling5 = rollingAvg(recoveryValues, 5);
+		const minR = Math.min(...recoveryValues) - 2;
+		const maxR = Math.max(...recoveryValues) + 2;
+		const rangeR = maxR - minR || 1;
+		const targetY95 = 10 + (1 - (95 - minR) / rangeR) * 115;
+		const ySteps = [minR, minR + rangeR * 0.25, minR + rangeR * 0.5, minR + rangeR * 0.75, maxR];
+		const rollPts = rolling5.map((v, i) => `${(40 + (i / (seq.length - 1)) * 540).toFixed(1)},${(10 + (1 - (v - minR) / rangeR) * 115).toFixed(1)}`).join(' ');
+		const halfIdx = Math.floor(recoveryValues.length / 2);
+		const firstHalfAvg = halfIdx > 0 ? recoveryValues.slice(0, halfIdx).reduce((a, b) => a + b, 0) / halfIdx : 0;
+		const secondHalfAvg = halfIdx > 0 ? recoveryValues.slice(halfIdx).reduce((a, b) => a + b, 0) / (recoveryValues.length - halfIdx) : 0;
+		const trendDir = secondHalfAvg > firstHalfAvg + 0.3 ? 'improving' : secondHalfAvg < firstHalfAvg - 0.3 ? 'declining' : 'stable';
+		return { seq, recoveryValues, rolling5, minR, maxR, rangeR, targetY95, ySteps, rollPts, halfIdx, firstHalfAvg, secondHalfAvg, trendDir };
+	});
+
+	// ── Yield per-lot chart derived data ──
+	const yieldPerLotChart = $derived.by(() => {
+		const lots = allLots();
+		const lotYields = lots.map(l => lotSummaries.get(l)?.totalYieldKg ?? 0);
+		const yieldMax = Math.max(...lotYields) * 1.15 || 1;
+		return { lots, lotYields, yieldMax };
+	});
+
+	// ── Quality scatter derived data ──
+	const qualityScatter = $derived.by(() => {
+		const qcData = data.qualityCorrelation;
+		const qcWithPurity = qcData.filter(q => q.purityPct !== null);
+		if (qcWithPurity.length < 2) return null;
+		const qcPurities = qcWithPurity.map(q => q.purityPct ?? 0);
+		const qcYields = qcWithPurity.map(q => q.yieldPct);
+		const qcPurMin = Math.min(...qcPurities) - 2;
+		const qcPurMax = Math.max(...qcPurities) + 2;
+		const qcYldMin = Math.min(...qcYields) - 0.1;
+		const qcYldMax = Math.max(...qcYields) + 0.1;
+		const qcAvgPur = qcPurities.reduce((a, b) => a + b, 0) / qcPurities.length;
+		const qcAvgYld = qcYields.reduce((a, b) => a + b, 0) / qcYields.length;
+		const qcCrossX = 30 + ((qcAvgPur - qcPurMin) / (qcPurMax - qcPurMin || 1)) * 440;
+		const qcCrossY = 5 + (1 - (qcAvgYld - qcYldMin) / (qcYldMax - qcYldMin || 1)) * 60;
+		return { qcData, qcWithPurity, qcPurities, qcYields, qcPurMin, qcPurMax, qcYldMin, qcYldMax, qcAvgPur, qcAvgYld, qcCrossX, qcCrossY };
+	});
 </script>
 
 {#if data.pipeline && data.activeBatchProgress?.length > 0}
@@ -1297,12 +1353,11 @@
 				</div>
 
 				<!-- S2: Batch Cost Bar Chart — HERO -->
-				{@const lotBatchCosts = data.runBatchCosts.filter(c => c.supplier_lot === activeLot && c.totalCost > 0)}
-				{@const batchCostVals = lotBatchCosts.map(c => c.totalCost)}
-				{@const batchCostMax = Math.max(...batchCostVals) * 1.05}
-				{@const batchCostMin = Math.max(0, Math.min(...batchCostVals) * 0.9)}
-				{@const batchCostAvg = lotBatchCosts.length > 0 ? lotBatchCosts.reduce((s, c) => s + c.totalCost, 0) / lotBatchCosts.length : 0}
-				{@const avgLinePct = batchCostAvg > 0 && batchCostMax > batchCostMin ? ((batchCostAvg - batchCostMin) / (batchCostMax - batchCostMin)) * 100 : 0}
+				{@const lotBatchCosts = batchCostChart.lotBatchCosts}
+				{@const batchCostMax = batchCostChart.batchCostMax}
+				{@const batchCostMin = batchCostChart.batchCostMin}
+				{@const batchCostAvg = batchCostChart.batchCostAvg}
+				{@const avgLinePct = batchCostChart.avgLinePct}
 				{#if lotBatchCosts.length > 0}
 				<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Cost — {activeLot?.replace('LOT-', 'L')}</h4>
@@ -1866,16 +1921,14 @@
 				{@const lots = allLots()}
 
 				<!-- Recovery Trend — All Batches -->
-				{#if batchSequenceEthanol.length >= 2}
-				{@const seq = batchSequenceEthanol}
-				{@const recoveryValues = seq.map(s => s.recoveryPct)}
-				{@const rolling5 = rollingAvg(recoveryValues, 5)}
-				{@const minR = Math.min(...recoveryValues) - 2}
-				{@const maxR = Math.max(...recoveryValues) + 2}
-				{@const rangeR = maxR - minR || 1}
-				{@const targetY95 = 10 + (1 - (95 - minR) / rangeR) * 115}
-				{@const ySteps = [minR, minR + rangeR * 0.25, minR + rangeR * 0.5, minR + rangeR * 0.75, maxR]}
-				{@const rollPts = rolling5.map((v, i) => `${(40 + (i / (seq.length - 1)) * 540).toFixed(1)},${(10 + (1 - (v - minR) / rangeR) * 115).toFixed(1)}`).join(' ')}
+				{#if recoveryTrendChart}
+				{@const seq = recoveryTrendChart.seq}
+				{@const minR = recoveryTrendChart.minR}
+				{@const maxR = recoveryTrendChart.maxR}
+				{@const rangeR = recoveryTrendChart.rangeR}
+				{@const targetY95 = recoveryTrendChart.targetY95}
+				{@const ySteps = recoveryTrendChart.ySteps}
+				{@const rollPts = recoveryTrendChart.rollPts}
 				<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Recovery Trend — All Batches</h4>
 					<svg viewBox="0 0 600 140" class="w-full" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;">
@@ -1917,10 +1970,9 @@
 				</div>
 
 				<!-- Trend text summary -->
-				{@const halfIdx = Math.floor(recoveryValues.length / 2)}
-				{@const firstHalfAvg = halfIdx > 0 ? recoveryValues.slice(0, halfIdx).reduce((a, b) => a + b, 0) / halfIdx : 0}
-				{@const secondHalfAvg = halfIdx > 0 ? recoveryValues.slice(halfIdx).reduce((a, b) => a + b, 0) / (recoveryValues.length - halfIdx) : 0}
-				{@const trendDir = secondHalfAvg > firstHalfAvg + 0.3 ? 'improving' : secondHalfAvg < firstHalfAvg - 0.3 ? 'declining' : 'stable'}
+				{@const firstHalfAvg = recoveryTrendChart.firstHalfAvg}
+				{@const secondHalfAvg = recoveryTrendChart.secondHalfAvg}
+				{@const trendDir = recoveryTrendChart.trendDir}
 				<p class="text-sm text-slate-400 mb-2 px-1">
 					Recovery {trendDir} — 2nd half avg <span class="font-bold text-white">{secondHalfAvg.toFixed(1)}%</span> vs 1st half <span class="font-bold text-white">{firstHalfAvg.toFixed(1)}%</span>
 					{#if trendDir === 'improving'}
@@ -2297,8 +2349,7 @@
 				<!-- Lot History: Yield per Lot Bar Chart -->
 				{#if true}
 				{@const lots = allLots()}
-				{@const lotYields = lots.map(l => lotSummaries.get(l)?.totalYieldKg ?? 0)}
-				{@const yieldMax = Math.max(...lotYields) * 1.15 || 1}
+				{@const yieldMax = yieldPerLotChart.yieldMax}
 					<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Yield per Lot</h4>
 					<div class="relative flex items-end gap-1 px-1" style="height: 110px;">
@@ -2486,24 +2537,20 @@
 				</div>
 
 				<!-- Purity vs Yield Scatter -->
-				{@const qcWithPurity = qcData.filter(q => q.purityPct !== null)}
-				{#if qcWithPurity.length >= 2}
-				{@const qcPurities = qcWithPurity.map(q => q.purityPct ?? 0)}
-				{@const qcYields = qcWithPurity.map(q => q.yieldPct)}
-				{@const qcPurMin = Math.min(...qcPurities) - 2}
-				{@const qcPurMax = Math.max(...qcPurities) + 2}
-				{@const qcYldMin = Math.min(...qcYields) - 0.1}
-				{@const qcYldMax = Math.max(...qcYields) + 0.1}
-				{@const qcAvgPur = qcPurities.reduce((a, b) => a + b, 0) / qcPurities.length}
-				{@const qcAvgYld = qcYields.reduce((a, b) => a + b, 0) / qcYields.length}
-				{@const qcCrossX = 30 + ((qcAvgPur - qcPurMin) / (qcPurMax - qcPurMin || 1)) * 440}
-				{@const qcCrossY = 5 + (1 - (qcAvgYld - qcYldMin) / (qcYldMax - qcYldMin || 1)) * 60}
+				{#if qualityScatter}
+				{@const qcPurMin = qualityScatter.qcPurMin}
+				{@const qcPurMax = qualityScatter.qcPurMax}
+				{@const qcYldMin = qualityScatter.qcYldMin}
+				{@const qcYldMax = qualityScatter.qcYldMax}
+				{@const qcAvgYld = qualityScatter.qcAvgYld}
+				{@const qcCrossX = qualityScatter.qcCrossX}
+				{@const qcCrossY = qualityScatter.qcCrossY}
 				<div class="mb-2">
 					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Purity vs Yield</h4>
 					<svg viewBox="0 0 500 75" class="w-full" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;">
 						<line x1={qcCrossX} y1="5" x2={qcCrossX} y2="65" stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 3" stroke-width="0.5" />
 						<line x1="30" y1={qcCrossY} x2="470" y2={qcCrossY} stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 3" stroke-width="0.5" />
-						{#each qcWithPurity as qp}
+						{#each qualityScatter.qcWithPurity as qp}
 							{@const qpx = 30 + (((qp.purityPct ?? 0) - qcPurMin) / (qcPurMax - qcPurMin || 1)) * 440}
 							{@const qpy = 5 + (1 - (qp.yieldPct - qcYldMin) / (qcYldMax - qcYldMin || 1)) * 60}
 							{@const aboveAvg = qp.yieldPct >= qcAvgYld}
