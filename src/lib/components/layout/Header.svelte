@@ -84,7 +84,7 @@
 				Create New Batch
 			</a>
 
-			<a href="/operations" class="p-1.5 text-text-muted rounded-full relative hover:text-text-primary transition-colors" title="{alertCounts?.total ?? 0} active alerts">
+			<a href="/operations" class="p-1.5 text-text-muted rounded-full relative hover:text-text-primary transition-colors" aria-label="Notifications ({alertCounts?.total ?? 0} active alerts)">
 				<span class="material-symbols-outlined text-[20px]">notifications</span>
 				{#if alertCounts && alertCounts.total > 0}
 					<span class="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] rounded-full {alertCounts.high > 0 ? 'bg-red-500' : 'bg-amber-500'} text-[9px] font-black text-white flex items-center justify-center px-1">{alertCounts.total}</span>

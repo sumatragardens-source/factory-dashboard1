@@ -116,7 +116,7 @@
 			</thead>
 			<tbody>
 				{#each filteredBatches as batch}
-					<tr class="border-b border-border-subtle hover:bg-bg-card-hover transition-colors cursor-pointer" onclick={() => { window.location.href = `/batches/${batch.id}` }}>
+					<tr class="border-b border-border-subtle hover:bg-bg-card-hover transition-colors cursor-pointer" role="link" tabindex="0" onclick={() => { window.location.href = `/batches/${batch.id}` }} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = `/batches/${batch.id}`; } }}>
 						<td class="px-4 py-3">
 							<a href="/batches/{batch.id}" class="text-sm font-bold text-text-primary hover:text-primary">{batch.batch_number}</a>
 						</td>

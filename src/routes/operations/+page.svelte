@@ -1102,7 +1102,7 @@
 				<div class="flex items-center gap-2">
 					<span class="material-symbols-outlined text-[14px] text-primary">payments</span>
 					<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Cost Intelligence</h3>
-					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
+					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" aria-label="Toggle Cost Intelligence panel" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
 						<span class="material-symbols-outlined text-sm">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
 					</button>
 				</div>
@@ -1162,7 +1162,7 @@
 				<div class="flex items-center gap-2">
 					<span class="material-symbols-outlined text-[14px] text-primary">water_drop</span>
 					<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Solvent Intelligence</h3>
-					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
+					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" aria-label="Toggle Solvent Intelligence panel" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
 						<span class="material-symbols-outlined text-sm">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
 					</button>
 				</div>
@@ -1218,7 +1218,7 @@
 				<div class="flex items-center gap-2">
 					<span class="material-symbols-outlined text-[14px] text-primary">science</span>
 					<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Yield & Quality</h3>
-					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
+					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" aria-label="Toggle Yield & Quality panel" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
 						<span class="material-symbols-outlined text-sm">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
 					</button>
 				</div>
@@ -1375,7 +1375,7 @@
 							</thead>
 							<tbody class="text-sm font-mono">
 								{#each lotCostSegs as seg}
-									<tr class="cursor-pointer hover:bg-white/5 transition-colors" style="border-bottom: 1px solid rgba(30,30,30,0.5);" onclick={() => selectBatch(seg.batchId)}>
+									<tr class="cursor-pointer hover:bg-white/5 transition-colors" style="border-bottom: 1px solid rgba(30,30,30,0.5);" role="link" tabindex="0" onclick={() => selectBatch(seg.batchId)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectBatch(seg.batchId); } }}>
 										<td class="px-1.5 py-0.5 text-slate-400">{seg.batchNumber.replace('SG-', '')}</td>
 										{#each segCats as cat, ci}
 											{@const val = seg[cat]}
@@ -2634,7 +2634,7 @@
 {/if}
 
 {#if expandedCard !== null}
-	<button class="fixed inset-0 z-40 bg-black/60" onclick={() => expandedCard = null}></button>
+	<button class="fixed inset-0 z-40 bg-black/60" aria-label="Close expanded panel" onclick={() => expandedCard = null}></button>
 {/if}
 
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') expandedCard = null; }} />

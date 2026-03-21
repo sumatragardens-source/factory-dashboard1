@@ -13,7 +13,7 @@
 
 <div class="flex flex-col h-screen w-full overflow-hidden bg-bg-page">
 	<Header {title} {alertCounts} />
-	<div class="flex-1 overflow-auto">
+	<main class="flex-1 overflow-auto">
 		{@render children()}
-	</div>
+	</main>
 </div>
