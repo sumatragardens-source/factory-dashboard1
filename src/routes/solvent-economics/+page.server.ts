@@ -3,6 +3,27 @@ import { UNIT_RATES } from '$lib/config/costs';
 import { calculateRecoveryRate } from '$lib/calculations/solvent';
 import type { PageServerLoad } from './$types';
 
+interface EthanolTotals {
+	total_issued: number;
+	total_recovered: number;
+	total_lost: number;
+	avg_recovery: number;
+	best_recovery: number;
+}
+
+interface LeafTotals { total_leaf_kg: number }
+interface CakeData { total_spent_cake: number }
+
+interface RecoveryRow { etoh_recovery_pct: number | null }
+
+interface BatchMatrixRow {
+	batch_number: string;
+	issued: number | null;
+	recovered: number | null;
+	lost: number | null;
+	recovery_pct: number | null;
+}
+
 export const load: PageServerLoad = () => {
 	try {
 	const db = getDb();
@@ -16,13 +37,13 @@ export const load: PageServerLoad = () => {
 			COALESCE(AVG(etoh_recovery_pct), 0) as avg_recovery,
 			COALESCE(MAX(etoh_recovery_pct), 0) as best_recovery
 		FROM stage2_records
-	`).get() as any;
+	`).get() as EthanolTotals;
 
 	// Total leaf input for SSR ratio
 	const leafTotals = db.prepare(`
 		SELECT COALESCE(SUM(leaf_input_kg), 0) as total_leaf_kg
 		FROM batches
-	`).get() as any;
+	`).get() as LeafTotals;
 
 	const ssrRatio = leafTotals.total_leaf_kg > 0
 		? Number((ethanol.total_issued / leafTotals.total_leaf_kg).toFixed(2))
@@ -32,7 +53,7 @@ export const load: PageServerLoad = () => {
 	const cakeData = db.prepare(`
 		SELECT COALESCE(SUM(spent_cake_kg), 0) as total_spent_cake
 		FROM stage2_records
-	`).get() as any;
+	`).get() as CakeData;
 
 	// Absorption factor: ~0.7 L ethanol per kg spent cake (wet cake retains solvent)
 	const absorptionFactor = 0.7;
@@ -59,10 +80,10 @@ export const load: PageServerLoad = () => {
 		SELECT etoh_recovery_pct
 		FROM stage2_records
 		ORDER BY created_at DESC LIMIT 10
-	`).all() as any[];
+	`).all() as RecoveryRow[];
 
 	const rolling10Avg = last10.length > 0
-		? Number((last10.reduce((s: number, r: any) => s + (r.etoh_recovery_pct || 0), 0) / last10.length).toFixed(1))
+		? Number((last10.reduce((s, r) => s + (r.etoh_recovery_pct || 0), 0) / last10.length).toFixed(1))
 		: 0;
 
 	const bulletChart = {
@@ -92,10 +113,10 @@ export const load: PageServerLoad = () => {
 		FROM stage2_records s2
 		JOIN batches b ON b.id = s2.batch_id
 		ORDER BY b.created_at DESC
-	`).all() as any[];
+	`).all() as BatchMatrixRow[];
 
 	const avgRecovery = Number(ethanol.avg_recovery.toFixed(1));
-	const batchPerformance = batchMatrix.map((row: any) => ({
+	const batchPerformance = batchMatrix.map(row => ({
 		...row,
 		issued: Number((row.issued || 0).toFixed(1)),
 		recovered: Number((row.recovered || 0).toFixed(1)),

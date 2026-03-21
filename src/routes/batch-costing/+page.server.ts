@@ -3,7 +3,13 @@ import { getAllBatches } from '$lib/data/repositories/batchRepo';
 import { getBatchCosts } from '$lib/data/repositories/costingRepo';
 import { calculateTotalBatchCost, calculateCostByCategory, calculateCostPerKg } from '$lib/calculations/costing';
 import { fmt, TARGETS, UNIT_RATES } from '$lib/config/costs';
+import type { BatchCost } from '$lib/domain/types';
 import type { PageServerLoad } from './$types';
+
+interface CostRow extends BatchCost {
+	batch_number: string;
+	final_product_g: number | null;
+}
 
 // Map item names to stages
 function itemToStage(itemName: string): string {
@@ -30,10 +36,10 @@ export const load: PageServerLoad = () => {
 		JOIN batches b ON b.id = bc.batch_id
 		LEFT JOIN stage4_records s4 ON s4.batch_id = bc.batch_id
 		ORDER BY bc.batch_id, bc.cost_category
-	`).all() as any[];
+	`).all() as CostRow[];
 
 	// Per-batch summaries
-	const batchMap = new Map<number, { batchNumber: string; costs: any[]; finalProductG: number | null }>();
+	const batchMap = new Map<number, { batchNumber: string; costs: CostRow[]; finalProductG: number | null }>();
 	for (const c of allCosts) {
 		if (!batchMap.has(c.batch_id)) {
 			batchMap.set(c.batch_id, { batchNumber: c.batch_number, costs: [], finalProductG: c.final_product_g });
@@ -46,7 +52,7 @@ export const load: PageServerLoad = () => {
 	let totalLabor = 0;
 	let totalEnergy = 0;
 
-	const batchSummaries: any[] = [];
+	const batchSummaries: { batchNumber: string; totalCost: number; costPerKg: number | null; vsTarget: number | null; finalProductKg: number | null }[] = [];
 	const categoryTotals: Record<string, number> = {};
 	const stageCosts: Record<string, Record<string, number>> = {};
 	for (const stage of STAGE_ORDER) {
@@ -129,7 +135,7 @@ export const load: PageServerLoad = () => {
 	// Avg cost/kg for deviation calc
 	const batchesWithCpk = batchSummaries.filter(b => b.costPerKg != null);
 	const avgCostPerKg = batchesWithCpk.length > 0
-		? Number((batchesWithCpk.reduce((s, b) => s + b.costPerKg, 0) / batchesWithCpk.length).toFixed(2))
+		? Number((batchesWithCpk.reduce((s, b) => s + (b.costPerKg ?? 0), 0) / batchesWithCpk.length).toFixed(2))
 		: 0;
 
 	const batchesWithDeviation = batchSummaries.map(b => ({

@@ -1,7 +1,13 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { TOTAL_STAGES, stageToRecordTable } from '$lib/constants/stageNames';
-import type { TimeFilter } from '$lib/data/repositories/stagePerformanceRepo';
+import type {
+	TimeFilter,
+	Stage1Performance,
+	Stage2Performance,
+	Stage3Performance,
+	Stage4Performance
+} from '$lib/data/repositories/stagePerformanceRepo';
 import {
 	getStage1Performance,
 	getStage2Performance,
@@ -18,7 +24,7 @@ export const load: PageServerLoad = ({ params, url }) => {
 	const safeFilter = validFilters.includes(filter) ? filter : 'all';
 
 	const table = stageToRecordTable(stageNumber);
-	let performance: any;
+	let performance: Stage1Performance | Stage2Performance | Stage3Performance | Stage4Performance;
 	switch (table) {
 		case 1: performance = getStage1Performance(safeFilter); break;
 		case 2: performance = getStage2Performance(safeFilter); break;

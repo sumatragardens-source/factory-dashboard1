@@ -1,12 +1,12 @@
 import { getDb } from '$lib/data/db';
-import { getAllDeviations, getOpenDeviations } from '$lib/data/repositories/deviationRepo';
+import type { Deviation } from '$lib/domain/types';
 import type { PageServerLoad } from './$types';
+
+type DeviationRow = Deviation & { batch_number: string };
 
 export const load: PageServerLoad = () => {
 	try {
 		const db = getDb();
-		const deviations = getAllDeviations();
-		const openDeviations = getOpenDeviations();
 
 		// Enrich with batch number
 		const enriched = db.prepare(`
@@ -16,27 +16,27 @@ export const load: PageServerLoad = () => {
 			ORDER BY
 				CASE d.severity WHEN 'Critical' THEN 1 WHEN 'High' THEN 2 WHEN 'Medium' THEN 3 WHEN 'Low' THEN 4 END,
 				d.created_at DESC
-		`).all() as any[];
+		`).all() as DeviationRow[];
 
 		// Summary counts
 		const bySeverity = {
-			Critical: enriched.filter((d: any) => d.severity === 'Critical').length,
-			High: enriched.filter((d: any) => d.severity === 'High').length,
-			Medium: enriched.filter((d: any) => d.severity === 'Medium').length,
-			Low: enriched.filter((d: any) => d.severity === 'Low').length
+			Critical: enriched.filter(d => d.severity === 'Critical').length,
+			High: enriched.filter(d => d.severity === 'High').length,
+			Medium: enriched.filter(d => d.severity === 'Medium').length,
+			Low: enriched.filter(d => d.severity === 'Low').length
 		};
 
 		const byStatus = {
-			Open: enriched.filter((d: any) => d.status === 'Open').length,
-			'Under Review': enriched.filter((d: any) => d.status === 'Under Review').length,
-			Resolved: enriched.filter((d: any) => d.status === 'Resolved').length,
-			Closed: enriched.filter((d: any) => d.status === 'Closed').length
+			Open: enriched.filter(d => d.status === 'Open').length,
+			'Under Review': enriched.filter(d => d.status === 'Under Review').length,
+			Resolved: enriched.filter(d => d.status === 'Resolved').length,
+			Closed: enriched.filter(d => d.status === 'Closed').length
 		};
 
 		return {
 			deviations: enriched,
-			openCount: openDeviations.length,
-			totalCount: deviations.length,
+			openCount: enriched.filter(d => d.status === 'Open' || d.status === 'Under Review').length,
+			totalCount: enriched.length,
 			bySeverity,
 			byStatus
 		};

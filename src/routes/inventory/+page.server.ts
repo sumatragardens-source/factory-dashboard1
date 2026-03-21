@@ -1,6 +1,13 @@
 import { getAllMaterials, getMaterialMovements } from '$lib/data/repositories/materialRepo';
 import { getDb } from '$lib/data/db';
+import type { MaterialMovement } from '$lib/domain/types';
 import type { PageServerLoad } from './$types';
+
+interface MovementRow extends MaterialMovement {
+	material_name: string;
+	unit: string;
+	batch_number: string | null;
+}
 
 export const load: PageServerLoad = () => {
 	try {
@@ -17,7 +24,7 @@ export const load: PageServerLoad = () => {
 				ORDER BY mm.created_at DESC
 				LIMIT 10
 			`)
-			.all() as any[];
+			.all() as MovementRow[];
 
 		return { materials, recentMovements };
 	} catch (error) {

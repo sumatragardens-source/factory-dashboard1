@@ -2,6 +2,57 @@ import { getDb } from '$lib/data/db';
 import { getProcessStageName } from '$lib/constants/stageNames';
 import type { PageServerLoad } from './$types';
 
+interface MassTotals {
+	total_leaf: number;
+	total_powder: number;
+	total_crude: number;
+	total_wet_precip: number;
+	total_final_product: number;
+	batch_count: number;
+}
+
+interface BatchYieldRow {
+	batch_number: string;
+	leaf_input_kg: number;
+	powder_output_kg: number | null;
+	crude_extract_wt_kg: number | null;
+	wet_precip_kg: number | null;
+	final_product_kg: number | null;
+	overall_yield_pct: number | null;
+	final_moisture_pct: number | null;
+	hplc_purity_pct: number | null;
+	mitragynine_pct: number | null;
+	powder_yield_pct: number | null;
+}
+
+interface HplcRow {
+	mitragynine_pct: number | null;
+	hydroxy_mitragynine_pct: number | null;
+	paynantheine_pct: number | null;
+	speciogynine_pct: number | null;
+	speciociliatine_pct: number | null;
+	non_alkaloids_pct: number | null;
+	hplc_purity_pct: number | null;
+}
+
+interface StageAvgRow { avg: number }
+
+interface QualityPoint {
+	batch_number: string;
+	yield_pct: number | null;
+	purity_pct: number | null;
+}
+
+interface SolventTrendRow {
+	batch_number: string;
+	etoh_recovery_pct: number | null;
+}
+
+interface CycleTimeRow {
+	batch_number: string;
+	hours: number | null;
+}
+
 export const load: PageServerLoad = () => {
 	try {
 		const db = getDb();
@@ -19,7 +70,7 @@ export const load: PageServerLoad = () => {
 			LEFT JOIN stage1_records s1 ON s1.batch_id = b.id
 			LEFT JOIN stage2_records s2 ON s2.batch_id = b.id
 			LEFT JOIN stage4_records s4 ON s4.batch_id = b.id
-		`).get() as any;
+		`).get() as MassTotals;
 
 		const cascade = {
 			leaf: Number(massTotals.total_leaf.toFixed(1)),
@@ -69,14 +120,14 @@ export const load: PageServerLoad = () => {
 			LEFT JOIN lab_results lr ON lr.batch_id = b.id AND lr.test_type = 'HPLC'
 			WHERE s4.id IS NOT NULL
 			ORDER BY b.created_at ASC
-		`).all() as any[];
+		`).all() as BatchYieldRow[];
 
 		const avgYield = batchYields.length > 0
-			? Number((batchYields.reduce((s: number, b: any) => s + (b.overall_yield_pct ?? 0), 0) / batchYields.length).toFixed(2))
+			? Number((batchYields.reduce((s, b) => s + (b.overall_yield_pct ?? 0), 0) / batchYields.length).toFixed(2))
 			: 0;
 
 		// Batch table with vs-avg computation
-		const batchTable = batchYields.map((b: any) => ({
+		const batchTable = batchYields.map(b => ({
 			...b,
 			final_product_kg: Number((b.final_product_kg ?? 0).toFixed(3)),
 			vsAvg: b.overall_yield_pct != null
@@ -91,16 +142,16 @@ export const load: PageServerLoad = () => {
 			FROM lab_results
 			WHERE test_type = 'HPLC' AND status = 'Completed'
 			ORDER BY test_date DESC LIMIT 1
-		`).get() as any;
+		`).get() as HplcRow | undefined;
 
 		// Stage yield averages
-		const stage1Avg = db.prepare(`SELECT COALESCE(AVG(CASE WHEN s1.net_leaf_kg > 0 THEN (s1.powder_output_kg / s1.net_leaf_kg * 100) END), 0) as avg FROM stage1_records s1`).get() as any;
-		const stage2Avg = db.prepare(`SELECT COALESCE(AVG(etoh_recovery_pct), 0) as avg FROM stage2_records`).get() as any;
+		const stage1Avg = db.prepare(`SELECT COALESCE(AVG(CASE WHEN s1.net_leaf_kg > 0 THEN (s1.powder_output_kg / s1.net_leaf_kg * 100) END), 0) as avg FROM stage1_records s1`).get() as StageAvgRow;
+		const stage2Avg = db.prepare(`SELECT COALESCE(AVG(etoh_recovery_pct), 0) as avg FROM stage2_records`).get() as StageAvgRow;
 		const stage3Avg = db.prepare(`
 			SELECT COALESCE(AVG(CASE WHEN s3.dlimo_vol_L > 0 THEN ((s3.dlimo_vol_L - COALESCE(s3.dlimo_lost_L, 0)) / s3.dlimo_vol_L * 100) END), 0) as avg
 			FROM stage3_records s3
-		`).get() as any;
-		const stage4Avg = db.prepare(`SELECT COALESCE(AVG(overall_yield_pct), 0) as avg FROM stage4_records`).get() as any;
+		`).get() as StageAvgRow;
+		const stage4Avg = db.prepare(`SELECT COALESCE(AVG(overall_yield_pct), 0) as avg FROM stage4_records`).get() as StageAvgRow;
 
 		const stageYields = [
 			{ stage: getProcessStageName(1), pct: Number(stage1Avg.avg.toFixed(1)) },
@@ -127,7 +178,7 @@ export const load: PageServerLoad = () => {
 			JOIN batches b ON b.id = s4.batch_id
 			LEFT JOIN lab_results lr ON lr.batch_id = s4.batch_id AND lr.test_type = 'HPLC'
 			WHERE s4.overall_yield_pct IS NOT NULL
-		`).all() as any[];
+		`).all() as QualityPoint[];
 
 		// Quality specs
 		const qualitySpecs = {
@@ -136,7 +187,7 @@ export const load: PageServerLoad = () => {
 			mitragynine: hplc?.mitragynine_pct ?? null,
 			mitragynineTarget: 1.0,
 			moisture: batchYields.length > 0
-				? Number((batchYields.reduce((s: number, b: any) => s + (b.final_moisture_pct ?? 0), 0) / batchYields.filter((b: any) => b.final_moisture_pct != null).length || 0).toFixed(1))
+				? Number((batchYields.reduce((s, b) => s + (b.final_moisture_pct ?? 0), 0) / batchYields.filter(b => b.final_moisture_pct != null).length || 0).toFixed(1))
 				: null,
 			moistureTarget: 6,
 		};
@@ -147,7 +198,7 @@ export const load: PageServerLoad = () => {
 			FROM stage2_records s2
 			JOIN batches b ON b.id = s2.batch_id
 			ORDER BY b.created_at ASC
-		`).all() as any[];
+		`).all() as SolventTrendRow[];
 
 		// Cycle times
 		const cycleTimes = db.prepare(`
@@ -157,7 +208,7 @@ export const load: PageServerLoad = () => {
 			JOIN stage1_records s1 ON s1.batch_id = b.id
 			JOIN stage4_records s4 ON s4.batch_id = b.id
 			ORDER BY b.created_at ASC
-		`).all() as any[];
+		`).all() as CycleTimeRow[];
 
 		// Alkaloid composition for sidebar
 		const alkaloids = hplc ? [
