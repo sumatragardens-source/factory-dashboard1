@@ -805,7 +805,8 @@ export function getProductionRunSummary(runId: number): ProductionRunSummary | n
 
 export function getRunBatchCosts(runId: number): BatchCostSummary[] {
 	const db = getDb();
-	return db.prepare(`
+	interface RunCostRow { batch_id: number; batch_number: string; status: string; supplier_lot: string | null; totalCost: number; final_product_kg: number | null }
+	const rows = db.prepare(`
 		SELECT b.id as batch_id, b.batch_number, b.status, b.supplier_lot,
 			COALESCE(SUM(bc.total_cost), 0) as totalCost,
 			s4.final_product_g / 1000.0 as final_product_kg
@@ -815,7 +816,8 @@ export function getRunBatchCosts(runId: number): BatchCostSummary[] {
 		WHERE b.production_run_id = ?
 		GROUP BY b.id, b.supplier_lot
 		ORDER BY b.batch_number
-	`).all(runId).map((r: any) => ({
+	`).all(runId) as RunCostRow[];
+	return rows.map(r => ({
 		batch_id: r.batch_id,
 		batch_number: r.batch_number,
 		status: r.status,
@@ -823,7 +825,7 @@ export function getRunBatchCosts(runId: number): BatchCostSummary[] {
 		totalCost: Number(r.totalCost),
 		costPerKg: r.final_product_kg ? Number((r.totalCost / r.final_product_kg).toFixed(2)) : null,
 		final_product_g: r.final_product_kg ? r.final_product_kg * 1000 : null
-	})) as BatchCostSummary[];
+	}));
 }
 
 export interface RunCostAggregates {
@@ -885,7 +887,8 @@ export interface BatchCostSegment {
 
 export function getBatchCostBreakdown(runId: number): BatchCostSegment[] {
 	const db = getDb();
-	return db.prepare(`
+	interface CostBreakdownRow { batch_id: number; batch_number: string; supplier_lot: string | null; leaf: number; solvent: number; chemicals: number; labor: number; electricity: number; testing: number }
+	const rows = db.prepare(`
 		SELECT b.id as batch_id, b.batch_number, b.supplier_lot,
 			COALESCE(SUM(CASE WHEN bc.item_name = 'Raw leaf' THEN bc.total_cost END), 0) as leaf,
 			COALESCE(SUM(CASE WHEN bc.item_name IN ('Ethanol loss', 'D-Limonene loss') THEN bc.total_cost END), 0) as solvent,
@@ -898,7 +901,8 @@ export function getBatchCostBreakdown(runId: number): BatchCostSegment[] {
 		WHERE b.production_run_id = ?
 		GROUP BY b.id
 		ORDER BY b.batch_number
-	`).all(runId).map((r: any) => ({
+	`).all(runId) as CostBreakdownRow[];
+	return rows.map(r => ({
 		batchId: r.batch_id,
 		batchNumber: r.batch_number,
 		supplierLot: r.supplier_lot ?? null,
@@ -908,7 +912,7 @@ export function getBatchCostBreakdown(runId: number): BatchCostSegment[] {
 		labor: Number(r.labor),
 		electricity: Number(r.electricity),
 		testing: Number(r.testing)
-	})) as BatchCostSegment[];
+	}));
 }
 
 export function getRunEthanolBreakdown(runId: number): BatchEthanolSummary[] {
@@ -1059,10 +1063,10 @@ export function getRunYieldAggregates(runId: number): RunYieldAggregates {
 export interface BatchDetailData {
 	batch: Batch;
 	stages: BatchStage[];
-	stage1: any;
-	stage2: any;
-	stage3: any;
-	stage4: any;
+	stage1: Stage1Record | null;
+	stage2: Stage2Record | null;
+	stage3: Stage3Record | null;
+	stage4: Stage4Record | null;
 	costs: { category: string; total: number }[];
 	totalCost: number;
 	costPerKg: number | null;

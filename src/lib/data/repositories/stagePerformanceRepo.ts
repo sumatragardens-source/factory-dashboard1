@@ -36,6 +36,15 @@ export function getStage1Performance(filter: TimeFilter): Stage1Performance {
 	const db = getDb();
 	const dateClause = getDateFilter(filter);
 
+	interface Stage1Summary {
+		batch_count: number;
+		avg_yield: number | null;
+		avg_mbe: number | null;
+		total_input: number;
+		total_output: number;
+		avg_cycle: number | null;
+	}
+
 	const summary = db.prepare(`
 		SELECT
 			COUNT(*) as batch_count,
@@ -47,7 +56,7 @@ export function getStage1Performance(filter: TimeFilter): Stage1Performance {
 		FROM stage1_records s1
 		JOIN batch_stages bs ON bs.batch_id = s1.batch_id AND bs.stage_number = 1
 		WHERE bs.status = 'Finalized' ${dateClause}
-	`).get() as any;
+	`).get() as Stage1Summary;
 
 	const batches = db.prepare(`
 		SELECT b.batch_number, b.id as batch_id, s1.powder_output_kg,
@@ -58,7 +67,7 @@ export function getStage1Performance(filter: TimeFilter): Stage1Performance {
 		JOIN batches b ON b.id = s1.batch_id
 		WHERE bs.status = 'Finalized' ${dateClause}
 		ORDER BY bs.finalized_at DESC
-	`).all() as any[];
+	`).all() as Stage1Performance['batches'];
 
 	return {
 		batchCount: summary.batch_count ?? 0,
@@ -91,6 +100,15 @@ export function getStage2Performance(filter: TimeFilter): Stage2Performance {
 	const db = getDb();
 	const dateClause = getDateFilter(filter);
 
+	interface Stage2Summary {
+		batch_count: number;
+		avg_recovery: number | null;
+		total_ethanol_used: number;
+		total_recovered: number;
+		total_lost: number;
+		avg_cycle: number | null;
+	}
+
 	const summary = db.prepare(`
 		SELECT
 			COUNT(*) as batch_count,
@@ -102,7 +120,7 @@ export function getStage2Performance(filter: TimeFilter): Stage2Performance {
 		FROM stage2_records s2
 		JOIN batch_stages bs ON bs.batch_id = s2.batch_id AND bs.stage_number = 2
 		WHERE bs.status = 'Finalized' ${dateClause}
-	`).get() as any;
+	`).get() as Stage2Summary;
 
 	const batches = db.prepare(`
 		SELECT b.batch_number, b.id as batch_id, s2.crude_extract_wt_kg, s2.etoh_recovery_pct,
@@ -112,7 +130,7 @@ export function getStage2Performance(filter: TimeFilter): Stage2Performance {
 		JOIN batches b ON b.id = s2.batch_id
 		WHERE bs.status = 'Finalized' ${dateClause}
 		ORDER BY bs.finalized_at DESC
-	`).all() as any[];
+	`).all() as Stage2Performance['batches'];
 
 	return {
 		batchCount: summary.batch_count ?? 0,
@@ -145,6 +163,13 @@ export function getStage3Performance(filter: TimeFilter): Stage3Performance {
 	const db = getDb();
 	const dateClause = getDateFilter(filter);
 
+	interface Stage3Summary {
+		batch_count: number;
+		avg_partition_yield: number | null;
+		avg_lim_recovery: number | null;
+		avg_cycle: number | null;
+	}
+
 	const summary = db.prepare(`
 		SELECT
 			COUNT(*) as batch_count,
@@ -154,7 +179,7 @@ export function getStage3Performance(filter: TimeFilter): Stage3Performance {
 		FROM stage3_records s3
 		JOIN batch_stages bs ON bs.batch_id = s3.batch_id AND bs.stage_number = 3
 		WHERE bs.status = 'Finalized' ${dateClause}
-	`).get() as any;
+	`).get() as Stage3Summary;
 
 	const batches = db.prepare(`
 		SELECT b.batch_number, b.id as batch_id, s3.organic_phase_mL, s3.aqueous_waste_L,
@@ -164,7 +189,7 @@ export function getStage3Performance(filter: TimeFilter): Stage3Performance {
 		JOIN batches b ON b.id = s3.batch_id
 		WHERE bs.status = 'Finalized' ${dateClause}
 		ORDER BY bs.finalized_at DESC
-	`).all() as any[];
+	`).all() as Stage3Performance['batches'];
 
 	return {
 		batchCount: summary.batch_count ?? 0,
@@ -193,6 +218,13 @@ export function getStage4Performance(filter: TimeFilter): Stage4Performance {
 	const db = getDb();
 	const dateClause = getDateFilter(filter);
 
+	interface Stage4Summary {
+		batch_count: number;
+		avg_yield: number | null;
+		total_product_g: number;
+		avg_cycle: number | null;
+	}
+
 	const summary = db.prepare(`
 		SELECT
 			COUNT(*) as batch_count,
@@ -202,7 +234,7 @@ export function getStage4Performance(filter: TimeFilter): Stage4Performance {
 		FROM stage4_records s4
 		JOIN batch_stages bs ON bs.batch_id = s4.batch_id AND bs.stage_number = 4
 		WHERE bs.status = 'Finalized' ${dateClause}
-	`).get() as any;
+	`).get() as Stage4Summary;
 
 	const batches = db.prepare(`
 		SELECT b.batch_number, b.id as batch_id, s4.final_product_g,
@@ -212,7 +244,7 @@ export function getStage4Performance(filter: TimeFilter): Stage4Performance {
 		JOIN batches b ON b.id = s4.batch_id
 		WHERE bs.status = 'Finalized' ${dateClause}
 		ORDER BY bs.finalized_at DESC
-	`).all() as any[];
+	`).all() as Stage4Performance['batches'];
 
 	return {
 		batchCount: summary.batch_count ?? 0,

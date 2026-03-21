@@ -1,17 +1,18 @@
 import { jsPDF } from 'jspdf';
+import type { Batch, BatchStage, Stage1Record, Stage2Record, Stage3Record, Stage4Record, BatchCost, LabResult, Deviation } from '$lib/domain/types';
 
 export function generateBatchPDF(
-	batch: any,
-	stages: any[],
-	stage1: any | null,
-	stage2: any | null,
-	stage3: any | null,
-	stage4: any | null,
-	costs: any[],
+	batch: Batch,
+	stages: BatchStage[],
+	stage1: Stage1Record | null,
+	stage2: Stage2Record | null,
+	stage3: Stage3Record | null,
+	stage4: Stage4Record | null,
+	costs: BatchCost[],
 	totalCost: number,
 	costPerKg: number | null,
-	labResults: any[],
-	deviations: any[]
+	labResults: LabResult[],
+	deviations: Deviation[]
 ): void {
 	const doc = new jsPDF();
 	let y = 20;

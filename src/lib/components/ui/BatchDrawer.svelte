@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getProcessStageName } from '$lib/constants/stageNames';
+	import type { BatchDetailData } from '$lib/data/repositories/dashboardRepo';
 
 	let {
 		batchId = null,
@@ -11,7 +12,7 @@
 		onclose: () => void;
 	} = $props();
 
-	let detail: any = $state(null);
+	let detail: BatchDetailData | null = $state(null);
 	let loading = $state(false);
 	let activeTab: 'overview' | 'cost' | 'solvent' | 'quality' | 'deviations' = $state('overview');
 
@@ -96,7 +97,7 @@
 						<div class="flex-1 h-1.5 rounded-full {stageColor(stage.status)}" title="{getProcessStageName(stage.stage_number)}: {stage.status}"></div>
 					{/each}
 				</div>
-				<p class="text-[7px] text-text-muted/40 mt-1">{detail.stages.filter((s: any) => s.status === 'Finalized').length}/4 stages complete</p>
+				<p class="text-[7px] text-text-muted/40 mt-1">{detail.stages.filter(s => s.status === 'Finalized').length}/4 stages complete</p>
 			</div>
 
 			<!-- Tab nav -->
@@ -203,7 +204,7 @@
 
 					<!-- Category bars -->
 					<p class="text-[8px] font-medium uppercase tracking-wider text-text-muted/60 mb-1.5">Cost by Category</p>
-					{@const maxCatCost = Math.max(...detail.costs.map((c: any) => c.total), 1)}
+					{@const maxCatCost = Math.max(...detail.costs.map(c => c.total), 1)}
 					<div class="space-y-1.5 mb-3">
 						{#each detail.costs as cat}
 							<div class="flex items-center gap-2">
@@ -312,7 +313,7 @@
 
 					<!-- HPLC Profile -->
 					{#if detail.labResults.length > 0}
-						{@const hplc = detail.labResults.find((r: any) => r.test_type === 'HPLC' && r.status === 'Completed')}
+						{@const hplc = detail.labResults.find(r => r.test_type === 'HPLC' && r.status === 'Completed')}
 						{#if hplc}
 							<p class="text-[8px] font-medium uppercase tracking-wider text-text-muted/60 mb-1.5">HPLC Profile</p>
 							<div class="space-y-1 mb-2">
