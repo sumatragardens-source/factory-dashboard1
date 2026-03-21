@@ -14,9 +14,7 @@ export function getMachineById(id: number): Machine | undefined {
 export function getMachineStatusEvents(machineId: number): MachineStatusEvent[] {
 	const db = getDb();
 	return db
-		.prepare(
-			'SELECT * FROM machine_status_events WHERE machine_id = ? ORDER BY created_at DESC'
-		)
+		.prepare('SELECT * FROM machine_status_events WHERE machine_id = ? ORDER BY created_at DESC')
 		.all(machineId) as MachineStatusEvent[];
 }
 

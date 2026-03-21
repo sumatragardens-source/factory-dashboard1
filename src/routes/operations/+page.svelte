@@ -14,34 +14,42 @@
 	const TOTAL_INTAKE_KG = data.activeBatchProgress.reduce((s, b) => s + (b.leaf_input_kg ?? 0), 0);
 
 	// KPI: Active lots (currently in progress)
-	const activeLots = data.activeBatchProgress.filter(b => b.status === 'In Progress').length;
+	const activeLots = data.activeBatchProgress.filter((b) => b.status === 'In Progress').length;
 	const lotsProcessed = pm.stageCounts[1] ?? 0;
 	const lotsRemaining = Math.max(0, totalBatchCount - lotsProcessed);
-	const kgRemaining = Math.max(0, TOTAL_INTAKE_KG - (lotsProcessed * 100));
+	const kgRemaining = Math.max(0, TOTAL_INTAKE_KG - lotsProcessed * 100);
 
 	// Run-level KPI values (independent of lot selection)
-	const runActiveBatches = data.activeBatchProgress.filter(b => b.status === 'In Progress').length;
-	const runCompBatches = data.activeBatchProgress.filter(b => b.final_product_g != null).length;
+	const runActiveBatches = data.activeBatchProgress.filter((b) => b.status === 'In Progress').length;
+	const runCompBatches = data.activeBatchProgress.filter((b) => b.final_product_g != null).length;
 	const runRemBatches = Math.max(0, totalBatchCount - runCompBatches);
-	const runCompPct = totalBatchCount > 0 ? (runCompBatches / totalBatchCount * 100) : 0;
+	const runCompPct = totalBatchCount > 0 ? (runCompBatches / totalBatchCount) * 100 : 0;
 	const runEtohIssued = data.activeBatchProgress.reduce((s, b) => s + (b.etoh_vol_L ?? 0), 0);
 	const runEtohRecovered = data.activeBatchProgress.reduce((s, b) => s + (b.etoh_recovered_L ?? 0), 0);
 	const runEtohLost = data.activeBatchProgress.reduce((s, b) => s + (b.etoh_lost_L ?? 0), 0);
-	const runEtohRecoveryPct = runEtohIssued > 0 ? (runEtohRecovered / runEtohIssued * 100) : 0;
+	const runEtohRecoveryPct = runEtohIssued > 0 ? (runEtohRecovered / runEtohIssued) * 100 : 0;
 	const runFinalProductG = data.activeBatchProgress.reduce((s, b) => s + (b.final_product_g ?? 0), 0);
 	const runFinalProductKg = runFinalProductG / 1000;
-	const runExtractRate = TOTAL_INTAKE_KG > 0 ? (runFinalProductKg / TOTAL_INTAKE_KG * 100) : 0;
+	const runExtractRate = TOTAL_INTAKE_KG > 0 ? (runFinalProductKg / TOTAL_INTAKE_KG) * 100 : 0;
 	const runOperationDays = (() => {
 		const batches = data.activeBatchProgress;
-		const startDates = batches.map(b => b.started_at || b.created_at).filter((d): d is string => d != null).map(d => new Date(d).getTime());
+		const startDates = batches
+			.map((b) => b.started_at || b.created_at)
+			.filter((d): d is string => d != null)
+			.map((d) => new Date(d).getTime());
 		if (startDates.length === 0) return 1;
 		const earliest = Math.min(...startDates);
-		const allComplete = batches.every(b => b.status === 'Completed' || b.status === 'Pending Review');
+		const allComplete = batches.every((b) => b.status === 'Completed' || b.status === 'Pending Review');
 		let latest: number;
 		if (allComplete) {
-			const endDates = batches.map(b => b.completed_at).filter((d): d is string => d != null).map(d => new Date(d).getTime());
+			const endDates = batches
+				.map((b) => b.completed_at)
+				.filter((d): d is string => d != null)
+				.map((d) => new Date(d).getTime());
 			latest = endDates.length > 0 ? Math.max(...endDates) : Math.max(...startDates);
-		} else { latest = Date.now(); }
+		} else {
+			latest = Date.now();
+		}
 		return Math.max(1, Math.ceil((latest - earliest) / (1000 * 60 * 60 * 24)));
 	})();
 	const runDailyYieldKg = runFinalProductKg / runOperationDays;
@@ -57,7 +65,10 @@
 	const remainingKg = Math.max(0, TOTAL_INTAKE_KG - processedKg);
 
 	// Solvent recovery rates
-	const ethRecoveryRate = data.solventTotals.ethanol_issued > 0 ? (data.solventTotals.ethanol_recovered / data.solventTotals.ethanol_issued * 100) : 0;
+	const ethRecoveryRate =
+		data.solventTotals.ethanol_issued > 0
+			? (data.solventTotals.ethanol_recovered / data.solventTotals.ethanol_issued) * 100
+			: 0;
 
 	// Pipeline: 5 main icons connected by lines with 4 notch circles between them
 	const RING_SIZE = 76;
@@ -82,15 +93,20 @@
 	] as const;
 
 	function columnStatusColor(stages: { stage_number: number; status: string }[], dbStages: readonly number[]): string {
-		const matched = dbStages.map(n => stages.find(s => s.stage_number === n));
-		if (matched.every(s => s?.status === 'Finalized')) return 'bg-primary/15 text-primary';
-		if (matched.some(s => s?.status === 'In Progress' || s?.status === 'Finalized')) return 'bg-blue-900/30 text-blue-400';
+		const matched = dbStages.map((n) => stages.find((s) => s.stage_number === n));
+		if (matched.every((s) => s?.status === 'Finalized')) return 'bg-primary/15 text-primary';
+		if (matched.some((s) => s?.status === 'In Progress' || s?.status === 'Finalized'))
+			return 'bg-blue-900/30 text-blue-400';
 		return 'bg-bg-input text-text-muted';
 	}
 
-	function nextAction(batch: { status: string; current_stage: number; stages: { stage_number: number; status: string }[] }): string {
+	function nextAction(batch: {
+		status: string;
+		current_stage: number;
+		stages: { stage_number: number; status: string }[];
+	}): string {
 		if (batch.status === 'Pending Review') return 'Review';
-		const currentStage = batch.stages.find(s => s.stage_number === batch.current_stage);
+		const currentStage = batch.stages.find((s) => s.stage_number === batch.current_stage);
 		if (currentStage?.status === 'Pending') return 'Start';
 		return 'Record';
 	}
@@ -99,26 +115,34 @@
 	const totalFinalKg = data.totalFinalYield.producedKg;
 
 	// Extract efficiency: kg final product per kg raw input
-	const extractEfficiency = processedKg > 0 ? (totalFinalKg / processedKg * 100) : 0;
+	const extractEfficiency = processedKg > 0 ? (totalFinalKg / processedKg) * 100 : 0;
 	const extractTarget = 1.5; // target extract rate %
 
 	// Quality data
 	const hplc = data.hplcResult;
 	const hplcCompleted = hplc?.status === 'Completed';
-	const totalAlkaloids = hplcCompleted && hplc
-		? [hplc.mitragynine_pct, hplc.hydroxy_mitragynine_pct, hplc.paynantheine_pct,
-		   hplc.speciogynine_pct, hplc.speciociliatine_pct]
-			.filter((v): v is number => v !== null)
-			.reduce((a, b) => a + b, 0)
-		: null;
+	const totalAlkaloids =
+		hplcCompleted && hplc
+			? [
+					hplc.mitragynine_pct,
+					hplc.hydroxy_mitragynine_pct,
+					hplc.paynantheine_pct,
+					hplc.speciogynine_pct,
+					hplc.speciociliatine_pct
+				]
+					.filter((v): v is number => v !== null)
+					.reduce((a, b) => a + b, 0)
+			: null;
 
 	// Daily yield target: total target kg / expected operation days
 	const dailyYieldTarget = data.totalFinalYield.targetKg / 90; // 90-day operation window
 	const costPerKgTarget = TARGETS.costPerKg;
 
 	// Next actions queue: group active batches by their next needed step
-	const activeBatches = data.activeBatchProgress.filter(b => b.status === 'In Progress' || b.status === 'Pending Review');
-	const nextActionQueue = activeBatches.map(b => {
+	const activeBatches = data.activeBatchProgress.filter(
+		(b) => b.status === 'In Progress' || b.status === 'Pending Review'
+	);
+	const nextActionQueue = activeBatches.map((b) => {
 		if (b.status === 'Pending Review') return { label: 'Review', href: `/batches/${b.id}` };
 		return { label: getStageName(b.current_stage), href: `/stages/${b.current_stage}` };
 	});
@@ -150,7 +174,8 @@
 	const budgetVariance = data.dailyOpCost - DAILY_BUDGET;
 
 	// Chart dimensions (wide panoramic, shallow signal-monitor)
-	const CW = 240, CH = 44;
+	const CW = 240,
+		CH = 44;
 
 	// Filtration return & concentration metrics
 	const filtrationReturnL = pm.filtrationOutputL;
@@ -158,10 +183,10 @@
 	const distillationDelta = distillationRecoveryPct - ETH_RECOVERY_TARGET;
 
 	// Per-batch concentration trend
-	const concValues = data.ethRecoveryTrend.map(d =>
-		d.filtrationReturnL > 0 ? (d.extractWeightKg / d.filtrationReturnL * 1000) : 0
+	const concValues = data.ethRecoveryTrend.map((d) =>
+		d.filtrationReturnL > 0 ? (d.extractWeightKg / d.filtrationReturnL) * 1000 : 0
 	);
-	const filtReturnValues = data.ethRecoveryTrend.map(d => d.filtrationReturnL);
+	const filtReturnValues = data.ethRecoveryTrend.map((d) => d.filtrationReturnL);
 
 	// Trend chart selector state
 	let selectedEthTrend: 'concentration' | 'recovery' | 'filtration' = $state('concentration');
@@ -228,10 +253,18 @@
 		selectedBatchId = null;
 	}
 	// Derived: selected batch detail from run breakdowns
-	const selectedCostRow = $derived(selectedBatchId ? data.runBatchCosts.find(c => c.batch_id === selectedBatchId) : null);
-	const selectedEthRow = $derived(selectedBatchId ? data.runEthanolBreakdown.find(e => e.batch_id === selectedBatchId) : null);
-	const selectedYieldRow = $derived(selectedBatchId ? data.runYieldBreakdown.find(y => y.batch_id === selectedBatchId) : null);
-	const selectedBatchInfo = $derived(selectedBatchId ? data.activeBatchProgress.find(b => b.id === selectedBatchId) : null);
+	const selectedCostRow = $derived(
+		selectedBatchId ? data.runBatchCosts.find((c) => c.batch_id === selectedBatchId) : null
+	);
+	const selectedEthRow = $derived(
+		selectedBatchId ? data.runEthanolBreakdown.find((e) => e.batch_id === selectedBatchId) : null
+	);
+	const selectedYieldRow = $derived(
+		selectedBatchId ? data.runYieldBreakdown.find((y) => y.batch_id === selectedBatchId) : null
+	);
+	const selectedBatchInfo = $derived(
+		selectedBatchId ? data.activeBatchProgress.find((b) => b.id === selectedBatchId) : null
+	);
 
 	// Production run data
 	const rs = data.runSummary;
@@ -242,21 +275,34 @@
 	const runEthAgg = data.runEthanolAggregates;
 	const runYieldAgg = data.runYieldAggregates;
 	const avgBatchCostForBar = runCostAgg ? runCostAgg.avgCostPerBatch : 0;
-	const batchCostValues = data.runBatchCosts.filter(c => c.totalCost > 0).map(c => c.totalCost);
+	const batchCostValues = data.runBatchCosts.filter((c) => c.totalCost > 0).map((c) => c.totalCost);
 	const sortedBatchCostValues = [...batchCostValues].sort((a, b) => a - b);
-	const cumCostBatches = data.runBatchCosts.filter(c => c.totalCost > 0);
-	const cumCostValues = cumCostBatches.reduce((acc, c) => { acc.push((acc[acc.length - 1] ?? 0) + c.totalCost); return acc; }, [] as number[]);
+	const cumCostBatches = data.runBatchCosts.filter((c) => c.totalCost > 0);
+	const cumCostValues = cumCostBatches.reduce((acc, c) => {
+		acc.push((acc[acc.length - 1] ?? 0) + c.totalCost);
+		return acc;
+	}, [] as number[]);
 	const cumCostChart = cumCostValues.length >= 2 ? smoothPath(cumCostValues, CW, CH + 20) : null;
-	const yieldFinishedBatches = data.runYieldBreakdown.filter(y => y.final_product_g !== null);
-	const cumYieldValues = yieldFinishedBatches.reduce((acc, y) => { acc.push((acc[acc.length - 1] ?? 0) + ((y.final_product_g ?? 0) / 1000)); return acc; }, [] as number[]);
+	const yieldFinishedBatches = data.runYieldBreakdown.filter((y) => y.final_product_g !== null);
+	const cumYieldValues = yieldFinishedBatches.reduce((acc, y) => {
+		acc.push((acc[acc.length - 1] ?? 0) + (y.final_product_g ?? 0) / 1000);
+		return acc;
+	}, [] as number[]);
 	const cumYieldChart = cumYieldValues.length >= 2 ? smoothPath(cumYieldValues, CW, CH + 20) : null;
 	const runEthDelta = (runEthAgg?.avgRecovery ?? 0) - ETH_RECOVERY_TARGET;
-	const cumYieldTargetY = cumYieldValues.length > 0
-		? 10 + (1 - ((runYieldAgg?.projectedFinal ?? 50) - Math.min(...cumYieldValues)) / (Math.max(...cumYieldValues, (runYieldAgg?.projectedFinal ?? 50)) - Math.min(...cumYieldValues) + 0.01)) * (CH + 20 - 20)
-		: 32;
+	const cumYieldTargetY =
+		cumYieldValues.length > 0
+			? 10 +
+				(1 -
+					((runYieldAgg?.projectedFinal ?? 50) - Math.min(...cumYieldValues)) /
+						(Math.max(...cumYieldValues, runYieldAgg?.projectedFinal ?? 50) - Math.min(...cumYieldValues) + 0.01)) *
+					(CH + 20 - 20)
+			: 32;
 
 	// Parent-lot summary KPIs
-	const runPendingBatches = data.activeBatchProgress.filter(b => b.status === 'Draft' || b.status === 'Pending Review').length;
+	const runPendingBatches = data.activeBatchProgress.filter(
+		(b) => b.status === 'Draft' || b.status === 'Pending Review'
+	).length;
 	const runInProgressBatches = rs?.inProgressBatches ?? 0;
 	const projectedFinalOutput = runYieldAgg?.projectedFinal ?? 0;
 	const projectedTotalCost = runCostAgg?.projectedTotal ?? 0;
@@ -264,7 +310,7 @@
 
 	// Lot selector: group batches by supplier_lot (each lot = 1 ton)
 	const allLots = $derived(() => {
-		const lots = [...new Set(data.activeBatchProgress.map(b => b.supplier_lot).filter(Boolean))] as string[];
+		const lots = [...new Set(data.activeBatchProgress.map((b) => b.supplier_lot).filter(Boolean))] as string[];
 		lots.sort();
 		return lots;
 	});
@@ -272,43 +318,47 @@
 	const activeLot = $derived(selectedLot ?? allLots()[allLots().length - 1] ?? null);
 	const lotBatches = $derived(() => {
 		if (!activeLot) return data.activeBatchProgress;
-		return data.activeBatchProgress.filter(b => b.supplier_lot === activeLot);
+		return data.activeBatchProgress.filter((b) => b.supplier_lot === activeLot);
 	});
 	const lotIntakeKg = $derived(lotBatches().reduce((sum, b) => sum + (b.leaf_input_kg ?? 0), 0));
-	const lotProcessedCount = $derived(lotBatches().filter(b => b.stages.some(s => s.status === 'Finalized')).length);
-	const lotCompletePct = $derived(lotBatches().length > 0 ? (lotBatches().filter(b => b.final_product_g != null).length / lotBatches().length * 100) : 0);
+	const lotProcessedCount = $derived(lotBatches().filter((b) => b.stages.some((s) => s.status === 'Finalized')).length);
+	const lotCompletePct = $derived(
+		lotBatches().length > 0
+			? (lotBatches().filter((b) => b.final_product_g != null).length / lotBatches().length) * 100
+			: 0
+	);
 
 	// Lot-scoped KPI values
-	const lotActiveBatches = $derived(lotBatches().filter(b => b.status === 'In Progress').length);
-	const lotCompletedBatches = $derived(lotBatches().filter(b => b.final_product_g != null).length);
+	const lotActiveBatches = $derived(lotBatches().filter((b) => b.status === 'In Progress').length);
+	const lotCompletedBatches = $derived(lotBatches().filter((b) => b.final_product_g != null).length);
 	const lotRemainingBatches = $derived(Math.max(0, lotBatches().length - lotCompletedBatches));
 	const lotEtohIssued = $derived(lotBatches().reduce((s, b) => s + (b.etoh_vol_L ?? 0), 0));
 	const lotEtohRecovered = $derived(lotBatches().reduce((s, b) => s + (b.etoh_recovered_L ?? 0), 0));
 	const lotEtohLost = $derived(lotBatches().reduce((s, b) => s + (b.etoh_lost_L ?? 0), 0));
-	const lotEtohRecoveryPct = $derived(lotEtohIssued > 0 ? (lotEtohRecovered / lotEtohIssued * 100) : 0);
+	const lotEtohRecoveryPct = $derived(lotEtohIssued > 0 ? (lotEtohRecovered / lotEtohIssued) * 100 : 0);
 	const lotDlimoIssued = $derived(lotBatches().reduce((s, b) => s + (b.dlimo_vol_L ?? 0), 0));
 	const lotDlimoRecovered = $derived(lotBatches().reduce((s, b) => s + (b.dlimo_recovered_L ?? 0), 0));
 	const lotDlimoLost = $derived(lotBatches().reduce((s, b) => s + (b.dlimo_lost_L ?? 0), 0));
 	const lotFinalProductG = $derived(lotBatches().reduce((s, b) => s + (b.final_product_g ?? 0), 0));
 	const lotFinalProductKg = $derived(lotFinalProductG / 1000);
-	const lotExtractRate = $derived(lotIntakeKg > 0 ? (lotFinalProductKg / lotIntakeKg * 100) : 0);
+	const lotExtractRate = $derived(lotIntakeKg > 0 ? (lotFinalProductKg / lotIntakeKg) * 100 : 0);
 
 	// Lot-scoped operation days: from earliest batch start to last completion (or now if still active)
 	const lotOperationDays = $derived(() => {
 		const batches = lotBatches();
 		const startDates = batches
-			.map(b => b.started_at || b.created_at)
+			.map((b) => b.started_at || b.created_at)
 			.filter((d): d is string => d != null)
-			.map(d => new Date(d).getTime());
+			.map((d) => new Date(d).getTime());
 		if (startDates.length === 0) return 1;
 		const earliest = Math.min(...startDates);
-		const lotComplete = batches.every(b => b.status === 'Completed' || b.status === 'Pending Review');
+		const lotComplete = batches.every((b) => b.status === 'Completed' || b.status === 'Pending Review');
 		let latest: number;
 		if (lotComplete) {
 			const endDates = batches
-				.map(b => b.completed_at)
+				.map((b) => b.completed_at)
 				.filter((d): d is string => d != null)
-				.map(d => new Date(d).getTime());
+				.map((d) => new Date(d).getTime());
 			latest = endDates.length > 0 ? Math.max(...endDates) : Math.max(...startDates);
 		} else {
 			latest = Date.now();
@@ -318,17 +368,41 @@
 	const lotDailyYieldKg = $derived(lotOperationDays() > 0 ? lotFinalProductKg / lotOperationDays() : 0);
 
 	// Lot-scoped pipeline metrics derived from lotBatches
-	const lotPowderKg = $derived(Number(lotBatches().reduce((s, b) => s + (b.powder_output_kg ?? 0), 0).toFixed(1)));
+	const lotPowderKg = $derived(
+		Number(
+			lotBatches()
+				.reduce((s, b) => s + (b.powder_output_kg ?? 0), 0)
+				.toFixed(1)
+		)
+	);
 	const lotEtohStockUsedL = $derived(Number(lotEtohIssued.toFixed(1)));
-	const lotFiltrationOutputL = $derived(Number(lotBatches().reduce((s, b) => s + (b.filtrate_vol_L ?? 0), 0).toFixed(1)));
+	const lotFiltrationOutputL = $derived(
+		Number(
+			lotBatches()
+				.reduce((s, b) => s + (b.filtrate_vol_L ?? 0), 0)
+				.toFixed(1)
+		)
+	);
 	const lotFiltrationLossL = $derived(Number((lotEtohIssued - lotFiltrationOutputL).toFixed(1)));
-	const lotFiltrationPct = $derived(lotEtohIssued > 0 ? (lotFiltrationOutputL / lotEtohIssued * 100).toFixed(1) : '0');
-	const lotDistillationPct = $derived(lotFiltrationOutputL > 0 ? (lotEtohRecovered / lotFiltrationOutputL * 100).toFixed(1) : '0');
-	const lotExtractTotalKg = $derived(Number(lotBatches().reduce((s, b) => s + (b.crude_extract_wt_kg ?? 0), 0).toFixed(1)));
-	const lotPrecipitateKg = $derived(Number((lotBatches().reduce((s, b) => s + (b.wet_precipitate_g ?? 0), 0) / 1000).toFixed(1)));
+	const lotFiltrationPct = $derived(
+		lotEtohIssued > 0 ? ((lotFiltrationOutputL / lotEtohIssued) * 100).toFixed(1) : '0'
+	);
+	const lotDistillationPct = $derived(
+		lotFiltrationOutputL > 0 ? ((lotEtohRecovered / lotFiltrationOutputL) * 100).toFixed(1) : '0'
+	);
+	const lotExtractTotalKg = $derived(
+		Number(
+			lotBatches()
+				.reduce((s, b) => s + (b.crude_extract_wt_kg ?? 0), 0)
+				.toFixed(1)
+		)
+	);
+	const lotPrecipitateKg = $derived(
+		Number((lotBatches().reduce((s, b) => s + (b.wet_precipitate_g ?? 0), 0) / 1000).toFixed(1))
+	);
 	const lotDlimoRecoveredL = $derived(Number(lotDlimoRecovered.toFixed(1)));
 	const lotDlimoLostL = $derived(Number(lotDlimoLost.toFixed(1)));
-	const lotLotsExtracted = $derived(lotBatches().filter(b => b.etoh_vol_L != null && b.etoh_vol_L > 0).length);
+	const lotLotsExtracted = $derived(lotBatches().filter((b) => b.etoh_vol_L != null && b.etoh_vol_L > 0).length);
 
 	// ── Donut segment helper (Cost card) ──
 	const DONUT_R = 46;
@@ -336,13 +410,21 @@
 	const costDonutSegments = $derived.by(() => {
 		if (!runCostAgg || !runCostAgg.costByCategory.length) return [];
 		const total = runCostAgg.totalCost || 1;
-		const opacities = [0.85, 0.65, 0.50, 0.38];
+		const opacities = [0.85, 0.65, 0.5, 0.38];
 		const gap = 4;
 		let cumOffset = 0;
 		return runCostAgg.costByCategory.map((cat, i) => {
 			const pct = cat.total / total;
 			const filled = Math.max(0, pct * DONUT_CIRC - gap);
-			const seg = { category: cat.category, total: cat.total, pct, filled, gap, offset: cumOffset, opacity: opacities[i] ?? 0.25 };
+			const seg = {
+				category: cat.category,
+				total: cat.total,
+				pct,
+				filled,
+				gap,
+				offset: cumOffset,
+				opacity: opacities[i] ?? 0.25
+			};
 			cumOffset += filled + gap;
 			return seg;
 		});
@@ -351,7 +433,9 @@
 	// ── Solvent loss decomposition ──
 	const lotDistillationLossL = $derived(Math.max(0, lotFiltrationOutputL - lotEtohRecovered));
 	const lotOtherLossL = $derived(Math.max(0, lotEtohLost - Math.abs(lotFiltrationLossL) - lotDistillationLossL));
-	const bestHistoricalRecovery = $derived(data.runHistory.length > 0 ? Math.max(...data.runHistory.map(r => r.avgEthanolRecovery)) : 0);
+	const bestHistoricalRecovery = $derived(
+		data.runHistory.length > 0 ? Math.max(...data.runHistory.map((r) => r.avgEthanolRecovery)) : 0
+	);
 
 	// ── Yield cascade conversions ──
 	const lotPowderConvPct = $derived(lotIntakeKg > 0 ? (lotPowderKg / lotIntakeKg) * 100 : 0);
@@ -387,7 +471,7 @@
 			{ icon: 'fa-fire', label: 'Distillation', href: '/stages/2', fillPct: lotStageFill(2) },
 			{ icon: 'fa-snowflake', label: 'Precipitation', href: '/stages/4', fillPct: lotStageFill(4), cluster: true },
 			{ icon: 'fa-gem', label: 'Final Yield', href: '/stages/4', fillPct: lotStageFill(4) }
-		].map(s => ({ ...s, ringFilled: (s.fillPct / 100) * RING_CIRC }));
+		].map((s) => ({ ...s, ringFilled: (s.fillPct / 100) * RING_CIRC }));
 	});
 
 	// Lot sort: 'active' = in-progress first, 'completed' = completed first (bottom)
@@ -401,8 +485,8 @@
 				if (aComplete !== bComplete) return aComplete - bComplete; // completed goes to bottom
 				if (aComplete && bComplete) return a.id - b.id; // completed: order by id (completion order)
 				// both incomplete: most progress first
-				const aStages = a.stages.filter(s => s.status === 'Finalized').length;
-				const bStages = b.stages.filter(s => s.status === 'Finalized').length;
+				const aStages = a.stages.filter((s) => s.status === 'Finalized').length;
+				const bStages = b.stages.filter((s) => s.status === 'Finalized').length;
 				return bStages - aStages;
 			});
 		}
@@ -410,38 +494,43 @@
 	});
 
 	// Pre-computed smooth chart paths (all three trend views)
-	const ethValues = data.ethRecoveryTrend.map(d => d.recoveryPct);
+	const ethValues = data.ethRecoveryTrend.map((d) => d.recoveryPct);
 	const ethChart = smoothPath(ethValues, CW, CH);
 	const ethTargetY = ethValues.length >= 2 ? computeTargetY(ETH_RECOVERY_TARGET, ethValues, CH) : 0;
 
 	const concChart = smoothPath(concValues, CW, CH);
 	const filtReturnChart = smoothPath(filtReturnValues, CW, CH);
 
-	const costValues = data.costTrend.map(d => d.total);
+	const costValues = data.costTrend.map((d) => d.total);
 	const costChart = smoothPath(costValues, CW, CH);
 	const costTargetY = costValues.length >= 2 ? computeTargetY(DAILY_BUDGET, costValues, CH) : 0;
 
-	const yieldValues = data.yieldTrend.map(d => d.yieldPct);
+	const yieldValues = data.yieldTrend.map((d) => d.yieldPct);
 	const yieldChart = smoothPath(yieldValues, CW, CH);
 	const yieldTargetY = yieldValues.length >= 2 ? computeTargetY(YIELD_TARGET, yieldValues, CH) : 0;
 
-	const avgYield = yieldValues.length > 0
-		? yieldValues.reduce((a, b) => a + b, 0) / yieldValues.length
-		: extractEfficiency;
+	const avgYield =
+		yieldValues.length > 0 ? yieldValues.reduce((a, b) => a + b, 0) / yieldValues.length : extractEfficiency;
 	const yieldDelta = extractEfficiency - avgYield;
 
 	// Run history derived values
-	const currentRunHistory = $derived(data.runHistory.find(r => r.runId === data.activeRunId));
-	const previousRunHistory = $derived(data.runHistory.find(r => r.runId !== data.activeRunId && r.status === 'Completed'));
+	const currentRunHistory = $derived(data.runHistory.find((r) => r.runId === data.activeRunId));
+	const previousRunHistory = $derived(
+		data.runHistory.find((r) => r.runId !== data.activeRunId && r.status === 'Completed')
+	);
 
 	const comparisonTarget = $derived.by(() => {
 		if (compareMode === 'previous') return previousRunHistory;
 		if (compareMode === 'avg5') {
-			const completed = data.runHistory.filter(r => r.status === 'Completed');
+			const completed = data.runHistory.filter((r) => r.status === 'Completed');
 			if (!completed.length) return null;
 			const n = completed.length;
 			return {
-				runId: 0, runNumber: `Avg(${n})`, status: 'Completed', startedAt: null, completedAt: null,
+				runId: 0,
+				runNumber: `Avg(${n})`,
+				status: 'Completed',
+				startedAt: null,
+				completedAt: null,
 				totalBatches: Math.round(completed.reduce((a, r) => a + r.totalBatches, 0) / n),
 				completedBatches: Math.round(completed.reduce((a, r) => a + r.completedBatches, 0) / n),
 				totalInputKg: completed.reduce((a, r) => a + r.totalInputKg, 0) / n,
@@ -454,7 +543,11 @@
 				totalEthanolIssued: completed.reduce((a, r) => a + r.totalEthanolIssued, 0) / n,
 				totalEthanolRecovered: completed.reduce((a, r) => a + r.totalEthanolRecovered, 0) / n,
 				totalEthanolLost: completed.reduce((a, r) => a + r.totalEthanolLost, 0) / n,
-				avgPurity: completed.filter(r => r.avgPurity !== null).length > 0 ? completed.filter(r => r.avgPurity !== null).reduce((a, r) => a + (r.avgPurity ?? 0), 0) / completed.filter(r => r.avgPurity !== null).length : null,
+				avgPurity:
+					completed.filter((r) => r.avgPurity !== null).length > 0
+						? completed.filter((r) => r.avgPurity !== null).reduce((a, r) => a + (r.avgPurity ?? 0), 0) /
+							completed.filter((r) => r.avgPurity !== null).length
+						: null,
 				deviationCount: Math.round(completed.reduce((a, r) => a + r.deviationCount, 0) / n)
 			};
 		}
@@ -468,22 +561,28 @@
 		const byCost = [...runs].sort((a, b) => a.costPerKg - b.costPerKg);
 		const byRecovery = [...runs].sort((a, b) => b.avgEthanolRecovery - a.avgEthanolRecovery);
 		return {
-			yield: byYield.findIndex(r => r.runId === data.activeRunId) + 1,
-			cost: byCost.findIndex(r => r.runId === data.activeRunId) + 1,
-			recovery: byRecovery.findIndex(r => r.runId === data.activeRunId) + 1,
+			yield: byYield.findIndex((r) => r.runId === data.activeRunId) + 1,
+			cost: byCost.findIndex((r) => r.runId === data.activeRunId) + 1,
+			recovery: byRecovery.findIndex((r) => r.runId === data.activeRunId) + 1,
 			total: runs.length
 		};
 	});
 
 	// History chart arrays (chronological order)
 	const historyRuns = $derived([...data.runHistory].reverse());
-	const historyRecoveryValues = $derived(historyRuns.map(r => r.avgEthanolRecovery));
-	const historyCostPerKgValues = $derived(historyRuns.map(r => r.costPerKg));
-	const historyYieldValues = $derived(historyRuns.map(r => r.overallYieldPct));
-	const historyRunLabels = $derived(historyRuns.map(r => r.runNumber));
-	const historyRecoveryChart = $derived(historyRecoveryValues.length >= 2 ? smoothPath(historyRecoveryValues, CW, CH + 20) : null);
-	const historyCostChart = $derived(historyCostPerKgValues.length >= 2 ? smoothPath(historyCostPerKgValues, CW, CH + 20) : null);
-	const historyYieldChart = $derived(historyYieldValues.length >= 2 ? smoothPath(historyYieldValues, CW, CH + 20) : null);
+	const historyRecoveryValues = $derived(historyRuns.map((r) => r.avgEthanolRecovery));
+	const historyCostPerKgValues = $derived(historyRuns.map((r) => r.costPerKg));
+	const historyYieldValues = $derived(historyRuns.map((r) => r.overallYieldPct));
+	const historyRunLabels = $derived(historyRuns.map((r) => r.runNumber));
+	const historyRecoveryChart = $derived(
+		historyRecoveryValues.length >= 2 ? smoothPath(historyRecoveryValues, CW, CH + 20) : null
+	);
+	const historyCostChart = $derived(
+		historyCostPerKgValues.length >= 2 ? smoothPath(historyCostPerKgValues, CW, CH + 20) : null
+	);
+	const historyYieldChart = $derived(
+		historyYieldValues.length >= 2 ? smoothPath(historyYieldValues, CW, CH + 20) : null
+	);
 
 	// Anomaly helpers
 	const batchAnomalyMap = $derived.by(() => {
@@ -495,16 +594,20 @@
 		return map;
 	});
 	const anomalyCount = $derived(data.batchAnomalies.length);
-	const criticalAnomalyCount = $derived(data.batchAnomalies.filter(a => a.severity === 'critical').length);
+	const criticalAnomalyCount = $derived(data.batchAnomalies.filter((a) => a.severity === 'critical').length);
 
 	// Comparison delta helper
-	function compDelta(current: number, compare: Record<string, number | null | undefined> | null | undefined, key: string): number | null {
+	function compDelta(
+		current: number,
+		compare: Record<string, number | null | undefined> | null | undefined,
+		key: string
+	): number | null {
 		if (!compare || compare[key] == null) return null;
 		return current - compare[key];
 	}
 
 	// ── Lot-vs-Lot Comparison Derived State ──
-	const LOT_COLORS = ['#A3E635','#ec5b13','#ef4444','#f59e0b','#9ca3af','#bef264','#6b7280','#4b5563'];
+	const LOT_COLORS = ['#A3E635', '#ec5b13', '#ef4444', '#f59e0b', '#9ca3af', '#bef264', '#6b7280', '#4b5563'];
 
 	const previousLotId = $derived.by(() => {
 		const order = allLots();
@@ -528,7 +631,7 @@
 
 	const batchSequenceEthanol = $derived.by(() => {
 		return data.runEthanolBreakdown
-			.filter(e => e.recovery_pct != null)
+			.filter((e) => e.recovery_pct != null)
 			.map((e, i) => ({
 				index: i,
 				batchId: e.batch_id,
@@ -540,7 +643,7 @@
 
 	function getLotStageYieldsForLot(lotId: string | null) {
 		if (!lotId) return { grinding: 0, extraction: 0, abPhase: 0, drying: 0 };
-		return getLotStageYields(data.activeBatchProgress.filter(b => b.supplier_lot === lotId));
+		return getLotStageYields(data.activeBatchProgress.filter((b) => b.supplier_lot === lotId));
 	}
 
 	const inventoryConfig: Record<string, { threshold: number; usagePerLot: number }> = {
@@ -566,12 +669,16 @@
 
 	// ── Batch cost chart derived data ──
 	const batchCostChart = $derived.by(() => {
-		const lotBatchCosts = data.runBatchCosts.filter(c => c.supplier_lot === activeLot && c.totalCost > 0);
-		const batchCostVals = lotBatchCosts.map(c => c.totalCost);
+		const lotBatchCosts = data.runBatchCosts.filter((c) => c.supplier_lot === activeLot && c.totalCost > 0);
+		const batchCostVals = lotBatchCosts.map((c) => c.totalCost);
 		const batchCostMax = Math.max(...batchCostVals) * 1.05;
 		const batchCostMin = Math.max(0, Math.min(...batchCostVals) * 0.9);
-		const batchCostAvg = lotBatchCosts.length > 0 ? lotBatchCosts.reduce((s, c) => s + c.totalCost, 0) / lotBatchCosts.length : 0;
-		const avgLinePct = batchCostAvg > 0 && batchCostMax > batchCostMin ? ((batchCostAvg - batchCostMin) / (batchCostMax - batchCostMin)) * 100 : 0;
+		const batchCostAvg =
+			lotBatchCosts.length > 0 ? lotBatchCosts.reduce((s, c) => s + c.totalCost, 0) / lotBatchCosts.length : 0;
+		const avgLinePct =
+			batchCostAvg > 0 && batchCostMax > batchCostMin
+				? ((batchCostAvg - batchCostMin) / (batchCostMax - batchCostMin)) * 100
+				: 0;
 		return { lotBatchCosts, batchCostVals, batchCostMax, batchCostMin, batchCostAvg, avgLinePct };
 	});
 
@@ -579,25 +686,46 @@
 	const recoveryTrendChart = $derived.by(() => {
 		const seq = batchSequenceEthanol;
 		if (seq.length < 2) return null;
-		const recoveryValues = seq.map(s => s.recoveryPct);
+		const recoveryValues = seq.map((s) => s.recoveryPct);
 		const rolling5 = rollingAvg(recoveryValues, 5);
 		const minR = Math.min(...recoveryValues) - 2;
 		const maxR = Math.max(...recoveryValues) + 2;
 		const rangeR = maxR - minR || 1;
 		const targetY95 = 10 + (1 - (95 - minR) / rangeR) * 115;
 		const ySteps = [minR, minR + rangeR * 0.25, minR + rangeR * 0.5, minR + rangeR * 0.75, maxR];
-		const rollPts = rolling5.map((v, i) => `${(40 + (i / (seq.length - 1)) * 540).toFixed(1)},${(10 + (1 - (v - minR) / rangeR) * 115).toFixed(1)}`).join(' ');
+		const rollPts = rolling5
+			.map(
+				(v, i) =>
+					`${(40 + (i / (seq.length - 1)) * 540).toFixed(1)},${(10 + (1 - (v - minR) / rangeR) * 115).toFixed(1)}`
+			)
+			.join(' ');
 		const halfIdx = Math.floor(recoveryValues.length / 2);
 		const firstHalfAvg = halfIdx > 0 ? recoveryValues.slice(0, halfIdx).reduce((a, b) => a + b, 0) / halfIdx : 0;
-		const secondHalfAvg = halfIdx > 0 ? recoveryValues.slice(halfIdx).reduce((a, b) => a + b, 0) / (recoveryValues.length - halfIdx) : 0;
-		const trendDir = secondHalfAvg > firstHalfAvg + 0.3 ? 'improving' : secondHalfAvg < firstHalfAvg - 0.3 ? 'declining' : 'stable';
-		return { seq, recoveryValues, rolling5, minR, maxR, rangeR, targetY95, ySteps, rollPts, halfIdx, firstHalfAvg, secondHalfAvg, trendDir };
+		const secondHalfAvg =
+			halfIdx > 0 ? recoveryValues.slice(halfIdx).reduce((a, b) => a + b, 0) / (recoveryValues.length - halfIdx) : 0;
+		const trendDir =
+			secondHalfAvg > firstHalfAvg + 0.3 ? 'improving' : secondHalfAvg < firstHalfAvg - 0.3 ? 'declining' : 'stable';
+		return {
+			seq,
+			recoveryValues,
+			rolling5,
+			minR,
+			maxR,
+			rangeR,
+			targetY95,
+			ySteps,
+			rollPts,
+			halfIdx,
+			firstHalfAvg,
+			secondHalfAvg,
+			trendDir
+		};
 	});
 
 	// ── Yield per-lot chart derived data ──
 	const yieldPerLotChart = $derived.by(() => {
 		const lots = allLots();
-		const lotYields = lots.map(l => lotSummaries.get(l)?.totalYieldKg ?? 0);
+		const lotYields = lots.map((l) => lotSummaries.get(l)?.totalYieldKg ?? 0);
 		const yieldMax = Math.max(...lotYields) * 1.15 || 1;
 		return { lots, lotYields, yieldMax };
 	});
@@ -605,10 +733,10 @@
 	// ── Quality scatter derived data ──
 	const qualityScatter = $derived.by(() => {
 		const qcData = data.qualityCorrelation;
-		const qcWithPurity = qcData.filter(q => q.purityPct !== null);
+		const qcWithPurity = qcData.filter((q) => q.purityPct !== null);
 		if (qcWithPurity.length < 2) return null;
-		const qcPurities = qcWithPurity.map(q => q.purityPct ?? 0);
-		const qcYields = qcWithPurity.map(q => q.yieldPct);
+		const qcPurities = qcWithPurity.map((q) => q.purityPct ?? 0);
+		const qcYields = qcWithPurity.map((q) => q.yieldPct);
 		const qcPurMin = Math.min(...qcPurities) - 2;
 		const qcPurMax = Math.max(...qcPurities) + 2;
 		const qcYldMin = Math.min(...qcYields) - 0.1;
@@ -617,2016 +745,3530 @@
 		const qcAvgYld = qcYields.reduce((a, b) => a + b, 0) / qcYields.length;
 		const qcCrossX = 30 + ((qcAvgPur - qcPurMin) / (qcPurMax - qcPurMin || 1)) * 440;
 		const qcCrossY = 5 + (1 - (qcAvgYld - qcYldMin) / (qcYldMax - qcYldMin || 1)) * 60;
-		return { qcData, qcWithPurity, qcPurities, qcYields, qcPurMin, qcPurMax, qcYldMin, qcYldMax, qcAvgPur, qcAvgYld, qcCrossX, qcCrossY };
+		return {
+			qcData,
+			qcWithPurity,
+			qcPurities,
+			qcYields,
+			qcPurMin,
+			qcPurMax,
+			qcYldMin,
+			qcYldMax,
+			qcAvgPur,
+			qcAvgYld,
+			qcCrossX,
+			qcCrossY
+		};
 	});
 </script>
 
 {#if data.pipeline && data.activeBatchProgress?.length > 0}
-<div class="flex-1 p-3 grid grid-cols-12 gap-4 overflow-auto content-start">
-	<!-- Row 1: 7 Alert KPI Cards -->
-	<div class="col-span-12 grid grid-cols-7 gap-3">
-		<!-- Active Batches -->
-		<div class="bg-bg-card border border-border-card p-3 rounded group/kpi1 relative">
-			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Active Batches</p>
-			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black text-text-primary">{runActiveBatches}</p>
-				<span class="text-[11px] font-bold text-text-muted">/ {totalBatchCount}</span>
-			</div>
-			<div class="mt-2 h-1 w-full bg-border-card rounded-full overflow-hidden">
-				<div class="h-full bg-primary rounded-full" style="width: {runCompPct}%"></div>
-			</div>
-			<p class="text-[11px] text-text-muted mt-1">{runCompBatches} completed · {runRemBatches} remaining</p>
-			<div class="absolute left-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi1:opacity-100 transition-opacity duration-150">
-				<div class="space-y-1.5 text-xs">
-					<div class="flex justify-between"><span class="text-text-muted">Total Batches</span><span class="font-bold text-text-primary">{totalBatchCount}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">In Progress</span><span class="font-bold text-blue-400">{runActiveBatches}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Completed</span><span class="font-bold text-primary">{runCompBatches}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Leaf Input</span><span class="font-bold text-text-primary">{Math.round(TOTAL_INTAKE_KG).toLocaleString()} kg</span></div>
+	<div class="flex-1 p-3 grid grid-cols-12 gap-4 overflow-auto content-start">
+		<!-- Row 1: 7 Alert KPI Cards -->
+		<div class="col-span-12 grid grid-cols-7 gap-3">
+			<!-- Active Batches -->
+			<div class="bg-bg-card border border-border-card p-3 rounded group/kpi1 relative">
+				<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Active Batches</p>
+				<div class="flex items-baseline gap-2 mt-1">
+					<p class="text-3xl font-black text-text-primary">{runActiveBatches}</p>
+					<span class="text-[11px] font-bold text-text-muted">/ {totalBatchCount}</span>
+				</div>
+				<div class="mt-2 h-1 w-full bg-border-card rounded-full overflow-hidden">
+					<div class="h-full bg-primary rounded-full" style="width: {runCompPct}%"></div>
+				</div>
+				<p class="text-[11px] text-text-muted mt-1">{runCompBatches} completed · {runRemBatches} remaining</p>
+				<div
+					class="absolute left-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi1:opacity-100 transition-opacity duration-150"
+				>
+					<div class="space-y-1.5 text-xs">
+						<div class="flex justify-between">
+							<span class="text-text-muted">Total Batches</span><span class="font-bold text-text-primary"
+								>{totalBatchCount}</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">In Progress</span><span class="font-bold text-blue-400"
+								>{runActiveBatches}</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Completed</span><span class="font-bold text-primary">{runCompBatches}</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Leaf Input</span><span class="font-bold text-text-primary"
+								>{Math.round(TOTAL_INTAKE_KG).toLocaleString()} kg</span
+							>
+						</div>
+					</div>
 				</div>
 			</div>
-		</div>
 
-		<!-- EtOH Recovery -->
-		<div class="bg-bg-card border border-border-card p-3 rounded group/kpi2 relative">
-			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">EtOH Recovery</p>
-			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black text-text-primary">{runEtohRecoveryPct.toFixed(1)}%</p>
-				{#if runEtohRecoveryPct >= 95}
-					<span class="text-[11px] font-bold text-primary">&#9650; {(runEtohRecoveryPct - 95).toFixed(1)}%</span>
-				{:else if runEtohRecoveryPct >= 80}
-					<span class="text-[11px] font-bold text-amber-400">&#9660; {(95 - runEtohRecoveryPct).toFixed(1)}%</span>
-				{:else}
-					<span class="text-[11px] font-bold text-red-400">&#9660; {(95 - runEtohRecoveryPct).toFixed(1)}%</span>
-				{/if}
-			</div>
-			<p class="text-[11px] text-text-muted mt-2">LIMIT: >95.0%</p>
-			<div class="absolute left-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi2:opacity-100 transition-opacity duration-150">
-				<div class="space-y-1.5 text-xs">
-					<div class="flex justify-between"><span class="text-text-muted">EtOH Issued</span><span class="font-bold text-text-primary">{runEtohIssued.toFixed(0)} L</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">EtOH Recovered</span><span class="font-bold text-text-primary">{runEtohRecovered.toFixed(0)} L</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">EtOH Lost</span><span class="font-bold text-red-400">{runEtohLost.toFixed(1)} L</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Recovery Rate</span><span class="font-bold text-text-primary">{runEtohRecoveryPct.toFixed(1)}%</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Target</span><span class="font-bold text-text-primary">&gt;95.0%</span></div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Daily OP Cost -->
-		<div class="bg-bg-card border border-border-card p-3 rounded group/kpi3 relative">
-			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Daily OP Cost</p>
-			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black text-text-primary">{fmt(data.dailyOpCost)}</p>
-				<span class="text-[11px] text-text-muted">Budget</span>
-			</div>
-			<div class="mt-2 h-1 w-full bg-border-card rounded-full overflow-hidden">
-				<div class="h-full bg-blue-500 rounded-full" style="width: {Math.min(100, (data.dailyOpCost / (DAILY_BUDGET * 1.5)) * 100)}%"></div>
-			</div>
-			<div class="absolute left-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi3:opacity-100 transition-opacity duration-150">
-				<div class="space-y-1.5 text-xs">
-					<div class="flex justify-between"><span class="text-text-muted">Daily Budget</span><span class="font-bold text-text-primary">{fmt(DAILY_BUDGET)}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Actual</span><span class="font-bold text-text-primary">{fmt(data.dailyOpCost)}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Variance</span><span class="font-bold" style="color: {budgetVariance <= 0 ? '#bef264' : '#ef4444'};">{budgetVariance <= 0 ? '' : '+'}{fmt(budgetVariance)}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Avg Cost/Batch</span><span class="font-bold text-text-primary">{fmt(costPerBatch)}</span></div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Cost per KG -->
-		<div class="bg-bg-card border border-border-card p-3 rounded group/kpi4 relative">
-			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Cost / KG</p>
-			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black text-text-primary">{fmt(data.avgCostPerKg)}</p>
-				{#if data.avgCostPerKg <= costPerKgTarget}
-					<span class="text-[11px] font-bold text-primary">&#9650; -{((costPerKgTarget - data.avgCostPerKg) / costPerKgTarget * 100).toFixed(0)}%</span>
-				{:else}
-					<span class="text-[11px] font-bold text-red-400">&#9660; +{((data.avgCostPerKg - costPerKgTarget) / costPerKgTarget * 100).toFixed(0)}%</span>
-				{/if}
-			</div>
-			<p class="text-[11px] text-text-muted mt-2">TARGET: {fmt(costPerKgTarget)}/kg</p>
-			<div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi4:opacity-100 transition-opacity duration-150">
-				<div class="space-y-1.5 text-xs">
-					<div class="flex justify-between"><span class="text-text-muted">Total Cost</span><span class="font-bold text-text-primary">{fmt(costTotal)}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Final Product</span><span class="font-bold text-text-primary">{runFinalProductKg.toFixed(2)} kg</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Target</span><span class="font-bold text-text-primary">{fmt(costPerKgTarget)}/kg</span></div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Daily Yield -->
-		<div class="bg-bg-card border border-border-card p-3 rounded group/kpi5 relative">
-			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Daily Yield</p>
-			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black text-text-primary">{Math.round(runDailyYieldKg * 1000).toLocaleString()}</p>
-				<span class="text-[11px] text-text-muted">g/day</span>
-			</div>
-			<div class="flex items-baseline gap-2 mt-1">
-				{#if runDailyYieldKg >= dailyYieldTarget}
-					<span class="text-[11px] font-bold text-primary">&#9650; +{((runDailyYieldKg - dailyYieldTarget) / dailyYieldTarget * 100).toFixed(0)}%</span>
-				{:else}
-					<span class="text-[11px] font-bold text-red-400">&#9660; -{((dailyYieldTarget - runDailyYieldKg) / dailyYieldTarget * 100).toFixed(0)}%</span>
-				{/if}
-			</div>
-			<p class="text-[11px] text-text-muted mt-1">TARGET: {Math.round(dailyYieldTarget * 1000).toLocaleString()} g/day</p>
-			<div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi5:opacity-100 transition-opacity duration-150">
-				<div class="space-y-1.5 text-xs">
-					<div class="flex justify-between"><span class="text-text-muted">Total Produced</span><span class="font-bold text-text-primary">{runFinalProductKg.toFixed(2)} kg</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Operation Days</span><span class="font-bold text-text-primary">{runOperationDays}</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Daily Avg</span><span class="font-bold text-text-primary">{Math.round(runDailyYieldKg * 1000).toLocaleString()} g</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Daily Target</span><span class="font-bold text-text-primary">{Math.round(dailyYieldTarget * 1000).toLocaleString()} g</span></div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Final Yield -->
-		<div class="bg-bg-card border border-border-card p-3 rounded group/kpi6 relative">
-			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Final Yield</p>
-			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black text-text-primary">{runFinalProductKg.toFixed(3)}</p>
-				<span class="text-[11px] text-text-muted">kg</span>
-			</div>
-			<p class="text-[11px] text-text-muted mt-1">Extract rate: {runExtractRate.toFixed(2)}%</p>
-			<div class="absolute right-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi6:opacity-100 transition-opacity duration-150">
-				<div class="space-y-1.5 text-xs">
-					<div class="flex justify-between"><span class="text-text-muted">Leaf Input</span><span class="font-bold text-text-primary">{Math.round(TOTAL_INTAKE_KG).toLocaleString()} kg</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Final Product</span><span class="font-bold text-text-primary">{runFinalProductKg.toFixed(2)} kg</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Extract Rate</span><span class="font-bold text-text-primary">{runExtractRate.toFixed(2)}%</span></div>
-					<div class="flex justify-between"><span class="text-text-muted">Target</span><span class="font-bold text-text-primary">{extractTarget}%</span></div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Alerts -->
-		<div class="bg-bg-card border border-border-card border-l-[3px] {data.alertCounts.high > 0 ? 'border-l-red-500' : data.alertCounts.medium > 0 ? 'border-l-amber-500' : 'border-l-primary'} p-3 rounded">
-			<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Alerts</p>
-			<div class="flex items-baseline gap-2 mt-1">
-				<p class="text-3xl font-black {data.alertCounts.high > 0 ? 'text-red-400' : data.alertCounts.total > 0 ? 'text-amber-400' : 'text-primary'}">{data.alertCounts.total}</p>
-				<span class="text-[11px] text-text-muted">active</span>
-			</div>
-			<div class="flex gap-2 mt-2 text-xs">
-				{#if data.alertCounts.high > 0}<span class="text-red-400 font-bold">{data.alertCounts.high} High</span>{/if}
-				{#if data.alertCounts.medium > 0}<span class="text-amber-400 font-bold">{data.alertCounts.medium} Med</span>{/if}
-				{#if data.alertCounts.low > 0}<span class="text-blue-400 font-bold">{data.alertCounts.low} Low</span>{/if}
-			</div>
-		</div>
-	</div>
-
-	<!-- Active Alerts Strip -->
-	{#if data.activeAlerts?.length > 0}
-		<div class="col-span-12 space-y-1">
-			{#each data.activeAlerts as alert}
-				<div class="flex items-center gap-2 px-3 py-2 rounded border text-xs
-					{alert.severity === 'High' ? 'bg-red-900/20 border-red-500/30 text-red-400' :
-					 alert.severity === 'Medium' ? 'bg-amber-900/20 border-amber-500/30 text-amber-400' :
-					 'bg-blue-900/20 border-blue-500/30 text-blue-400'}">
-					<span class="material-symbols-outlined text-sm">
-						{alert.severity === 'High' ? 'error' : alert.severity === 'Medium' ? 'warning' : 'info'}
-					</span>
-					<span class="font-bold">{alert.alert_type}</span>
-					<span class="flex-1">{alert.message}</span>
-					{#if alert.batch_id}
-						<a href="/batches/{alert.batch_id}/stages/{alert.stage_number ?? 1}" class="font-bold underline hover:opacity-80">View Batch</a>
+			<!-- EtOH Recovery -->
+			<div class="bg-bg-card border border-border-card p-3 rounded group/kpi2 relative">
+				<p class="text-xs font-bold uppercase tracking-widest text-text-muted">EtOH Recovery</p>
+				<div class="flex items-baseline gap-2 mt-1">
+					<p class="text-3xl font-black text-text-primary">{runEtohRecoveryPct.toFixed(1)}%</p>
+					{#if runEtohRecoveryPct >= 95}
+						<span class="text-[11px] font-bold text-primary">&#9650; {(runEtohRecoveryPct - 95).toFixed(1)}%</span>
+					{:else if runEtohRecoveryPct >= 80}
+						<span class="text-[11px] font-bold text-amber-400">&#9660; {(95 - runEtohRecoveryPct).toFixed(1)}%</span>
+					{:else}
+						<span class="text-[11px] font-bold text-red-400">&#9660; {(95 - runEtohRecoveryPct).toFixed(1)}%</span>
 					{/if}
 				</div>
-			{/each}
+				<p class="text-[11px] text-text-muted mt-2">LIMIT: >95.0%</p>
+				<div
+					class="absolute left-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi2:opacity-100 transition-opacity duration-150"
+				>
+					<div class="space-y-1.5 text-xs">
+						<div class="flex justify-between">
+							<span class="text-text-muted">EtOH Issued</span><span class="font-bold text-text-primary"
+								>{runEtohIssued.toFixed(0)} L</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">EtOH Recovered</span><span class="font-bold text-text-primary"
+								>{runEtohRecovered.toFixed(0)} L</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">EtOH Lost</span><span class="font-bold text-red-400"
+								>{runEtohLost.toFixed(1)} L</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Recovery Rate</span><span class="font-bold text-text-primary"
+								>{runEtohRecoveryPct.toFixed(1)}%</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Target</span><span class="font-bold text-text-primary">&gt;95.0%</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Daily OP Cost -->
+			<div class="bg-bg-card border border-border-card p-3 rounded group/kpi3 relative">
+				<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Daily OP Cost</p>
+				<div class="flex items-baseline gap-2 mt-1">
+					<p class="text-3xl font-black text-text-primary">{fmt(data.dailyOpCost)}</p>
+					<span class="text-[11px] text-text-muted">Budget</span>
+				</div>
+				<div class="mt-2 h-1 w-full bg-border-card rounded-full overflow-hidden">
+					<div
+						class="h-full bg-blue-500 rounded-full"
+						style="width: {Math.min(100, (data.dailyOpCost / (DAILY_BUDGET * 1.5)) * 100)}%"
+					></div>
+				</div>
+				<div
+					class="absolute left-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi3:opacity-100 transition-opacity duration-150"
+				>
+					<div class="space-y-1.5 text-xs">
+						<div class="flex justify-between">
+							<span class="text-text-muted">Daily Budget</span><span class="font-bold text-text-primary"
+								>{fmt(DAILY_BUDGET)}</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Actual</span><span class="font-bold text-text-primary"
+								>{fmt(data.dailyOpCost)}</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Variance</span><span
+								class="font-bold"
+								style="color: {budgetVariance <= 0 ? '#bef264' : '#ef4444'};"
+								>{budgetVariance <= 0 ? '' : '+'}{fmt(budgetVariance)}</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Avg Cost/Batch</span><span class="font-bold text-text-primary"
+								>{fmt(costPerBatch)}</span
+							>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Cost per KG -->
+			<div class="bg-bg-card border border-border-card p-3 rounded group/kpi4 relative">
+				<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Cost / KG</p>
+				<div class="flex items-baseline gap-2 mt-1">
+					<p class="text-3xl font-black text-text-primary">{fmt(data.avgCostPerKg)}</p>
+					{#if data.avgCostPerKg <= costPerKgTarget}
+						<span class="text-[11px] font-bold text-primary"
+							>&#9650; -{(((costPerKgTarget - data.avgCostPerKg) / costPerKgTarget) * 100).toFixed(0)}%</span
+						>
+					{:else}
+						<span class="text-[11px] font-bold text-red-400"
+							>&#9660; +{(((data.avgCostPerKg - costPerKgTarget) / costPerKgTarget) * 100).toFixed(0)}%</span
+						>
+					{/if}
+				</div>
+				<p class="text-[11px] text-text-muted mt-2">TARGET: {fmt(costPerKgTarget)}/kg</p>
+				<div
+					class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi4:opacity-100 transition-opacity duration-150"
+				>
+					<div class="space-y-1.5 text-xs">
+						<div class="flex justify-between">
+							<span class="text-text-muted">Total Cost</span><span class="font-bold text-text-primary"
+								>{fmt(costTotal)}</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Final Product</span><span class="font-bold text-text-primary"
+								>{runFinalProductKg.toFixed(2)} kg</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Target</span><span class="font-bold text-text-primary"
+								>{fmt(costPerKgTarget)}/kg</span
+							>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Daily Yield -->
+			<div class="bg-bg-card border border-border-card p-3 rounded group/kpi5 relative">
+				<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Daily Yield</p>
+				<div class="flex items-baseline gap-2 mt-1">
+					<p class="text-3xl font-black text-text-primary">{Math.round(runDailyYieldKg * 1000).toLocaleString()}</p>
+					<span class="text-[11px] text-text-muted">g/day</span>
+				</div>
+				<div class="flex items-baseline gap-2 mt-1">
+					{#if runDailyYieldKg >= dailyYieldTarget}
+						<span class="text-[11px] font-bold text-primary"
+							>&#9650; +{(((runDailyYieldKg - dailyYieldTarget) / dailyYieldTarget) * 100).toFixed(0)}%</span
+						>
+					{:else}
+						<span class="text-[11px] font-bold text-red-400"
+							>&#9660; -{(((dailyYieldTarget - runDailyYieldKg) / dailyYieldTarget) * 100).toFixed(0)}%</span
+						>
+					{/if}
+				</div>
+				<p class="text-[11px] text-text-muted mt-1">
+					TARGET: {Math.round(dailyYieldTarget * 1000).toLocaleString()} g/day
+				</p>
+				<div
+					class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi5:opacity-100 transition-opacity duration-150"
+				>
+					<div class="space-y-1.5 text-xs">
+						<div class="flex justify-between">
+							<span class="text-text-muted">Total Produced</span><span class="font-bold text-text-primary"
+								>{runFinalProductKg.toFixed(2)} kg</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Operation Days</span><span class="font-bold text-text-primary"
+								>{runOperationDays}</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Daily Avg</span><span class="font-bold text-text-primary"
+								>{Math.round(runDailyYieldKg * 1000).toLocaleString()} g</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Daily Target</span><span class="font-bold text-text-primary"
+								>{Math.round(dailyYieldTarget * 1000).toLocaleString()} g</span
+							>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Final Yield -->
+			<div class="bg-bg-card border border-border-card p-3 rounded group/kpi6 relative">
+				<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Final Yield</p>
+				<div class="flex items-baseline gap-2 mt-1">
+					<p class="text-3xl font-black text-text-primary">{runFinalProductKg.toFixed(3)}</p>
+					<span class="text-[11px] text-text-muted">kg</span>
+				</div>
+				<p class="text-[11px] text-text-muted mt-1">Extract rate: {runExtractRate.toFixed(2)}%</p>
+				<div
+					class="absolute right-0 top-full mt-1 z-50 bg-bg-card border border-border-card rounded-lg shadow-xl p-3 w-52 opacity-0 pointer-events-none group-hover/kpi6:opacity-100 transition-opacity duration-150"
+				>
+					<div class="space-y-1.5 text-xs">
+						<div class="flex justify-between">
+							<span class="text-text-muted">Leaf Input</span><span class="font-bold text-text-primary"
+								>{Math.round(TOTAL_INTAKE_KG).toLocaleString()} kg</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Final Product</span><span class="font-bold text-text-primary"
+								>{runFinalProductKg.toFixed(2)} kg</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Extract Rate</span><span class="font-bold text-text-primary"
+								>{runExtractRate.toFixed(2)}%</span
+							>
+						</div>
+						<div class="flex justify-between">
+							<span class="text-text-muted">Target</span><span class="font-bold text-text-primary"
+								>{extractTarget}%</span
+							>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Alerts -->
+			<div
+				class="bg-bg-card border border-border-card border-l-[3px] {data.alertCounts.high > 0
+					? 'border-l-red-500'
+					: data.alertCounts.medium > 0
+						? 'border-l-amber-500'
+						: 'border-l-primary'} p-3 rounded"
+			>
+				<p class="text-xs font-bold uppercase tracking-widest text-text-muted">Alerts</p>
+				<div class="flex items-baseline gap-2 mt-1">
+					<p
+						class="text-3xl font-black {data.alertCounts.high > 0
+							? 'text-red-400'
+							: data.alertCounts.total > 0
+								? 'text-amber-400'
+								: 'text-primary'}"
+					>
+						{data.alertCounts.total}
+					</p>
+					<span class="text-[11px] text-text-muted">active</span>
+				</div>
+				<div class="flex gap-2 mt-2 text-xs">
+					{#if data.alertCounts.high > 0}<span class="text-red-400 font-bold">{data.alertCounts.high} High</span>{/if}
+					{#if data.alertCounts.medium > 0}<span class="text-amber-400 font-bold">{data.alertCounts.medium} Med</span
+						>{/if}
+					{#if data.alertCounts.low > 0}<span class="text-blue-400 font-bold">{data.alertCounts.low} Low</span>{/if}
+				</div>
+			</div>
 		</div>
-	{/if}
 
-	<!-- Row 3: Pipeline + Lot Progress stacked -->
-	<div class="col-span-6 flex flex-col gap-3">
-	<div class="relative overflow-visible rounded-2xl border border-border-card z-20" style="background: linear-gradient(135deg, #111827 0%, #1F2937 40%, #162032 100%);">
-		<!-- Subtle grid pattern overlay -->
-		<div class="absolute inset-0 opacity-[0.03] rounded-2xl overflow-hidden" style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 24px 24px;"></div>
-		<div class="relative p-5">
+		<!-- Active Alerts Strip -->
+		{#if data.activeAlerts?.length > 0}
+			<div class="col-span-12 space-y-1">
+				{#each data.activeAlerts as alert}
+					<div
+						class="flex items-center gap-2 px-3 py-2 rounded border text-xs
+					{alert.severity === 'High'
+							? 'bg-red-900/20 border-red-500/30 text-red-400'
+							: alert.severity === 'Medium'
+								? 'bg-amber-900/20 border-amber-500/30 text-amber-400'
+								: 'bg-blue-900/20 border-blue-500/30 text-blue-400'}"
+					>
+						<span class="material-symbols-outlined text-sm">
+							{alert.severity === 'High' ? 'error' : alert.severity === 'Medium' ? 'warning' : 'info'}
+						</span>
+						<span class="font-bold">{alert.alert_type}</span>
+						<span class="flex-1">{alert.message}</span>
+						{#if alert.batch_id}
+							<a
+								href="/batches/{alert.batch_id}/stages/{alert.stage_number ?? 1}"
+								class="font-bold underline hover:opacity-80">View Batch</a
+							>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{/if}
 
-			<div class="relative flex items-start px-3">
-				{#each mainSteps() as step, i}
-					<!-- Main stage node -->
-					<div class="flex-none group relative flex flex-col items-center text-center z-10">
-						<a href={step.href} class="flex flex-col items-center transition-transform duration-200 hover:scale-105">
-							<div class="relative h-[72px] w-[72px]">
-								<!-- Icon circle -->
-								<div class="absolute inset-0 rounded-full bg-bg-card flex items-center justify-center shadow-lg shadow-black/20">
-									{#if step.cluster}
-										<div class="relative w-[30px] h-[28px]">
-											<i class="fa-solid fa-snowflake text-primary text-[12px] absolute top-0 left-[9px]"></i>
-											<i class="fa-solid fa-snowflake text-primary text-xs absolute top-[10px] left-0"></i>
-											<i class="fa-solid fa-snowflake text-primary text-[14px] absolute top-[10px] left-[16px]"></i>
-											<i class="fa-solid fa-snowflake text-primary text-sm absolute bottom-0 left-[8px]"></i>
+		<!-- Row 3: Pipeline + Lot Progress stacked -->
+		<div class="col-span-6 flex flex-col gap-3">
+			<div
+				class="relative overflow-visible rounded-2xl border border-border-card z-20"
+				style="background: linear-gradient(135deg, #111827 0%, #1F2937 40%, #162032 100%);"
+			>
+				<!-- Subtle grid pattern overlay -->
+				<div
+					class="absolute inset-0 opacity-[0.03] rounded-2xl overflow-hidden"
+					style="background-image: radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size: 24px 24px;"
+				></div>
+				<div class="relative p-5">
+					<div class="relative flex items-start px-3">
+						{#each mainSteps() as step, i}
+							<!-- Main stage node -->
+							<div class="flex-none group relative flex flex-col items-center text-center z-10">
+								<a
+									href={step.href}
+									class="flex flex-col items-center transition-transform duration-200 hover:scale-105"
+								>
+									<div class="relative h-[72px] w-[72px]">
+										<!-- Icon circle -->
+										<div
+											class="absolute inset-0 rounded-full bg-bg-card flex items-center justify-center shadow-lg shadow-black/20"
+										>
+											{#if step.cluster}
+												<div class="relative w-[30px] h-[28px]">
+													<i class="fa-solid fa-snowflake text-primary text-[12px] absolute top-0 left-[9px]"></i>
+													<i class="fa-solid fa-snowflake text-primary text-xs absolute top-[10px] left-0"></i>
+													<i class="fa-solid fa-snowflake text-primary text-[14px] absolute top-[10px] left-[16px]"></i>
+													<i class="fa-solid fa-snowflake text-primary text-sm absolute bottom-0 left-[8px]"></i>
+												</div>
+											{:else}
+												<i class="fa-solid {step.icon} text-primary text-[22px]"></i>
+											{/if}
 										</div>
-									{:else}
-										<i class="fa-solid {step.icon} text-primary text-[22px]"></i>
-									{/if}
-								</div>
-								<!-- Progress ring SVG (on top) -->
-								<svg width="72" height="72" class="absolute inset-0 z-10 pointer-events-none" style="transform: rotate(90deg);">
-									<circle cx="36" cy="36" r={RING_R} fill="none" stroke="rgba(55,65,81,0.8)" stroke-width="3" />
-									<circle cx="36" cy="36" r={RING_R} fill="none" stroke="#A3E635" stroke-width="3" stroke-dasharray="{step.ringFilled} {RING_CIRC - step.ringFilled}" stroke-linecap="round" />
-								</svg>
-							</div>
-							<p class="text-xs font-bold text-text-primary mt-3 tracking-wide">{step.label}</p>
-							<p class="text-[11px] text-text-muted font-mono">{step.fillPct.toFixed(0)}%</p>
-						</a>
-						<!-- Main tooltip -->
-						<div class="absolute top-full mt-1 z-50 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-4 w-56 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 {i === 0 ? 'left-0' : i === mainSteps().length - 1 ? 'right-0' : 'left-1/2 -translate-x-1/2'}" style="background: linear-gradient(160deg, #1e1e1e 0%, #1F2937 100%);">
-							<div class="flex items-center justify-between mb-2">
-								<p class="text-[11px] font-bold text-text-primary">{step.label}</p>
-								<span class="text-[11px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded">{step.fillPct.toFixed(0)}%</span>
-							</div>
-							<div class="h-1 w-full bg-bg-page rounded-full overflow-hidden mb-3">
-								<div class="h-full bg-primary rounded-full transition-all" style="width: {step.fillPct}%"></div>
-							</div>
-							<div class="space-y-1.5">
-								{#if i === 0}
-									<div class="flex justify-between"><span class="text-[11px] text-text-muted">Powder Output</span><span class="text-[11px] font-bold text-text-primary">{lotPowderKg.toLocaleString()} kg</span></div>
-									<div class="flex justify-between"><span class="text-[11px] text-text-muted">Batches Ground</span><span class="text-[11px] font-bold text-text-primary">{lotStageCounts()[1] ?? 0} / {lotBatchCount}</span></div>
-								{:else if i === 1}
-									<div class="flex justify-between"><span class="text-[11px] text-text-muted">Extractions</span><span class="text-[11px] font-bold text-text-primary">{lotLotsExtracted} / {lotEtohStockUsedL.toLocaleString()}L</span></div>
-									<div class="border-t border-border-subtle pt-1.5 mt-1 space-y-1.5">
-										<p class="text-[11px] font-bold text-primary/70 uppercase tracking-wider">Filtration</p>
-										<div class="flex justify-between"><span class="text-[11px] text-text-muted">Recovered</span><span class="text-[11px] font-bold text-text-primary">{lotFiltrationOutputL.toLocaleString()} L</span></div>
-										<div class="flex justify-between"><span class="text-[11px] text-text-muted">Lost</span><span class="text-[11px] font-bold text-red-400">{lotFiltrationLossL} L</span></div>
-										<div class="flex justify-between"><span class="text-[11px] text-text-muted">Recovery</span><span class="text-[11px] font-bold text-text-primary">{lotFiltrationPct}%</span></div>
+										<!-- Progress ring SVG (on top) -->
+										<svg
+											width="72"
+											height="72"
+											class="absolute inset-0 z-10 pointer-events-none"
+											style="transform: rotate(90deg);"
+										>
+											<circle cx="36" cy="36" r={RING_R} fill="none" stroke="rgba(55,65,81,0.8)" stroke-width="3" />
+											<circle
+												cx="36"
+												cy="36"
+												r={RING_R}
+												fill="none"
+												stroke="#A3E635"
+												stroke-width="3"
+												stroke-dasharray="{step.ringFilled} {RING_CIRC - step.ringFilled}"
+												stroke-linecap="round"
+											/>
+										</svg>
 									</div>
-								{:else if i === 2}
-									<div class="flex justify-between"><span class="text-[11px] text-text-muted">Recovered</span><span class="text-[11px] font-bold text-text-primary">{Number(lotEtohRecovered.toFixed(1)).toLocaleString()} L</span></div>
-									<div class="flex justify-between"><span class="text-[11px] text-text-muted">Lost</span><span class="text-[11px] font-bold text-red-400">{lotEtohLost.toFixed(1)} L</span></div>
-									<div class="flex justify-between"><span class="text-[11px] text-text-muted">Recovery</span><span class="text-[11px] font-bold text-text-primary">{lotDistillationPct}%</span></div>
-								{:else if i === 3}
-									<div class="flex justify-between"><span class="text-[11px] text-text-muted">Wet weight</span><span class="text-[11px] font-bold text-text-primary">{lotPrecipitateKg} kg</span></div>
-									<div class="border-t border-border-subtle pt-1.5 mt-1 space-y-1.5">
-										<p class="text-[11px] font-bold text-primary/70 uppercase tracking-wider">A/B Extraction</p>
-										<div class="flex justify-between"><span class="text-[11px] text-text-muted">D-Limo Recovered</span><span class="text-[11px] font-bold text-text-primary">{lotDlimoRecoveredL} L</span></div>
-										<div class="flex justify-between"><span class="text-[11px] text-text-muted">D-Limo Lost</span><span class="text-[11px] font-bold text-red-400">{lotDlimoLostL} L</span></div>
+									<p class="text-xs font-bold text-text-primary mt-3 tracking-wide">{step.label}</p>
+									<p class="text-[11px] text-text-muted font-mono">{step.fillPct.toFixed(0)}%</p>
+								</a>
+								<!-- Main tooltip -->
+								<div
+									class="absolute top-full mt-1 z-50 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-4 w-56 text-left opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-200 {i ===
+									0
+										? 'left-0'
+										: i === mainSteps().length - 1
+											? 'right-0'
+											: 'left-1/2 -translate-x-1/2'}"
+									style="background: linear-gradient(160deg, #1e1e1e 0%, #1F2937 100%);"
+								>
+									<div class="flex items-center justify-between mb-2">
+										<p class="text-[11px] font-bold text-text-primary">{step.label}</p>
+										<span class="text-[11px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded"
+											>{step.fillPct.toFixed(0)}%</span
+										>
 									</div>
-								{:else if i === 4}
-									<div class="flex justify-between"><span class="text-[11px] text-text-muted">Dried extract</span><span class="text-[11px] font-bold text-text-primary">{lotFinalProductKg.toFixed(2)} kg</span></div>
-								{/if}
-							</div>
-						</div>
-					</div>
-					<!-- Connector with notch circle -->
-					{#if i < mainSteps().length - 1}
-						<div class="flex-1 flex items-center relative" style="margin-top: 35px;">
-							<div class="flex-1 h-px bg-gradient-to-r from-primary/60 to-primary/30"></div>
-							<div class="flex-none group/notch relative flex flex-col items-center mx-2">
-								<div class="h-3.5 w-3.5 rounded-full bg-bg-page border-[1.5px] border-primary/50 z-10 transition-all duration-200 group-hover/notch:border-primary group-hover/notch:bg-primary/20 group-hover/notch:scale-150 cursor-default"></div>
-								<p class="text-[11px] font-medium text-text-muted/70 mt-1.5 whitespace-nowrap uppercase tracking-widest">{notchSteps[i].label}</p>
-								<div class="absolute top-full mt-5 z-50 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-3 w-44 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-all duration-200 left-1/2 -translate-x-1/2" style="background: linear-gradient(160deg, #1e1e1e 0%, #1F2937 100%);">
-									<div class="flex items-center gap-1.5 mb-2">
-										<div class="h-1.5 w-1.5 rounded-full bg-primary/60"></div>
-										<p class="text-xs font-bold text-text-primary">{notchSteps[i].label}</p>
+									<div class="h-1 w-full bg-bg-page rounded-full overflow-hidden mb-3">
+										<div class="h-full bg-primary rounded-full transition-all" style="width: {step.fillPct}%"></div>
 									</div>
-									<div class="space-y-1">
+									<div class="space-y-1.5">
 										{#if i === 0}
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">Total Powder</span><span class="text-[11px] font-bold text-text-primary">{lotPowderKg} kg</span></div>
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">Batches Ground</span><span class="text-[11px] font-bold text-text-primary">{lotStageCounts()[1] ?? 0} / {lotBatchCount}</span></div>
+											<div class="flex justify-between">
+												<span class="text-[11px] text-text-muted">Powder Output</span><span
+													class="text-[11px] font-bold text-text-primary">{lotPowderKg.toLocaleString()} kg</span
+												>
+											</div>
+											<div class="flex justify-between">
+												<span class="text-[11px] text-text-muted">Batches Ground</span><span
+													class="text-[11px] font-bold text-text-primary"
+													>{lotStageCounts()[1] ?? 0} / {lotBatchCount}</span
+												>
+											</div>
 										{:else if i === 1}
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">Recovered</span><span class="text-[11px] font-bold text-text-primary">{lotFiltrationOutputL} L</span></div>
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">Lost</span><span class="text-[11px] font-bold text-red-400">{lotFiltrationLossL} L</span></div>
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">Recovery</span><span class="text-[11px] font-bold text-text-primary">{lotFiltrationPct}%</span></div>
+											<div class="flex justify-between">
+												<span class="text-[11px] text-text-muted">Extractions</span><span
+													class="text-[11px] font-bold text-text-primary"
+													>{lotLotsExtracted} / {lotEtohStockUsedL.toLocaleString()}L</span
+												>
+											</div>
+											<div class="border-t border-border-subtle pt-1.5 mt-1 space-y-1.5">
+												<p class="text-[11px] font-bold text-primary/70 uppercase tracking-wider">Filtration</p>
+												<div class="flex justify-between">
+													<span class="text-[11px] text-text-muted">Recovered</span><span
+														class="text-[11px] font-bold text-text-primary"
+														>{lotFiltrationOutputL.toLocaleString()} L</span
+													>
+												</div>
+												<div class="flex justify-between">
+													<span class="text-[11px] text-text-muted">Lost</span><span
+														class="text-[11px] font-bold text-red-400">{lotFiltrationLossL} L</span
+													>
+												</div>
+												<div class="flex justify-between">
+													<span class="text-[11px] text-text-muted">Recovery</span><span
+														class="text-[11px] font-bold text-text-primary">{lotFiltrationPct}%</span
+													>
+												</div>
+											</div>
 										{:else if i === 2}
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">D-Limo Recovered</span><span class="text-[11px] font-bold text-text-primary">{lotDlimoRecoveredL} L</span></div>
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">D-Limo Lost</span><span class="text-[11px] font-bold text-red-400">{lotDlimoLostL} L</span></div>
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">Batches Processed</span><span class="text-[11px] font-bold text-text-primary">{lotStageCounts()[3] ?? 0} / {lotBatchCount}</span></div>
+											<div class="flex justify-between">
+												<span class="text-[11px] text-text-muted">Recovered</span><span
+													class="text-[11px] font-bold text-text-primary"
+													>{Number(lotEtohRecovered.toFixed(1)).toLocaleString()} L</span
+												>
+											</div>
+											<div class="flex justify-between">
+												<span class="text-[11px] text-text-muted">Lost</span><span
+													class="text-[11px] font-bold text-red-400">{lotEtohLost.toFixed(1)} L</span
+												>
+											</div>
+											<div class="flex justify-between">
+												<span class="text-[11px] text-text-muted">Recovery</span><span
+													class="text-[11px] font-bold text-text-primary">{lotDistillationPct}%</span
+												>
+											</div>
 										{:else if i === 3}
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">Precipitate In</span><span class="text-[11px] font-bold text-text-primary">{lotPrecipitateKg} kg</span></div>
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">Final Product</span><span class="text-[11px] font-bold text-text-primary">{lotFinalProductKg.toFixed(2)} kg</span></div>
-											<div class="flex justify-between"><span class="text-[11px] text-text-muted">Batches Dried</span><span class="text-[11px] font-bold text-text-primary">{lotStageCounts()[4] ?? 0} / {lotBatchCount}</span></div>
+											<div class="flex justify-between">
+												<span class="text-[11px] text-text-muted">Wet weight</span><span
+													class="text-[11px] font-bold text-text-primary">{lotPrecipitateKg} kg</span
+												>
+											</div>
+											<div class="border-t border-border-subtle pt-1.5 mt-1 space-y-1.5">
+												<p class="text-[11px] font-bold text-primary/70 uppercase tracking-wider">A/B Extraction</p>
+												<div class="flex justify-between">
+													<span class="text-[11px] text-text-muted">D-Limo Recovered</span><span
+														class="text-[11px] font-bold text-text-primary">{lotDlimoRecoveredL} L</span
+													>
+												</div>
+												<div class="flex justify-between">
+													<span class="text-[11px] text-text-muted">D-Limo Lost</span><span
+														class="text-[11px] font-bold text-red-400">{lotDlimoLostL} L</span
+													>
+												</div>
+											</div>
+										{:else if i === 4}
+											<div class="flex justify-between">
+												<span class="text-[11px] text-text-muted">Dried extract</span><span
+													class="text-[11px] font-bold text-text-primary">{lotFinalProductKg.toFixed(2)} kg</span
+												>
+											</div>
 										{/if}
 									</div>
 								</div>
 							</div>
-							<!-- Right line segment -->
-							<div class="flex-1 h-px bg-gradient-to-r from-primary/30 to-primary/60"></div>
-						</div>
-					{/if}
-				{/each}
-			</div>
-		</div>
-	</div>
-
-	<!-- Lot Progress -->
-	<div class="bg-bg-card border border-border-card pt-3 pl-3 pb-3 pr-1 rounded w-full flex-1 flex flex-col min-h-0">
-		<!-- Intake summary bar -->
-		<div class="flex items-center gap-2 mb-3 pb-2 border-b border-border-subtle pr-3">
-			<div class="flex items-center gap-1 flex-none overflow-x-auto min-w-0">
-				{#each allLots() as lot}
-					<button onclick={() => selectedLot = lot} class="px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded transition-colors {activeLot === lot ? 'text-primary bg-primary/15' : 'text-text-muted/40 hover:text-text-muted/60'}">{lot}</button>
-				{/each}
-			</div>
-			<div class="flex-1 h-1.5 bg-border-card rounded-full overflow-hidden">
-				<div class="h-full bg-primary rounded-full transition-all" style="width: {lotCompletePct}%"></div>
-			</div>
-			<p class="text-[11px] text-text-muted whitespace-nowrap">{Math.round(lotIntakeKg)} kg · {lotBatches().length} batches</p>
-			<div class="flex gap-px rounded overflow-hidden flex-none whitespace-nowrap" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				{#if lotActiveBatches > 0}
-					<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'active' ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'active'}>Active</button>
-				{/if}
-				<button class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort === 'completed' || lotActiveBatches === 0 ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => lotSort = 'completed'}>Completed</button>
-			</div>
-		</div>
-
-		{#if activeLot}
-		<div class="flex items-center gap-3 px-2 py-1 mb-1 rounded text-sm"
-			style="background: rgba(163,230,53,0.04); border: 1px solid rgba(163,230,53,0.08);">
-			<span class="text-[11px] text-text-muted uppercase">Leaf</span>
-			<span class="font-mono font-bold text-text-primary">{Math.round(lotIntakeKg)} kg</span>
-			<span class="text-white/10">|</span>
-			<span class="text-[11px] text-text-muted uppercase">Powder</span>
-			<span class="font-mono font-bold text-text-primary">{lotPowderKg} kg</span>
-			<span class="text-white/10">|</span>
-			<span class="text-[11px] text-text-muted uppercase">EtOH</span>
-			<span class="font-mono font-bold text-text-primary">{lotEtohIssued.toFixed(0)} L</span>
-			<span class="text-white/10">|</span>
-			<span class="text-[11px] text-text-muted uppercase">Recovery</span>
-			<span class="font-mono font-bold" style="color: {lotEtohRecoveryPct >= 95 ? '#bef264' : lotEtohRecoveryPct >= 80 ? '#fbbf24' : '#ef4444'};">{lotEtohRecoveryPct.toFixed(1)}%</span>
-			<span class="text-white/10">|</span>
-			<span class="text-[11px] text-text-muted uppercase">Yield</span>
-			<span class="font-mono font-bold text-text-primary">{lotFinalProductKg.toFixed(3)} kg</span>
-		</div>
-		{/if}
-
-		<!-- Parent-lot summary bar -->
-		<div class="flex items-center gap-2 mb-2 pr-3">
-			<div class="flex items-center gap-1.5 flex-none">
-				<button onclick={selectRun} class="flex items-center gap-1 px-1.5 py-0.5 rounded text-sm font-bold uppercase tracking-wider transition-colors {selectedBatchId === null ? 'text-primary bg-primary/15' : 'text-text-muted/50 hover:text-text-muted/70'}">
-					{runLabel}
-				</button>
-				<span class="text-xs text-text-muted/50">{runLabel} · {runCompletedBatches}/{runBatchCount} batches</span>
-			</div>
-			<div class="flex-1 flex items-center gap-3 justify-end">
-				<div class="flex items-center gap-1">
-					<span class="text-[11px] text-text-muted/30 uppercase">Batches</span>
-					<span class="text-sm font-medium text-text-secondary">{runCompletedBatches}<span class="text-text-muted/30">/{runBatchCount}</span></span>
-				</div>
-				<div class="flex items-center gap-1">
-					<span class="text-[11px] text-text-muted/30 uppercase">Active</span>
-					<span class="text-sm font-medium text-blue-400">{runInProgressBatches}</span>
-				</div>
-				<div class="flex items-center gap-1">
-					<span class="text-[11px] text-text-muted/30 uppercase">Proj. Out</span>
-					<span class="text-sm font-medium text-text-secondary">{projectedFinalOutput.toFixed(1)} kg</span>
-				</div>
-				<div class="flex items-center gap-1">
-					<span class="text-[11px] text-text-muted/30 uppercase">Proj. Cost</span>
-					<span class="text-sm font-medium text-text-secondary">{fmt(projectedTotalCost)}</span>
-				</div>
-				<div class="flex items-center gap-1">
-					<span class="text-[11px] text-text-muted/30 uppercase">Recovery</span>
-					<span class="text-sm font-medium" style="color: {projectedSolventRecovery >= 95 ? '#bef264' : projectedSolventRecovery >= 80 ? '#fbbf24' : '#ef4444'};">{projectedSolventRecovery.toFixed(1)}%</span>
-				</div>
-			</div>
-		</div>
-
-		<!-- Lot progress table -->
-		{#if data.activeBatchProgress.length === 0}
-			<p class="text-xs text-text-muted">No active lots</p>
-		{:else}
-			<div class="pr-1 overflow-y-auto overflow-x-hidden flex-1" style="scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
-				<!-- Header -->
-				<div style="display: grid; grid-template-columns: 72px repeat(7, 1fr) 12px 1fr 1fr 1fr;" class="text-xs font-bold text-text-muted uppercase tracking-wider pb-1.5 border-b border-border-subtle gap-1.5 sticky top-0 bg-bg-card z-10">
-					<button onclick={selectRun} class="text-left transition-colors {selectedBatchId === null ? 'text-primary' : 'text-text-muted hover:text-primary/70'}">{activeLot ?? runLabel}</button>
-					{#each TABLE_COLUMNS as col}
-						<div class="text-center">{col.label}</div>
-					{/each}
-					<div></div>
-					<div class="text-center">Prog</div>
-					<div class="text-center">Stage</div>
-					<div class="text-center">Act</div>
-				</div>
-				{#each sortedBatches() as batch, batchIdx}
-					{@const s1f = batch.stages.find(s => s.stage_number === 1)?.status === 'Finalized'}
-					{@const s2f = batch.stages.find(s => s.stage_number === 2)?.status === 'Finalized'}
-					{@const s3f = batch.stages.find(s => s.stage_number === 3)?.status === 'Finalized'}
-					{@const s4f = batch.stages.find(s => s.stage_number === 4)?.status === 'Finalized'}
-					{@const completedStages = (s1f ? 1 : 0) + (s2f ? 3 : 0) + (s3f ? 1 : 0) + (s4f ? 1 : 0) + (batch.final_product_g != null ? 1 : 0)}
-					<button onclick={() => selectBatch(batch.id)} style="display: grid; grid-template-columns: 72px repeat(7, 1fr) 12px 1fr 1fr 1fr;" class="items-center py-1 border-b rounded gap-1.5 transition-all w-full text-left {selectedBatchId === batch.id ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/30' : 'border-border-subtle hover:bg-bg-card-hover/30'}">
-						<!-- Lot ID + Position -->
-						<div class="hover:bg-bg-card-hover transition-colors rounded px-0.5 py-0.5 overflow-hidden">
-							<p class="text-xs font-bold text-text-primary">{batch.batch_number.replace('SG-', '')}</p>
-							<p class="text-xs truncate {batchIdx === lotBatchCount - 1 ? 'font-bold text-white' : 'text-text-muted'}">{batchIdx + 1}/{lotBatchCount}</p>
-						</div>
-						<!-- 7 Stage cells -->
-						{#each TABLE_COLUMNS as col, ci}
-							{@const colStatus = columnStatusColor(batch.stages, col.dbStages)}
-							{@const isFinalized = colStatus.includes('primary')}
-							{@const isInProgress = colStatus.includes('blue')}
-							<div class="group/cell relative text-center rounded py-0.5 px-0.5 text-sm font-bold hover:bg-bg-card-hover transition-colors {colStatus}">
-								{#if ci === 0}
-									{batch.powder_output_kg != null ? batch.powder_output_kg.toFixed(1) : '—'}
-								{:else if ci === 6}
-									{batch.final_product_g != null ? (batch.final_product_g / 1000).toFixed(3) : '—'}
-								{:else if isFinalized}
-									✓
-								{:else if isInProgress}
-									...
-								{:else}
-									—
-								{/if}
-								<!-- Hover tooltip for middle columns -->
-								{#if ci >= 1 && ci <= 5 && (isFinalized || isInProgress)}
-									<div class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-30 bg-bg-card border border-border-card rounded-lg shadow-lg p-2.5 w-44 text-left opacity-0 pointer-events-none group-hover/cell:opacity-100 transition-opacity duration-150">
-										{#if ci === 1}
-											<p class="text-[11px] font-bold text-text-primary mb-1.5">Ethanol Extraction</p>
-											<div class="space-y-1">
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">EtOH Used</span><span class="text-[11px] font-bold text-text-primary">{batch.etoh_vol_L?.toFixed(0) ?? '—'} L</span></div>
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">Crude Extract</span><span class="text-[11px] font-bold text-text-primary">{batch.crude_extract_wt_kg?.toFixed(2) ?? '—'} kg</span></div>
+							<!-- Connector with notch circle -->
+							{#if i < mainSteps().length - 1}
+								<div class="flex-1 flex items-center relative" style="margin-top: 35px;">
+									<div class="flex-1 h-px bg-gradient-to-r from-primary/60 to-primary/30"></div>
+									<div class="flex-none group/notch relative flex flex-col items-center mx-2">
+										<div
+											class="h-3.5 w-3.5 rounded-full bg-bg-page border-[1.5px] border-primary/50 z-10 transition-all duration-200 group-hover/notch:border-primary group-hover/notch:bg-primary/20 group-hover/notch:scale-150 cursor-default"
+										></div>
+										<p
+											class="text-[11px] font-medium text-text-muted/70 mt-1.5 whitespace-nowrap uppercase tracking-widest"
+										>
+											{notchSteps[i].label}
+										</p>
+										<div
+											class="absolute top-full mt-5 z-50 rounded-xl border border-primary/20 shadow-xl shadow-black/30 p-3 w-44 text-left opacity-0 pointer-events-none group-hover/notch:opacity-100 transition-all duration-200 left-1/2 -translate-x-1/2"
+											style="background: linear-gradient(160deg, #1e1e1e 0%, #1F2937 100%);"
+										>
+											<div class="flex items-center gap-1.5 mb-2">
+												<div class="h-1.5 w-1.5 rounded-full bg-primary/60"></div>
+												<p class="text-xs font-bold text-text-primary">{notchSteps[i].label}</p>
 											</div>
-										{:else if ci === 2}
-											<p class="text-[11px] font-bold text-text-primary mb-1.5">Filtration</p>
 											<div class="space-y-1">
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">EtOH Recovered</span><span class="text-[11px] font-bold text-text-primary">{batch.etoh_recovered_L?.toFixed(0) ?? '—'} L</span></div>
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">EtOH Lost</span><span class="text-[11px] font-bold text-red-500">{batch.etoh_lost_L?.toFixed(0) ?? '0'} L</span></div>
+												{#if i === 0}
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">Total Powder</span><span
+															class="text-[11px] font-bold text-text-primary">{lotPowderKg} kg</span
+														>
+													</div>
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">Batches Ground</span><span
+															class="text-[11px] font-bold text-text-primary"
+															>{lotStageCounts()[1] ?? 0} / {lotBatchCount}</span
+														>
+													</div>
+												{:else if i === 1}
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">Recovered</span><span
+															class="text-[11px] font-bold text-text-primary">{lotFiltrationOutputL} L</span
+														>
+													</div>
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">Lost</span><span
+															class="text-[11px] font-bold text-red-400">{lotFiltrationLossL} L</span
+														>
+													</div>
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">Recovery</span><span
+															class="text-[11px] font-bold text-text-primary">{lotFiltrationPct}%</span
+														>
+													</div>
+												{:else if i === 2}
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">D-Limo Recovered</span><span
+															class="text-[11px] font-bold text-text-primary">{lotDlimoRecoveredL} L</span
+														>
+													</div>
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">D-Limo Lost</span><span
+															class="text-[11px] font-bold text-red-400">{lotDlimoLostL} L</span
+														>
+													</div>
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">Batches Processed</span><span
+															class="text-[11px] font-bold text-text-primary"
+															>{lotStageCounts()[3] ?? 0} / {lotBatchCount}</span
+														>
+													</div>
+												{:else if i === 3}
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">Precipitate In</span><span
+															class="text-[11px] font-bold text-text-primary">{lotPrecipitateKg} kg</span
+														>
+													</div>
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">Final Product</span><span
+															class="text-[11px] font-bold text-text-primary">{lotFinalProductKg.toFixed(2)} kg</span
+														>
+													</div>
+													<div class="flex justify-between">
+														<span class="text-[11px] text-text-muted">Batches Dried</span><span
+															class="text-[11px] font-bold text-text-primary"
+															>{lotStageCounts()[4] ?? 0} / {lotBatchCount}</span
+														>
+													</div>
+												{/if}
 											</div>
-										{:else if ci === 3}
-											<p class="text-[11px] font-bold text-text-primary mb-1.5">Distillation</p>
-											<div class="space-y-1">
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">EtOH Recovered</span><span class="text-[11px] font-bold text-text-primary">{batch.etoh_recovered_L?.toFixed(0) ?? '—'} L</span></div>
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">EtOH Lost</span><span class="text-[11px] font-bold text-red-500">{batch.etoh_lost_L?.toFixed(0) ?? '0'} L</span></div>
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">Recovery %</span><span class="text-[11px] font-bold text-primary">{batch.etoh_recovery_pct?.toFixed(1) ?? '—'}%</span></div>
-											</div>
-										{:else if ci === 4}
-											<p class="text-[11px] font-bold text-text-primary mb-1.5">Acid/Base Extraction</p>
-											<div class="space-y-1">
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">D-Limo Used</span><span class="text-[11px] font-bold text-text-primary">{batch.dlimo_vol_L?.toFixed(1) ?? '—'} L</span></div>
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">D-Limo Recovered</span><span class="text-[11px] font-bold text-text-primary">{batch.dlimo_recovered_L?.toFixed(1) ?? '—'} L</span></div>
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">D-Limo Lost</span><span class="text-[11px] font-bold text-red-500">{batch.dlimo_lost_L?.toFixed(1) ?? '0'} L</span></div>
-											</div>
-										{:else if ci === 5}
-											<p class="text-[11px] font-bold text-text-primary mb-1.5">Precipitation</p>
-											<div class="space-y-1">
-												<div class="flex justify-between"><span class="text-[11px] text-text-muted">Wet Weight</span><span class="text-[11px] font-bold text-text-primary">{batch.wet_precipitate_g != null ? (batch.wet_precipitate_g / 1000).toFixed(2) : '—'} kg</span></div>
-											</div>
-										{/if}
+										</div>
 									</div>
-								{/if}
-							</div>
+									<!-- Right line segment -->
+									<div class="flex-1 h-px bg-gradient-to-r from-primary/30 to-primary/60"></div>
+								</div>
+							{/if}
 						{/each}
-						<div></div>
-						<!-- Progress bar -->
-						<div class="flex flex-col items-center justify-center px-0.5 hover:bg-bg-card-hover transition-colors rounded py-0.5">
-							<div class="h-1 w-full bg-border-card rounded-full overflow-hidden">
-								<div class="h-full bg-primary rounded-full" style="width: {(completedStages / 7 * 100)}%"></div>
-							</div>
-							<p class="text-xs text-text-muted text-center mt-0.5">{completedStages}/7</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Lot Progress -->
+			<div class="bg-bg-card border border-border-card pt-3 pl-3 pb-3 pr-1 rounded w-full flex-1 flex flex-col min-h-0">
+				<!-- Intake summary bar -->
+				<div class="flex items-center gap-2 mb-3 pb-2 border-b border-border-subtle pr-3">
+					<div class="flex items-center gap-1 flex-none overflow-x-auto min-w-0">
+						{#each allLots() as lot}
+							<button
+								onclick={() => (selectedLot = lot)}
+								class="px-1.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded transition-colors {activeLot ===
+								lot
+									? 'text-primary bg-primary/15'
+									: 'text-text-muted/40 hover:text-text-muted/60'}">{lot}</button
+							>
+						{/each}
+					</div>
+					<div class="flex-1 h-1.5 bg-border-card rounded-full overflow-hidden">
+						<div class="h-full bg-primary rounded-full transition-all" style="width: {lotCompletePct}%"></div>
+					</div>
+					<p class="text-[11px] text-text-muted whitespace-nowrap">
+						{Math.round(lotIntakeKg)} kg · {lotBatches().length} batches
+					</p>
+					<div
+						class="flex gap-px rounded overflow-hidden flex-none whitespace-nowrap"
+						style="border: 1px solid rgba(30, 30, 30, 0.8);"
+					>
+						{#if lotActiveBatches > 0}
+							<button
+								class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort ===
+								'active'
+									? 'text-primary bg-primary/20'
+									: 'text-text-muted/40 hover:text-text-muted/60'}"
+								onclick={() => (lotSort = 'active')}>Active</button
+							>
+						{/if}
+						<button
+							class="px-1.5 py-0.5 text-xs font-medium uppercase tracking-wider transition-colors {lotSort ===
+								'completed' || lotActiveBatches === 0
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/40 hover:text-text-muted/60'}"
+							onclick={() => (lotSort = 'completed')}>Completed</button
+						>
+					</div>
+				</div>
+
+				{#if activeLot}
+					<div
+						class="flex items-center gap-3 px-2 py-1 mb-1 rounded text-sm"
+						style="background: rgba(163,230,53,0.04); border: 1px solid rgba(163,230,53,0.08);"
+					>
+						<span class="text-[11px] text-text-muted uppercase">Leaf</span>
+						<span class="font-mono font-bold text-text-primary">{Math.round(lotIntakeKg)} kg</span>
+						<span class="text-white/10">|</span>
+						<span class="text-[11px] text-text-muted uppercase">Powder</span>
+						<span class="font-mono font-bold text-text-primary">{lotPowderKg} kg</span>
+						<span class="text-white/10">|</span>
+						<span class="text-[11px] text-text-muted uppercase">EtOH</span>
+						<span class="font-mono font-bold text-text-primary">{lotEtohIssued.toFixed(0)} L</span>
+						<span class="text-white/10">|</span>
+						<span class="text-[11px] text-text-muted uppercase">Recovery</span>
+						<span
+							class="font-mono font-bold"
+							style="color: {lotEtohRecoveryPct >= 95 ? '#bef264' : lotEtohRecoveryPct >= 80 ? '#fbbf24' : '#ef4444'};"
+							>{lotEtohRecoveryPct.toFixed(1)}%</span
+						>
+						<span class="text-white/10">|</span>
+						<span class="text-[11px] text-text-muted uppercase">Yield</span>
+						<span class="font-mono font-bold text-text-primary">{lotFinalProductKg.toFixed(3)} kg</span>
+					</div>
+				{/if}
+
+				<!-- Parent-lot summary bar -->
+				<div class="flex items-center gap-2 mb-2 pr-3">
+					<div class="flex items-center gap-1.5 flex-none">
+						<button
+							onclick={selectRun}
+							class="flex items-center gap-1 px-1.5 py-0.5 rounded text-sm font-bold uppercase tracking-wider transition-colors {selectedBatchId ===
+							null
+								? 'text-primary bg-primary/15'
+								: 'text-text-muted/50 hover:text-text-muted/70'}"
+						>
+							{runLabel}
+						</button>
+						<span class="text-xs text-text-muted/50">{runLabel} · {runCompletedBatches}/{runBatchCount} batches</span>
+					</div>
+					<div class="flex-1 flex items-center gap-3 justify-end">
+						<div class="flex items-center gap-1">
+							<span class="text-[11px] text-text-muted/30 uppercase">Batches</span>
+							<span class="text-sm font-medium text-text-secondary"
+								>{runCompletedBatches}<span class="text-text-muted/30">/{runBatchCount}</span></span
+							>
 						</div>
-						<!-- Current stage -->
-						<div class="flex items-center justify-center hover:bg-bg-card-hover transition-colors rounded py-0.5 px-0.5 overflow-hidden">
-							<p class="text-sm font-bold text-text-secondary truncate text-center">
-								{#if batch.final_product_g != null}
-									Done
-								{:else if batch.wet_precipitate_g != null}
-									Drying
-								{:else}
-									{getStageName(batch.current_stage)}
-								{/if}
-							</p>
+						<div class="flex items-center gap-1">
+							<span class="text-[11px] text-text-muted/30 uppercase">Active</span>
+							<span class="text-sm font-medium text-blue-400">{runInProgressBatches}</span>
 						</div>
-						<!-- Next action -->
-						<div class="flex items-center justify-center hover:bg-bg-card-hover transition-colors rounded py-0.5">
-							<span class="text-xs font-bold uppercase px-1 py-0.5 rounded {nextAction(batch) === 'Review' ? 'bg-amber-900/30 text-amber-400' : 'bg-blue-900/30 text-blue-400'}">{nextAction(batch)}</span>
+						<div class="flex items-center gap-1">
+							<span class="text-[11px] text-text-muted/30 uppercase">Proj. Out</span>
+							<span class="text-sm font-medium text-text-secondary">{projectedFinalOutput.toFixed(1)} kg</span>
 						</div>
-					</button>
-				{/each}
-			</div>
-		{/if}
-	</div>
-	</div>
+						<div class="flex items-center gap-1">
+							<span class="text-[11px] text-text-muted/30 uppercase">Proj. Cost</span>
+							<span class="text-sm font-medium text-text-secondary">{fmt(projectedTotalCost)}</span>
+						</div>
+						<div class="flex items-center gap-1">
+							<span class="text-[11px] text-text-muted/30 uppercase">Recovery</span>
+							<span
+								class="text-sm font-medium"
+								style="color: {projectedSolventRecovery >= 95
+									? '#bef264'
+									: projectedSolventRecovery >= 80
+										? '#fbbf24'
+										: '#ef4444'};">{projectedSolventRecovery.toFixed(1)}%</span
+							>
+						</div>
+					</div>
+				</div>
 
-	<!-- Analytics Carousel - Intelligence Panels -->
-	<div class="{expandedCard !== null ? 'fixed inset-4 z-50' : 'col-span-6'} bg-bg-card border border-border-card rounded-xl px-4 pt-3 pb-2.5 flex flex-col {expandedCard === null ? 'min-h-[650px]' : ''}">
-		<div class="flex-shrink-0">
-		{#if carouselIndex === 0}
-			<!-- ═══ COST INTELLIGENCE ═══ -->
-			<div class="flex items-center justify-between mb-1.5">
-				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined text-[14px] text-primary">payments</span>
-					<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Cost Intelligence</h3>
-					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" aria-label="Toggle Cost Intelligence panel" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
-						<span class="material-symbols-outlined text-sm">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
-					</button>
-				</div>
-				<div class="flex items-center gap-2">
-					{#if selectedBatchId && selectedBatchInfo}
-						<span class="text-xs font-medium text-primary">{selectedBatchInfo.batch_number}</span>
-						<span class="text-xs text-text-muted/25">|</span>
-						<span class="text-xs text-text-muted/35">{selectedBatchInfo.operator_name ?? selectedBatchInfo.status}</span>
-					{:else}
-						<span class="text-xs text-text-muted/35">{runLabel}</span>
-						<span class="text-xs text-text-muted/25">|</span>
-						<span class="text-xs text-text-muted/35">{runCompletedBatches}/{runBatchCount} batches</span>
-					{/if}
-				</div>
-			</div>
-			<div class="flex items-baseline gap-1.5 mb-2">
-				{#if selectedBatchId && selectedCostRow}
-					<span class="text-xl font-semibold text-text-primary">{fmt(selectedCostRow.totalCost)}</span>
-					{#if selectedCostRow.costPerKg}
-						<span class="text-[11px] text-text-muted/50">{fmt(selectedCostRow.costPerKg)}/kg</span>
-					{/if}
-					{#if runCostAgg}
-						{@const batchDelta = selectedCostRow.totalCost - runCostAgg.avgCostPerBatch}
-						<span class="text-xs font-medium" style="color: {batchDelta <= 0 ? '#bef264' : '#ef4444'};">{batchDelta <= 0 ? '' : '+'}{Math.round(batchDelta).toLocaleString()} vs avg</span>
-					{/if}
-					{#if batchAnomalyMap.get(selectedBatchId)?.some(a => a.metric === 'cost')}
-						<span class="text-xs px-1 py-0.5 rounded bg-red-900/30 text-red-400">ANOMALY</span>
-					{/if}
+				<!-- Lot progress table -->
+				{#if data.activeBatchProgress.length === 0}
+					<p class="text-xs text-text-muted">No active lots</p>
 				{:else}
-					<span class="text-xl font-semibold text-text-primary">{runCostAgg ? fmt(runCostAgg.totalCost) : '—'}</span>
-					{#if runCostAgg && rs}
-						{@const costVar = runCostAgg.totalCost - (runCostAgg.projectedTotal * (runCompletedBatches / runBatchCount))}
-						{#if costVar <= 0}
-							<span class="text-xs font-medium" style="color: #bef264;">{'-' + fmt(Math.abs(costVar))} under pace</span>
-						{:else}
-							<span class="text-xs font-medium" style="color: #ef4444;">{'+' + fmt(costVar)} over pace</span>
-						{/if}
-					{/if}
-					{#if comparisonTarget}
-						{@const cd = compDelta(currentRunHistory?.avgCostPerBatch ?? 0, comparisonTarget, 'avgCostPerBatch')}
-						{#if cd !== null}
-							<span class="text-xs px-1 py-0.5 rounded" style="background: rgba({cd <= 0 ? '139,170,124' : '196,137,106'}, 0.15); color: {cd <= 0 ? '#bef264' : '#ef4444'};">{cd <= 0 ? '' : '+'}{Math.round(cd)} vs {comparisonTarget.runNumber}</span>
-						{/if}
-					{/if}
-				{/if}
-			</div>
-
-			<!-- Mode toggle -->
-			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'lot' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => costMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'batch' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => costMode = 'batch'}>Lot History</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode === 'history' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => costMode = 'history'}>Cost Drivers</button>
-			</div>
-		{:else if carouselIndex === 1}
-			<!-- ═══ SOLVENT INTELLIGENCE ═══ -->
-			<div class="flex items-center justify-between mb-1.5">
-				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined text-[14px] text-primary">water_drop</span>
-					<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Solvent Intelligence</h3>
-					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" aria-label="Toggle Solvent Intelligence panel" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
-						<span class="material-symbols-outlined text-sm">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
-					</button>
-				</div>
-				<div class="flex items-center gap-2">
-					{#if selectedBatchId && selectedBatchInfo}
-						<span class="text-xs font-medium text-primary">{selectedBatchInfo.batch_number}</span>
-						<span class="text-xs text-text-muted/25">|</span>
-						<span class="text-xs text-text-muted/35">{selectedBatchInfo.operator_name ?? selectedBatchInfo.status}</span>
-					{:else}
-						<span class="text-xs text-text-muted/35">{runLabel}</span>
-						<span class="text-xs text-text-muted/25">|</span>
-						<span class="text-xs text-text-muted/35">{runCompletedBatches}/{runBatchCount}</span>
-					{/if}
-				</div>
-			</div>
-			<div class="flex items-baseline gap-1.5 mb-2">
-				{#if selectedBatchId && selectedEthRow}
-					<span class="text-xl font-semibold text-text-primary">{selectedEthRow.recovery_pct?.toFixed(1) ?? '—'}%</span>
-					{#if selectedEthRow.recovery_pct !== null && runEthAgg}
-						{@const ethDelta = selectedEthRow.recovery_pct - runEthAgg.avgRecovery}
-						<span class="text-xs font-medium" style="color: {ethDelta >= 0 ? '#bef264' : '#ef4444'};">{ethDelta >= 0 ? '+' : ''}{ethDelta.toFixed(1)} vs run avg</span>
-					{/if}
-					{#if batchAnomalyMap.get(selectedBatchId)?.some(a => a.metric === 'recovery')}
-						<span class="text-xs px-1 py-0.5 rounded bg-red-900/30 text-red-400">ANOMALY</span>
-					{/if}
-				{:else}
-					<span class="text-xl font-semibold text-text-primary">{runEthAgg?.avgRecovery.toFixed(1) ?? '—'}%</span>
-					{#if comparisonTarget}
-						{@const rd = compDelta(runEthAgg?.avgRecovery ?? 0, comparisonTarget, 'avgEthanolRecovery')}
-						{#if rd !== null}
-							<span class="text-xs font-medium" style="color: {rd >= 0 ? '#bef264' : '#ef4444'};">{rd >= 0 ? '+' : ''}{rd.toFixed(1)} vs {comparisonTarget.runNumber}</span>
-						{/if}
-					{:else}
-						{#if runEthDelta >= 0}
-							<span class="text-xs font-medium" style="color: #bef264;">+{runEthDelta.toFixed(1)}</span>
-						{:else}
-							<span class="text-xs font-medium" style="color: #ef4444;">{runEthDelta.toFixed(1)}</span>
-						{/if}
-					{/if}
-					<span class="text-xs text-text-muted/35">run avg recovery</span>
-				{/if}
-			</div>
-
-			<!-- Mode toggle -->
-			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode === 'lot' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => ethanolMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode === 'batch' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => ethanolMode = 'batch'}>Lot History</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode === 'history' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => ethanolMode = 'history'}>Batch Breakdown</button>
-			</div>
-		{:else}
-			<!-- ═══ YIELD & QUALITY ═══ -->
-			<div class="flex items-center justify-between mb-1.5">
-				<div class="flex items-center gap-2">
-					<span class="material-symbols-outlined text-[14px] text-primary">science</span>
-					<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Yield & Quality</h3>
-					<button class="text-text-muted/25 hover:text-text-muted/60 transition-colors" aria-label="Toggle Yield & Quality panel" onclick={() => expandedCard = expandedCard === carouselIndex ? null : carouselIndex}>
-						<span class="material-symbols-outlined text-sm">{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span>
-					</button>
-				</div>
-				<div class="flex items-center gap-2">
-					{#if selectedBatchId && selectedBatchInfo}
-						<span class="text-xs font-medium text-primary">{selectedBatchInfo.batch_number}</span>
-						<span class="text-xs text-text-muted/25">|</span>
-						<span class="text-xs text-text-muted/35">{selectedBatchInfo.operator_name ?? selectedBatchInfo.status}</span>
-					{:else}
-						<span class="text-xs text-text-muted/35">{runLabel}</span>
-						<span class="text-xs text-text-muted/25">|</span>
-						<span class="text-xs text-text-muted/35">{yieldFinishedBatches.length}/{runBatchCount} finished</span>
-					{/if}
-				</div>
-			</div>
-			<div class="flex items-baseline gap-1.5 mb-2">
-				{#if selectedBatchId && selectedYieldRow}
-					<span class="text-xl font-semibold text-text-primary">{selectedYieldRow.final_product_g != null ? (selectedYieldRow.final_product_g / 1000).toFixed(2) : '—'} kg</span>
-					<span class="text-[11px] text-text-muted/50">{selectedYieldRow.overall_yield_pct?.toFixed(2) ?? '—'}%</span>
-					{#if selectedYieldRow.overall_yield_pct !== null && runYieldAgg}
-						{@const yieldDiff = selectedYieldRow.overall_yield_pct - runYieldAgg.overallYield}
-						<span class="text-xs font-medium" style="color: {yieldDiff >= 0 ? '#bef264' : '#ef4444'};">{yieldDiff >= 0 ? '+' : ''}{yieldDiff.toFixed(2)} vs avg</span>
-					{/if}
-					{#if batchAnomalyMap.get(selectedBatchId)?.some(a => a.metric === 'yield')}
-						<span class="text-xs px-1 py-0.5 rounded bg-red-900/30 text-red-400">ANOMALY</span>
-					{/if}
-				{:else}
-					<span class="text-xl font-semibold text-text-primary">{runYieldAgg?.totalProduced.toFixed(1) ?? '—'} kg</span>
-					<span class="text-[11px] text-text-muted/50">{runYieldAgg?.overallYield.toFixed(2) ?? '—'}%</span>
-					{#if comparisonTarget}
-						{@const yd = compDelta(runYieldAgg?.overallYield ?? 0, comparisonTarget, 'overallYieldPct')}
-						{#if yd !== null}
-							<span class="text-xs font-medium" style="color: {yd >= 0 ? '#bef264' : '#ef4444'};">{yd >= 0 ? '+' : ''}{yd.toFixed(2)} vs {comparisonTarget.runNumber}</span>
-						{/if}
-					{:else if runYieldAgg}
-						{@const yd2 = runYieldAgg.overallYield - avgYield}
-						{#if yd2 >= 0}
-							<span class="text-xs font-medium" style="color: #bef264;">+{yd2.toFixed(2)}</span>
-						{:else}
-							<span class="text-xs font-medium" style="color: #ef4444;">{yd2.toFixed(2)}</span>
-						{/if}
-					{/if}
-				{/if}
-			</div>
-
-			<!-- Mode toggle (4 modes for yield) -->
-			<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'lot' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'lot'}>Run Summary</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'batch' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'batch'}>Lot History</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'history' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'history'}>Batch Contrib.</button>
-				<button class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode === 'quality' ? 'text-primary bg-primary/20' : 'text-text-muted/35 hover:text-text-muted/60'}" onclick={() => yieldMode = 'quality'}>Quality</button>
-			</div>
-		{/if}
-		</div>
-		<div class="flex-1 overflow-y-auto overflow-x-hidden min-h-0" style="scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
-		{#if carouselIndex === 0}
-			{#if costMode === 'lot'}
-				{#if true}
-				{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
-				{@const prevLot = previousLotId}
-				{@const prevLotAgg = prevLot ? lotSummaries.get(prevLot) : null}
-				{@const cpkDelta = prevLotAgg && prevLotAgg.avgCostPerKg > 0 ? (curLotAgg?.avgCostPerKg ?? 0) - prevLotAgg.avgCostPerKg : null}
-				{@const costDelta = prevLotAgg ? (curLotAgg?.totalCost ?? 0) - prevLotAgg.totalCost : null}
-				{@const lots = allLots()}
-				{@const bestLot = lots.reduce((best, l) => { const a = lotSummaries.get(l); return a && a.avgCostPerKg > 0 && (best === null || a.avgCostPerKg < (lotSummaries.get(best)?.avgCostPerKg ?? Infinity)) ? l : best; }, null as string | null)}
-				{@const matCost = curLotAgg ? curLotAgg.costBySegment.leaf + curLotAgg.costBySegment.solvent + curLotAgg.costBySegment.chemicals : 0}
-
-				<!-- S1: KPI Strip -->
-				<div class="flex gap-1.5 mb-2 overflow-x-auto">
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Cost/KG</span>
-						<span class="text-lg font-black font-mono text-white">{curLotAgg?.avgCostPerKg ? fmt(curLotAgg.avgCostPerKg) : '—'}</span>
-						{#if cpkDelta !== null}
-							<span class="text-xs font-bold" style="color: {cpkDelta <= 0 ? '#bef264' : '#ef4444'};">{cpkDelta <= 0 ? '▼' : '▲'} {fmt(Math.abs(cpkDelta))} vs prev</span>
-						{:else}
-							<span class="text-sm font-bold text-slate-600">—</span>
-						{/if}
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Lot Cost</span>
-						<span class="text-lg font-black font-mono text-white">{curLotAgg ? fmt(curLotAgg.totalCost) : '—'}</span>
-						{#if costDelta !== null}
-							<span class="text-xs font-bold" style="color: {costDelta <= 0 ? '#bef264' : '#ef4444'};">{costDelta <= 0 ? '▼' : '▲'} {fmt(Math.abs(costDelta))}</span>
-						{/if}
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Material Cost</span>
-						<span class="text-lg font-black font-mono text-white">{fmt(matCost)}</span>
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Avg/Batch</span>
-						<span class="text-lg font-black font-mono text-white">{curLotAgg && curLotAgg.batchCount > 0 ? fmt(curLotAgg.totalCost / curLotAgg.batchCount) : '—'}</span>
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Best Lot</span>
-						<span class="text-lg font-black font-mono text-white">{bestLot ? bestLot.replace('LOT-', 'L') : '—'}</span>
-					</div>
-				</div>
-
-				<!-- S2: Batch Cost Bar Chart — HERO -->
-				{@const lotBatchCosts = batchCostChart.lotBatchCosts}
-				{@const batchCostVals = batchCostChart.batchCostVals}
-				{@const batchCostMax = batchCostChart.batchCostMax}
-				{@const batchCostMin = batchCostChart.batchCostMin}
-				{@const batchCostAvg = batchCostChart.batchCostAvg}
-				{@const avgLinePct = batchCostChart.avgLinePct}
-				{#if lotBatchCosts.length > 0}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Cost — {activeLot?.replace('LOT-', 'L')}</h4>
-					<div class="relative flex items-end gap-1 px-1 h-[110px]">
-						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {avgLinePct}%; border-color: rgba(255,255,255,0.25);"></div>
-						<span class="absolute text-xs font-mono text-slate-400 right-1" style="bottom: {avgLinePct + 1}%;">avg {fmt(batchCostAvg)}</span>
-						{#each lotBatchCosts as bc}
-							{@const hPct = batchCostMax > batchCostMin ? ((bc.totalCost - batchCostMin) / (batchCostMax - batchCostMin)) * 100 : 50}
-														<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(bc.batch_id)}
-								onmouseenter={(e) => {
-									const seg = data.batchCostBreakdown.find(s => s.batchId === bc.batch_id);
-									const devPct = batchCostAvg > 0 ? ((bc.totalCost - batchCostAvg) / batchCostAvg * 100) : 0;
-									const lines = [bc.batch_number, `Total: ${fmt(bc.totalCost)}`];
-									if (bc.costPerKg) lines.push(`$/kg: ${fmt(bc.costPerKg)}`);
-									lines.push(`${devPct <= 0 ? '▼' : '▲'}${Math.abs(devPct).toFixed(1)}% vs avg`);
-									if (seg) {
-										const cats = (['leaf','solvent','chemicals','labor','electricity','testing'] as const).map(k => ({ k, v: seg[k] })).sort((a, b) => b.v - a.v).slice(0, 3);
-										cats.forEach(c => lines.push(`${c.k}: ${fmt(c.v)}`));
-									}
-									chartTooltip = { x: e.clientX, y: e.clientY, lines };
-								}} onmouseleave={() => chartTooltip = null}>
-								<span class="text-xs font-mono font-bold mb-0.5 text-white">{fmt(bc.totalCost)}</span>
-								<div class="w-full rounded-t transition-all {selectedBatchId === bc.batch_id ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(bc.totalCost, batchCostVals, selectedBatchId === bc.batch_id)}; min-height: 4px;"></div>
-								<span class="{lotBatchCosts.length > 7 ? 'text-[9px]' : 'text-[11px]'} font-bold text-slate-500 mt-0.5">{lotBatchCosts.length > 7 ? bc.batch_number.replace('SG-', '').slice(-3) : bc.batch_number.replace('SG-', '')}</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-				{/if}
-
-				<!-- S3: Cost Variance Heatmap -->
-				{@const lotCostSegs = data.batchCostBreakdown.filter(s => s.supplierLot === activeLot)}
-				{#if lotCostSegs.length > 0}
-				{@const segCats = ['leaf', 'solvent', 'chemicals'] as const}
-				{@const segLabels = ['Leaf', 'Solvent', 'Chem']}
-				{@const segAvgs = segCats.map(cat => { const vals = lotCostSegs.map(s => s[cat]); return vals.reduce((a, b) => a + b, 0) / vals.length; })}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Cost Variance Heatmap</h4>
-					<div class="border border-white/10 rounded overflow-auto" style="max-height: 180px; scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;">
-						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0 bg-bg-card">
-								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
-									{#each segLabels as label}
-										<th class="px-1 py-0.5 text-center" style="border-bottom: 1px solid #1e1e1e;">{label}</th>
-									{/each}
-								</tr>
-							</thead>
-							<tbody class="text-sm font-mono">
-								{#each lotCostSegs as seg}
-									<tr class="cursor-pointer hover:bg-white/5 transition-colors" style="border-bottom: 1px solid rgba(30,30,30,0.5);" role="link" tabindex="0" onclick={() => selectBatch(seg.batchId)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectBatch(seg.batchId); } }}>
-										<td class="px-1.5 py-0.5 text-slate-400">{seg.batchNumber.replace('SG-', '')}</td>
-										{#each segCats as cat, ci}
-											{@const val = seg[cat]}
-											{@const avg = segAvgs[ci]}
-											{@const devPct = avg > 0 ? ((val - avg) / avg) * 100 : 0}
-											{@const bgColor = devPct <= -10 ? 'rgba(190,242,100,0.3)' : devPct <= -3 ? 'rgba(190,242,100,0.15)' : devPct >= 10 ? 'rgba(239,68,68,0.3)' : devPct >= 3 ? 'rgba(239,68,68,0.15)' : 'transparent'}
-											{@const txtColor = devPct <= -3 ? '#bef264' : devPct >= 3 ? '#ef4444' : '#cbd5e1'}
-											<td class="px-1 py-0.5 text-center" style="background: {bgColor}; color: {txtColor};">{fmt(val)}</td>
-										{/each}
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				<p class="text-[11px] text-slate-600 mt-0.5 italic">Labor, electricity & testing costs are fixed per batch</p>
-				</div>
-				{/if}
-
-				<!-- S4: Batch Cost Variance -->
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Cost Variance</h4>
-					<div class="space-y-0.5">
-						{#each lotBatchCosts.toSorted((a, b) => b.totalCost - a.totalCost) as bc}
-							{@const devPct = batchCostAvg > 0 ? ((bc.totalCost - batchCostAvg) / batchCostAvg) * 100 : 0}
-							<button class="w-full flex items-center gap-2 text-sm hover:bg-white/5 rounded px-1 py-0.5 transition-colors"
-								onclick={() => selectBatch(bc.batch_id)}>
-								<span class="w-16 font-bold text-slate-500 font-mono">{bc.batch_number.replace('SG-', '')}</span>
-								<span class="font-mono font-bold text-white">{fmt(bc.totalCost)}</span>
-								<span class="font-mono whitespace-nowrap" style="color: {devPct <= 0 ? '#bef264' : '#ef4444'};">
-									{devPct <= 0 ? '▼' : '▲'}{Math.abs(devPct).toFixed(1)}%
-								</span>
-								{#if bc.costPerKg}
-									<span class="text-slate-500 ml-auto">{fmt(bc.costPerKg)}/kg</span>
-								{/if}
-							</button>
-						{/each}
-					</div>
-				</div>
-				{/if}
-			{:else if costMode === 'batch'}
-				<!-- Lot History: Cost/KG Per Lot + Cost Breakdown -->
-				{#if true}
-				{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
-				{@const prevLot = previousLotId}
-				{@const prevLotAgg = prevLot ? lotSummaries.get(prevLot) : null}
-				{@const lots = allLots()}
-
-				<!-- Cost/KG per Lot Bar Chart -->
-				{@const lotCpks = lots.map(l => lotSummaries.get(l)?.avgCostPerKg ?? 0)}
-				{@const cpkMax = Math.max(...lotCpks, TARGETS.costPerKg) * 1.05}
-				{@const cpkMin = Math.max(0, Math.min(...lotCpks.filter(v => v > 0)) * 0.9)}
-				{@const tgtBot = ((TARGETS.costPerKg - cpkMin) / (cpkMax - cpkMin)) * 100}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Cost/KG per Lot</h4>
-					<div class="relative flex items-end gap-1 px-1" style="height: 110px;">
-						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {tgtBot}%; border-color: rgba(239,68,68,0.4);"></div>
-						<span class="absolute text-xs font-mono text-red-400/60 right-1" style="bottom: {tgtBot + 1}%;">{fmt(TARGETS.costPerKg)}</span>
-						{#each lots as lot, li}
-							{@const cpk = lotSummaries.get(lot)?.avgCostPerKg ?? 0}
-							{@const hPct = cpk > 0 ? ((cpk - cpkMin) / (cpkMax - cpkMin)) * 100 : 0}
-							{@const isCurrent = lot === activeLot}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => { selectedLot = lot; costMode = 'lot'; }}
-								onmouseenter={(e) => {
-									const a = lotSummaries.get(lot);
-									const lines = [lot.replace('LOT-', 'Lot '), `$/kg: ${cpk > 0 ? fmt(cpk) : '—'}`];
-									if (a) { lines.push(`Total: ${fmt(a.totalCost)}`, `Batches: ${a.batchCount}`); }
-									chartTooltip = { x: e.clientX, y: e.clientY, lines };
-								}} onmouseleave={() => chartTooltip = null}>
-								<span class="text-xs font-mono font-bold mb-0.5 text-white">{cpk > 0 ? fmt(cpk) : '—'}</span>
-								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {costBarColorByRange(cpk, lotCpks, isCurrent)}; min-height: 4px;"></div>
-								<span class="text-[11px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
-							</button>
-						{/each}
-						<!-- SVG trend line overlay -->
-						{#if lots.length >= 2}
-						<svg class="absolute inset-0 pointer-events-none" viewBox="0 0 {lots.length * 100} 100" preserveAspectRatio="none" style="overflow: visible;">
-							<polyline fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" vector-effect="non-scaling-stroke"
-								points="{lots.map((lot, i) => {
-									const cpk = lotSummaries.get(lot)?.avgCostPerKg ?? 0;
-									const x = i * 100 + 50;
-									const y = cpk > 0 ? 100 - ((cpk - cpkMin) / (cpkMax - cpkMin)) * 100 : 100;
-									return `${x},${y}`;
-								}).join(' ')}" />
-						</svg>
-						{/if}
-					</div>
-				</div>
-
-				<!-- Cost Breakdown — Current vs Previous -->
-				{@const segColors = { leaf: '#a3e635', solvent: '#f97316', chemicals: '#ef4444', labor: '#9ca3af', electricity: '#eab308', testing: '#6b7280' }}
-				{@const segKeys = ['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const}
-				{@const curSegs = curLotAgg?.costBySegment ?? { leaf: 0, solvent: 0, chemicals: 0, labor: 0, electricity: 0, testing: 0 }}
-				{@const curTotal = Object.values(curSegs).reduce((a, b) => a + b, 0) || 1}
-				{@const prevSegs = prevLotAgg?.costBySegment ?? null}
-				{@const prevTotal = prevSegs ? Object.values(prevSegs).reduce((a, b) => a + b, 0) || 1 : 1}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Cost Breakdown — Current vs Previous</h4>
-					<div class="space-y-1">
-						<div>
-							<span class="text-xs font-bold text-slate-500 uppercase">CURRENT ({activeLot?.replace('LOT-', 'L')})</span>
-							<div class="flex h-4 w-full rounded-sm overflow-hidden mt-0.5">
-								{#each segKeys as key}
-									{@const pct = (curSegs[key] / curTotal) * 100}
-									{#if pct > 0}
-										<div class="h-full flex items-center justify-center overflow-hidden" style="width: {pct}%; background: {segColors[key]}; border-right: 1px solid #161616;" title="{key}: {pct.toFixed(0)}%">
-										{#if pct >= 12}
-											<span class="text-[11px] font-mono font-bold text-black/70 truncate px-0.5">{fmt(curSegs[key])}</span>
+					<div
+						class="pr-1 overflow-y-auto overflow-x-hidden flex-1"
+						style="scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;"
+					>
+						<!-- Header -->
+						<div
+							style="display: grid; grid-template-columns: 72px repeat(7, 1fr) 12px 1fr 1fr 1fr;"
+							class="text-xs font-bold text-text-muted uppercase tracking-wider pb-1.5 border-b border-border-subtle gap-1.5 sticky top-0 bg-bg-card z-10"
+						>
+							<button
+								onclick={selectRun}
+								class="text-left transition-colors {selectedBatchId === null
+									? 'text-primary'
+									: 'text-text-muted hover:text-primary/70'}">{activeLot ?? runLabel}</button
+							>
+							{#each TABLE_COLUMNS as col}
+								<div class="text-center">{col.label}</div>
+							{/each}
+							<div></div>
+							<div class="text-center">Prog</div>
+							<div class="text-center">Stage</div>
+							<div class="text-center">Act</div>
+						</div>
+						{#each sortedBatches() as batch, batchIdx}
+							{@const s1f = batch.stages.find((s) => s.stage_number === 1)?.status === 'Finalized'}
+							{@const s2f = batch.stages.find((s) => s.stage_number === 2)?.status === 'Finalized'}
+							{@const s3f = batch.stages.find((s) => s.stage_number === 3)?.status === 'Finalized'}
+							{@const s4f = batch.stages.find((s) => s.stage_number === 4)?.status === 'Finalized'}
+							{@const completedStages =
+								(s1f ? 1 : 0) + (s2f ? 3 : 0) + (s3f ? 1 : 0) + (s4f ? 1 : 0) + (batch.final_product_g != null ? 1 : 0)}
+							<button
+								onclick={() => selectBatch(batch.id)}
+								style="display: grid; grid-template-columns: 72px repeat(7, 1fr) 12px 1fr 1fr 1fr;"
+								class="items-center py-1 border-b rounded gap-1.5 transition-all w-full text-left {selectedBatchId ===
+								batch.id
+									? 'border-primary/50 bg-primary/5 ring-1 ring-primary/30'
+									: 'border-border-subtle hover:bg-bg-card-hover/30'}"
+							>
+								<!-- Lot ID + Position -->
+								<div class="hover:bg-bg-card-hover transition-colors rounded px-0.5 py-0.5 overflow-hidden">
+									<p class="text-xs font-bold text-text-primary">{batch.batch_number.replace('SG-', '')}</p>
+									<p
+										class="text-xs truncate {batchIdx === lotBatchCount - 1
+											? 'font-bold text-white'
+											: 'text-text-muted'}"
+									>
+										{batchIdx + 1}/{lotBatchCount}
+									</p>
+								</div>
+								<!-- 7 Stage cells -->
+								{#each TABLE_COLUMNS as col, ci}
+									{@const colStatus = columnStatusColor(batch.stages, col.dbStages)}
+									{@const isFinalized = colStatus.includes('primary')}
+									{@const isInProgress = colStatus.includes('blue')}
+									<div
+										class="group/cell relative text-center rounded py-0.5 px-0.5 text-sm font-bold hover:bg-bg-card-hover transition-colors {colStatus}"
+									>
+										{#if ci === 0}
+											{batch.powder_output_kg != null ? batch.powder_output_kg.toFixed(1) : '—'}
+										{:else if ci === 6}
+											{batch.final_product_g != null ? (batch.final_product_g / 1000).toFixed(3) : '—'}
+										{:else if isFinalized}
+											✓
+										{:else if isInProgress}
+											...
+										{:else}
+											—
 										{/if}
-									</div>
-									{/if}
-								{/each}
-							</div>
-						</div>
-						<div>
-							<span class="text-xs font-bold text-slate-500 uppercase">PREVIOUS ({prevLot ? prevLot.replace('LOT-', 'L') : '—'})</span>
-							{#if prevSegs}
-								<div class="flex h-4 w-full rounded-sm overflow-hidden mt-0.5">
-									{#each segKeys as key}
-										{@const pct = (prevSegs[key] / prevTotal) * 100}
-										{#if pct > 0}
-											<div class="h-full opacity-50 flex items-center justify-center overflow-hidden" style="width: {pct}%; background: {segColors[key]}; border-right: 1px solid #161616;">
-												{#if pct >= 12}
-													<span class="text-[11px] font-mono font-bold text-black/70 truncate px-0.5">{fmt(prevSegs[key])}</span>
+										<!-- Hover tooltip for middle columns -->
+										{#if ci >= 1 && ci <= 5 && (isFinalized || isInProgress)}
+											<div
+												class="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-30 bg-bg-card border border-border-card rounded-lg shadow-lg p-2.5 w-44 text-left opacity-0 pointer-events-none group-hover/cell:opacity-100 transition-opacity duration-150"
+											>
+												{#if ci === 1}
+													<p class="text-[11px] font-bold text-text-primary mb-1.5">Ethanol Extraction</p>
+													<div class="space-y-1">
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">EtOH Used</span><span
+																class="text-[11px] font-bold text-text-primary"
+																>{batch.etoh_vol_L?.toFixed(0) ?? '—'} L</span
+															>
+														</div>
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">Crude Extract</span><span
+																class="text-[11px] font-bold text-text-primary"
+																>{batch.crude_extract_wt_kg?.toFixed(2) ?? '—'} kg</span
+															>
+														</div>
+													</div>
+												{:else if ci === 2}
+													<p class="text-[11px] font-bold text-text-primary mb-1.5">Filtration</p>
+													<div class="space-y-1">
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">EtOH Recovered</span><span
+																class="text-[11px] font-bold text-text-primary"
+																>{batch.etoh_recovered_L?.toFixed(0) ?? '—'} L</span
+															>
+														</div>
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">EtOH Lost</span><span
+																class="text-[11px] font-bold text-red-500"
+																>{batch.etoh_lost_L?.toFixed(0) ?? '0'} L</span
+															>
+														</div>
+													</div>
+												{:else if ci === 3}
+													<p class="text-[11px] font-bold text-text-primary mb-1.5">Distillation</p>
+													<div class="space-y-1">
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">EtOH Recovered</span><span
+																class="text-[11px] font-bold text-text-primary"
+																>{batch.etoh_recovered_L?.toFixed(0) ?? '—'} L</span
+															>
+														</div>
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">EtOH Lost</span><span
+																class="text-[11px] font-bold text-red-500"
+																>{batch.etoh_lost_L?.toFixed(0) ?? '0'} L</span
+															>
+														</div>
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">Recovery %</span><span
+																class="text-[11px] font-bold text-primary"
+																>{batch.etoh_recovery_pct?.toFixed(1) ?? '—'}%</span
+															>
+														</div>
+													</div>
+												{:else if ci === 4}
+													<p class="text-[11px] font-bold text-text-primary mb-1.5">Acid/Base Extraction</p>
+													<div class="space-y-1">
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">D-Limo Used</span><span
+																class="text-[11px] font-bold text-text-primary"
+																>{batch.dlimo_vol_L?.toFixed(1) ?? '—'} L</span
+															>
+														</div>
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">D-Limo Recovered</span><span
+																class="text-[11px] font-bold text-text-primary"
+																>{batch.dlimo_recovered_L?.toFixed(1) ?? '—'} L</span
+															>
+														</div>
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">D-Limo Lost</span><span
+																class="text-[11px] font-bold text-red-500"
+																>{batch.dlimo_lost_L?.toFixed(1) ?? '0'} L</span
+															>
+														</div>
+													</div>
+												{:else if ci === 5}
+													<p class="text-[11px] font-bold text-text-primary mb-1.5">Precipitation</p>
+													<div class="space-y-1">
+														<div class="flex justify-between">
+															<span class="text-[11px] text-text-muted">Wet Weight</span><span
+																class="text-[11px] font-bold text-text-primary"
+																>{batch.wet_precipitate_g != null ? (batch.wet_precipitate_g / 1000).toFixed(2) : '—'} kg</span
+															>
+														</div>
+													</div>
 												{/if}
 											</div>
 										{/if}
-									{/each}
-								</div>
-							{:else}
-								<div class="h-4 w-full rounded-sm mt-0.5 flex items-center justify-center" style="background: rgba(255,255,255,0.03);">
-									<span class="text-[11px] text-slate-600 italic">No previous lot data</span>
-								</div>
-							{/if}
-						</div>
-						<div class="flex flex-wrap gap-2 mt-0.5">
-							{#each segKeys as key}
-								<div class="flex items-center gap-1" title="{costCategoryMeta[key]?.label ?? key}"><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span class="text-xs font-bold text-slate-400">{costCategoryMeta[key]?.label ?? key}</span></div>
-							{/each}
-						</div>
-					</div>
-				</div>
-
-				<!-- Top Cost Drivers -->
-				{@const segEntries = curLotAgg ? Object.entries(curLotAgg.costBySegment).sort((a, b) => b[1] - a[1]).slice(0, 4) : []}
-				{@const driverTotal = curLotAgg?.totalCost || 1}
-				<div class="mb-1">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Top Cost Drivers</h4>
-					<div class="space-y-0.5">
-						{#each segEntries as [cat, amount]}
-							{@const pct = (amount / driverTotal) * 100}
-							{@const prevAmt = prevLotAgg ? prevLotAgg.costBySegment[cat as keyof typeof prevLotAgg.costBySegment] : null}
-							{@const driverDelta = prevAmt !== null ? amount - prevAmt : null}
-							<div class="flex items-center gap-1.5 text-sm">
-								<span class="w-5 h-5 flex-none" title="{costCategoryMeta[cat]?.label ?? cat}">{@html costCategoryMeta[cat]?.svg ?? ''}</span>
-								<span class="font-bold text-slate-400 capitalize">{costCategoryMeta[cat]?.label ?? cat}</span>
-								<span class="font-mono font-bold text-white">{fmt(amount)}</span>
-								<span class="text-slate-500">{pct.toFixed(0)}%</span>
-								{#if driverDelta !== null}
-									<span style="color: {driverDelta <= 0 ? '#bef264' : '#ef4444'};">{driverDelta <= 0 ? '▼' : '▲'}{fmt(Math.abs(driverDelta))}</span>
-								{/if}
-							</div>
-						{/each}
-					</div>
-				</div>
-
-				<!-- Cost Category Shift — Last Lots -->
-				{@const shiftLots = lots.slice(-4)}
-				{@const shiftKeys = ['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const}
-				{#if shiftLots.length >= 2}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Category % Shift</h4>
-					<div class="border border-white/10 rounded overflow-hidden">
-						<table class="w-full text-left border-collapse">
-							<thead>
-								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
-									<th class="px-1.5 py-0.5"></th>
-									{#each shiftLots as sl}
-										<th class="px-1 py-0.5 text-center">{sl.replace('LOT-', 'L')}</th>
-									{/each}
-								</tr>
-							</thead>
-							<tbody class="text-sm font-mono">
-								{#each shiftKeys as key}
-									{@const vals = shiftLots.map(l => { const a = lotSummaries.get(l); const segs = a?.costBySegment; if (!segs) return 0; const tot = Object.values(segs).reduce((s, v) => s + v, 0) || 1; return (segs[key] / tot) * 100; })}
-									{@const trend = vals.length >= 2 ? vals[vals.length - 1] - vals[0] : 0}
-									<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
-										<td class="px-1.5 py-0.5 flex items-center gap-1" title="{costCategoryMeta[key]?.label ?? key}"><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span class="text-slate-400 font-bold">{costCategoryMeta[key]?.label ?? key}</span></td>
-										{#each vals as v}
-											<td class="px-1 py-0.5 text-center" style="color: {trend <= -2 ? '#bef264' : trend >= 2 ? '#ef4444' : '#cbd5e1'};">{v.toFixed(0)}%</td>
-										{/each}
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				</div>
-				{/if}
-
-				<!-- Best / Worst Lot -->
-				{@const bestLotH = lots.reduce((best, l) => { const a = lotSummaries.get(l); return a && a.avgCostPerKg > 0 && (best === null || a.avgCostPerKg < (lotSummaries.get(best)?.avgCostPerKg ?? Infinity)) ? l : best; }, null as string | null)}
-				{@const worstLotH = lots.reduce((worst, l) => { const a = lotSummaries.get(l); return a && a.avgCostPerKg > 0 && (worst === null || a.avgCostPerKg > (lotSummaries.get(worst)?.avgCostPerKg ?? 0)) ? l : worst; }, null as string | null)}
-				{#if bestLotH || worstLotH}
-				<div class="mb-1">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Best / Worst Lot</h4>
-					<div class="flex gap-2">
-						{#if bestLotH}
-						{@const ba = lotSummaries.get(bestLotH)}
-						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestLotH; costMode = 'lot'; }}>
-							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
-							<div class="text-xs font-mono font-bold text-white">{bestLotH.replace('LOT-', 'L')}</div>
-							<div class="text-sm font-mono text-slate-400">{ba ? fmt(ba.avgCostPerKg) : '—'}/kg</div>
-						</button>
-						{/if}
-						{#if worstLotH}
-						{@const wa = lotSummaries.get(worstLotH)}
-						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstLotH; costMode = 'lot'; }}>
-							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
-							<div class="text-xs font-mono font-bold text-white">{worstLotH.replace('LOT-', 'L')}</div>
-							<div class="text-sm font-mono text-slate-400">{wa ? fmt(wa.avgCostPerKg) : '—'}/kg</div>
-						</button>
-						{/if}
-					</div>
-				</div>
-				{/if}
-				{/if}
-			{:else}
-				<!-- Cost Drivers Tab -->
-				{#if true}
-				{@const allSegs = data.batchCostBreakdown}
-				{@const catTotals = (['leaf','solvent','chemicals','labor','electricity','testing'] as const).map(cat => ({
-					cat,
-					total: allSegs.reduce((s, b) => s + b[cat], 0)
-				})).sort((a, b) => b.total - a.total)}
-				{@const grandTotal = catTotals.reduce((s, c) => s + c.total, 0) || 1}
-				{@const paretoMax = catTotals[0]?.total || 1}
-				{@const driverSegColors = { leaf: '#a3e635', solvent: '#f97316', chemicals: '#ef4444', labor: '#9ca3af', electricity: '#eab308', testing: '#6b7280' } as Record<string, string>}
-
-				<!-- 4a: Pareto Chart -->
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Cost Pareto — All Batches</h4>
-					<div class="space-y-1">
-						{#each catTotals as { cat, total }, ci}
-							{@const cumPct = catTotals.slice(0, ci + 1).reduce((s, c) => s + c.total, 0) / grandTotal * 100}
-							<div class="flex items-center gap-1.5">
-								<span class="w-5 h-5 flex-none" title="{costCategoryMeta[cat]?.label ?? cat}">{@html costCategoryMeta[cat]?.svg ?? ''}</span>
-								<div class="flex-1 h-3 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.03);">
-									<div class="h-full rounded-sm" style="width: {(total / paretoMax) * 100}%; background: {driverSegColors[cat] ?? '#9ca3af'};"
-										onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [cat, fmt(total), `${(total / grandTotal * 100).toFixed(1)}% of total`] }} onmouseleave={() => chartTooltip = null}></div>
-								</div>
-								<span class="text-sm font-mono font-bold text-white w-12 text-right">{fmt(total)}</span>
-								<span class="text-xs font-mono text-slate-400 w-8 text-right">{(total / grandTotal * 100).toFixed(0)}%</span>
-								<span class="text-xs font-mono text-slate-600 w-8 text-right">Σ{cumPct.toFixed(0)}%</span>
-							</div>
-						{/each}
-					</div>
-				</div>
-
-				<!-- 4b: Variable vs Fixed -->
-				{@const varCost = catTotals.filter(c => ['leaf','solvent','chemicals'].includes(c.cat)).reduce((s, c) => s + c.total, 0)}
-				{@const fixCost = catTotals.filter(c => ['labor','electricity','testing'].includes(c.cat)).reduce((s, c) => s + c.total, 0)}
-				{@const varPct = (varCost / grandTotal) * 100}
-				{@const fixPct = (fixCost / grandTotal) * 100}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Variable vs Fixed</h4>
-					<div class="flex h-5 w-full rounded-sm overflow-hidden">
-						<div class="h-full flex items-center justify-center" style="width: {varPct}%; background: rgba(190,242,100,0.5);">
-							<span class="text-xs font-mono font-bold text-black/70">Variable {varPct.toFixed(0)}%</span>
-						</div>
-						<div class="h-full flex items-center justify-center" style="width: {fixPct}%; background: rgba(156,163,175,0.5);">
-							<span class="text-xs font-mono font-bold text-black/70">Fixed {fixPct.toFixed(0)}%</span>
-						</div>
-					</div>
-					<div class="flex justify-between mt-0.5">
-						<span class="text-[11px] text-slate-400">Leaf + Solvent + Chemicals: {fmt(varCost)}</span>
-						<span class="text-[11px] text-slate-400">Labor + Elec + Testing: {fmt(fixCost)}</span>
-					</div>
-				</div>
-
-				<!-- 4c: Cost/KG by Category -->
-				{@const curLotAggD = activeLot ? lotSummaries.get(activeLot) : null}
-				{@const lotYieldKg = curLotAggD?.totalYieldKg ?? 0}
-				{@const curSegsD = curLotAggD?.costBySegment ?? { leaf: 0, solvent: 0, chemicals: 0, labor: 0, electricity: 0, testing: 0 }}
-				{@const totalCpk = lotYieldKg > 0 ? Object.values(curSegsD).reduce((a, b) => a + b, 0) / lotYieldKg : 0}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Cost/KG by Category — {activeLot?.replace('LOT-', 'L')}</h4>
-					{#if lotYieldKg > 0}
-					<div class="border border-white/10 rounded overflow-hidden">
-						<table class="w-full text-left border-collapse">
-							<thead>
-								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
-									<th class="px-1.5 py-0.5">Category</th>
-									<th class="px-1 py-0.5 text-right">$/kg</th>
-									<th class="px-1 py-0.5 text-right">% of Total</th>
-								</tr>
-							</thead>
-							<tbody class="text-sm font-mono">
-								{#each (['leaf','solvent','chemicals','labor','electricity','testing'] as const) as key}
-									{@const cpk = curSegsD[key] / lotYieldKg}
-									{@const pctOfTotal = totalCpk > 0 ? (cpk / totalCpk) * 100 : 0}
-									<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
-										<td class="px-1.5 py-0.5 flex items-center gap-1" title="{costCategoryMeta[key]?.label ?? key}"><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span class="text-slate-400">{costCategoryMeta[key]?.label ?? key}</span></td>
-										<td class="px-1 py-0.5 text-right text-white">{fmt(cpk)}</td>
-										<td class="px-1 py-0.5 text-right text-slate-400">{pctOfTotal.toFixed(1)}%</td>
-									</tr>
-								{/each}
-								<tr class="font-bold" style="border-top: 1px solid #333;">
-									<td class="px-1.5 py-0.5 text-slate-300 uppercase">Total</td>
-									<td class="px-1 py-0.5 text-right text-white">{fmt(totalCpk)}</td>
-									<td class="px-1 py-0.5 text-right text-slate-400">100%</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-					{:else}
-					<p class="text-sm text-slate-600 italic">No yield data for $/kg breakdown</p>
-					{/if}
-				</div>
-
-				<!-- 4d: Sensitivity Analysis -->
-				{#if lotYieldKg > 0}
-				{@const varKeys = ['leaf','solvent','chemicals'] as const}
-				<div class="mb-1">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Sensitivity — ±10% Variable Cost</h4>
-					<div class="border border-white/10 rounded overflow-hidden">
-						<table class="w-full text-left border-collapse">
-							<thead>
-								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest" style="border-bottom: 1px solid #1e1e1e;">
-									<th class="px-1.5 py-0.5">Category</th>
-									<th class="px-1 py-0.5 text-right">Current $/kg</th>
-									<th class="px-1 py-0.5 text-right">-10%</th>
-									<th class="px-1 py-0.5 text-right">+10%</th>
-								</tr>
-							</thead>
-							<tbody class="text-sm font-mono">
-								{#each varKeys as key}
-									{@const cpk = curSegsD[key] / lotYieldKg}
-									{@const impactDown = cpk * -0.1}
-									{@const impactUp = cpk * 0.1}
-									<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
-										<td class="px-1.5 py-0.5 flex items-center gap-1" title="{costCategoryMeta[key]?.label ?? key}"><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span class="text-slate-400">{costCategoryMeta[key]?.label ?? key}</span></td>
-										<td class="px-1 py-0.5 text-right text-white">{fmt(cpk)}</td>
-										<td class="px-1 py-0.5 text-right" style="color: #bef264;">{fmt(impactDown)}</td>
-										<td class="px-1 py-0.5 text-right" style="color: #ef4444;">+{fmt(impactUp)}</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-					<p class="text-[11px] text-slate-600 mt-0.5 italic">Impact on total $/kg if category cost changes by ±10%</p>
-				</div>
-				{/if}
-				{/if}
-			{/if}
-		{:else if carouselIndex === 1}
-			{#if ethanolMode === 'lot'}
-				{#if true}
-				{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
-				{@const prevLot = previousLotId}
-				{@const prevLotAgg = prevLot ? lotSummaries.get(prevLot) : null}
-				{@const recDelta = prevLotAgg && curLotAgg ? curLotAgg.avgRecoveryPct - prevLotAgg.avgRecoveryPct : null}
-				{@const lostDelta = prevLotAgg && curLotAgg ? curLotAgg.totalEthLost - prevLotAgg.totalEthLost : null}
-				{@const costImpact = curLotAgg ? curLotAgg.totalEthLost * UNIT_RATES.ethanol70.rate : 0}
-
-				<!-- S1: KPI Strip -->
-				<div class="flex gap-1.5 mb-2 overflow-x-auto">
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Recovery %</span>
-						<span class="text-sm font-black font-mono" style="color: {(curLotAgg?.avgRecoveryPct ?? 0) >= 85 ? '#bef264' : '#ef4444'};">{(curLotAgg?.avgRecoveryPct ?? 0).toFixed(1)}%</span>
-						{#if recDelta !== null}
-							<span class="text-xs font-bold" style="color: {recDelta >= 0 ? '#bef264' : '#ef4444'};">{recDelta >= 0 ? '▲' : '▼'} {Math.abs(recDelta).toFixed(1)}% vs prev</span>
-						{:else}
-							<span class="text-sm font-bold text-slate-600">—</span>
-						{/if}
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Liters Issued</span>
-						<span class="text-lg font-black font-mono text-white">{(curLotAgg?.totalEthIssued ?? 0).toFixed(0)}L</span>
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Liters Lost</span>
-						<span class="text-sm font-black font-mono" style="color: #ef4444;">{(curLotAgg?.totalEthLost ?? 0).toFixed(0)}L</span>
-						{#if lostDelta !== null}
-							<span class="text-xs font-bold" style="color: {lostDelta <= 0 ? '#bef264' : '#ef4444'};">{lostDelta <= 0 ? '▼' : '▲'} {Math.abs(lostDelta).toFixed(0)}L</span>
-						{/if}
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Cost Impact</span>
-						<span class="text-lg font-black font-mono text-white">{fmt(costImpact)}</span>
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Best Batch</span>
-						<span class="text-lg font-black font-mono text-white">{curLotAgg?.bestBatchRecovery ?? '—'}</span>
-					</div>
-				</div>
-
-				<!-- S2: Batch Recovery Bar Chart — HERO -->
-				{@const lotEthData = data.runEthanolBreakdown.filter(e => e.supplier_lot === activeLot && e.recovery_pct != null)}
-				{@const lotRecAvg = lotEthData.length > 0 ? lotEthData.reduce((s, e) => s + (e.recovery_pct ?? 0), 0) / lotEthData.length : 0}
-				{@const recValues = lotEthData.map(e => e.recovery_pct ?? 0).filter(v => v > 0)}
-				{@const recBarMin = recValues.length > 0 ? Math.min(...recValues) * 0.98 : 82}
-				{@const recBarMax = recValues.length > 0 ? Math.max(...recValues) * 1.02 : 88}
-				{@const recBarRange = recBarMax - recBarMin || 1}
-				{@const avgRecLinePct = lotRecAvg > 0 ? ((lotRecAvg - recBarMin) / recBarRange) * 100 : 0}
-				{@const tgt95Pct = ((95 - recBarMin) / recBarRange) * 100}
-				{#if lotEthData.length > 0}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Recovery — {activeLot?.replace('LOT-', 'L')}</h4>
-					<div class="relative flex items-end gap-1 px-1 h-[110px]">
-						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {avgRecLinePct}%; border-color: rgba(255,255,255,0.25);"></div>
-						<span class="absolute text-xs font-mono text-slate-400 right-1" style="bottom: {avgRecLinePct + 1}%;">avg {lotRecAvg.toFixed(1)}%</span>
-						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {tgt95Pct}%; border-color: rgba(102,102,102,0.3);"></div>
-						<span class="absolute text-xs font-mono text-slate-600 left-1" style="bottom: {tgt95Pct + 1}%;">95%</span>
-						{#each lotEthData as eb}
-							{@const recPct = eb.recovery_pct ?? 0}
-							{@const hPct = Math.min(100, Math.max(3, ((recPct - recBarMin) / recBarRange) * 100))}
-							{@const barColor = recPct >= 86 ? '#bef264' : recPct >= 83 ? '#f59e0b' : '#ef4444'}
-							{@const vsAvgPct = recPct - lotRecAvg}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(eb.batch_id)}
-								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [eb.batch_number, `Recovery: ${recPct.toFixed(1)}%`, `Issued: ${eb.ethanol_issued_l?.toFixed(0) ?? '—'}L`, `Recovered: ${eb.ethanol_recovered_l?.toFixed(0) ?? '—'}L`, `Lost: ${eb.ethanol_lost_l?.toFixed(0) ?? '—'}L`, `vs Avg: ${vsAvgPct >= 0 ? '+' : ''}${vsAvgPct.toFixed(1)}%`] }} onmouseleave={() => chartTooltip = null}>
-								<span class="text-xs font-mono font-bold mb-0.5" style="color: {barColor};">{recPct.toFixed(1)}%</span>
-								<div class="w-full rounded-t transition-all {selectedBatchId === eb.batch_id ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {barColor}; opacity: 0.7; min-height: 4px;"></div>
-								<span class="text-[11px] font-bold text-slate-500 mt-0.5">{eb.batch_number.replace('SG-', '')}</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-				{/if}
-
-				<!-- S4: Recovery Distribution Strip -->
-				{#if batchSequenceEthanol.length > 0}
-				{@const seq = batchSequenceEthanol}
-				{@const lots = allLots()}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Recovery Distribution</h4>
-					<svg viewBox="0 0 500 25" class="w-full" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;">
-						<!-- Range 82-88% -->
-						<text x="5" y="22" fill="#666666" font-size="11">82%</text>
-						<text x="475" y="22" fill="#666666" font-size="11">88%</text>
-						{#each seq as s}
-							{@const xPos = 25 + ((s.recoveryPct - 82) / 6) * 450}
-							{@const lotIdx = lots.indexOf(s.lot)}
-							<circle cx={Math.min(480, Math.max(25, xPos))} cy="10" r={s.lot === activeLot ? 3 : 2} fill={LOT_COLORS[lotIdx % LOT_COLORS.length]} opacity={s.lot === activeLot ? 1 : 0.35} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [s.batchNumber, `Recovery: ${s.recoveryPct.toFixed(1)}%`, `Lot: ${s.lot}`] }} onmouseleave={() => chartTooltip = null} />
-						{/each}
-					</svg>
-				</div>
-				{/if}
-
-				<!-- S5: Batch Table — current lot only -->
-				{@const lotEthBatches = data.runEthanolBreakdown.filter(e => e.supplier_lot === activeLot)}
-				{@const lotAvgRec = curLotAgg?.avgRecoveryPct ?? 0}
-				<div class="border border-white/10 rounded overflow-hidden" style="max-height: 70px;">
-					<table class="w-full text-left border-collapse">
-						<thead class="sticky top-0 bg-bg-card">
-							<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-								<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
-								<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Issued</th>
-								<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Recov.</th>
-								<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Lost</th>
-								<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Rec%</th>
-								<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">vs Avg</th>
-							</tr>
-						</thead>
-						<tbody class="text-sm font-mono overflow-y-auto">
-							{#each lotEthBatches as eb}
-								{@const recPct = eb.recovery_pct ?? 0}
-								{@const vsAvg = recPct - lotAvgRec}
-								<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);">
-									<td class="px-2 py-0.5 text-slate-400">{eb.batch_number.replace('SG-', '')}</td>
-									<td class="px-2 py-0.5 text-right text-white">{eb.ethanol_issued_l?.toFixed(0) ?? '—'}</td>
-									<td class="px-2 py-0.5 text-right text-white">{eb.ethanol_recovered_l?.toFixed(0) ?? '—'}</td>
-									<td class="px-2 py-0.5 text-right" style="color: #ef4444;">{eb.ethanol_lost_l?.toFixed(0) ?? '—'}</td>
-									<td class="px-2 py-0.5 text-right font-bold" style="color: {recPct >= 86 ? '#bef264' : recPct >= 83 ? '#f59e0b' : '#ef4444'};">{recPct.toFixed(1)}%</td>
-									<td class="px-2 py-0.5 text-right" style="color: {vsAvg >= 0 ? '#bef264' : '#ef4444'};">{vsAvg >= 0 ? '+' : ''}{vsAvg.toFixed(1)}%</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
-
-				<!-- Solvent Loss Summary -->
-				{@const slTotalIssued = lotEthBatches.reduce((s, e) => s + (e.ethanol_issued_l ?? 0), 0)}
-				{@const slTotalRecovered = lotEthBatches.reduce((s, e) => s + (e.ethanol_recovered_l ?? 0), 0)}
-				{@const slTotalLost = lotEthBatches.reduce((s, e) => s + (e.ethanol_lost_l ?? 0), 0)}
-				{@const slLossRate = slTotalIssued > 0 ? (slTotalLost / slTotalIssued) * 100 : 0}
-				{@const slLossCost = slTotalLost * UNIT_RATES.ethanol70.rate}
-				{@const slBatchRecs = lotEthBatches.filter(e => e.recovery_pct != null).map(e => ({ bn: e.batch_number.replace('SG-', ''), rec: e.recovery_pct ?? 0 }))}
-				{@const slBest = slBatchRecs.length > 0 ? slBatchRecs.reduce((a, b) => a.rec > b.rec ? a : b) : null}
-				{@const slWorst = slBatchRecs.length > 0 ? slBatchRecs.reduce((a, b) => a.rec < b.rec ? a : b) : null}
-				<div class="mt-2 p-2 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
-					<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-1.5">Solvent Loss Summary</h4>
-					<div class="grid grid-cols-3 gap-x-3 gap-y-1 text-[11px] font-mono">
-						<div><span class="text-slate-500">Issued</span> <span class="text-white font-bold">{slTotalIssued.toFixed(0)}L</span></div>
-						<div><span class="text-slate-500">Recovered</span> <span class="text-white font-bold">{slTotalRecovered.toFixed(0)}L</span></div>
-						<div><span class="text-slate-500">Lost</span> <span class="font-bold" style="color: #ef4444;">{slTotalLost.toFixed(0)}L</span></div>
-						<div><span class="text-slate-500">Loss Rate</span> <span class="font-bold" style="color: {slLossRate <= 15 ? '#bef264' : '#ef4444'};">{slLossRate.toFixed(1)}%</span></div>
-						<div><span class="text-slate-500">Loss Cost</span> <span class="font-bold" style="color: #ef4444;">{fmt(slLossCost)}</span></div>
-						<div><span class="text-slate-500">Batches</span> <span class="text-white font-bold">{lotEthBatches.length}</span></div>
-					</div>
-					{#if slBest && slWorst}
-					<div class="flex gap-2 mt-1.5">
-						<div class="flex-1 text-sm"><span class="text-slate-500">Best:</span> <span class="font-bold" style="color: #bef264;">{slBest.bn} ({slBest.rec.toFixed(1)}%)</span></div>
-						<div class="flex-1 text-sm"><span class="text-slate-500">Worst:</span> <span class="font-bold" style="color: #ef4444;">{slWorst.bn} ({slWorst.rec.toFixed(1)}%)</span></div>
-					</div>
-					{/if}
-				</div>
-				{/if}
-			{:else if ethanolMode === 'batch'}
-				<!-- Lot History: Recovery Trend + Lot Avg Recovery -->
-				{#if true}
-				{@const lots = allLots()}
-
-				<!-- Recovery Trend — All Batches -->
-				{#if recoveryTrendChart}
-				{@const seq = recoveryTrendChart.seq}
-				{@const minR = recoveryTrendChart.minR}
-				{@const maxR = recoveryTrendChart.maxR}
-				{@const rangeR = recoveryTrendChart.rangeR}
-				{@const targetY95 = recoveryTrendChart.targetY95}
-				{@const ySteps = recoveryTrendChart.ySteps}
-				{@const rollPts = recoveryTrendChart.rollPts}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Recovery Trend — All Batches</h4>
-					<svg viewBox="0 0 600 140" class="w-full" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;">
-						{#each lots as lot, li}
-							{@const lotBatchesInSeq = seq.filter(s => s.lot === lot)}
-							{#if lotBatchesInSeq.length > 0}
-								{@const firstIdx = seq.indexOf(lotBatchesInSeq[0])}
-								{@const lastIdx = seq.indexOf(lotBatchesInSeq[lotBatchesInSeq.length - 1])}
-								{@const x1 = 40 + (firstIdx / (seq.length - 1)) * 540}
-								{@const x2 = 40 + (lastIdx / (seq.length - 1)) * 540}
-								<rect x={x1 - 2} y="10" width={Math.max(4, x2 - x1 + 4)} height="115" fill={lot === activeLot ? 'rgba(236,91,19,0.06)' : li % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.04)'} />
-							{/if}
-						{/each}
-						{#each lots as lot, li}
-							{#if li > 0}
-								{@const lotBatchesInSeq = seq.filter(s => s.lot === lot)}
-								{#if lotBatchesInSeq.length > 0}
-									{@const firstIdx = seq.indexOf(lotBatchesInSeq[0])}
-									{@const bx = 40 + (firstIdx / (seq.length - 1)) * 540}
-									<line x1={bx} y1="10" x2={bx} y2="125" stroke="rgba(255,255,255,0.1)" stroke-dasharray="3 3" stroke-width="0.5" />
-									<text x={bx + 2} y="18" fill="rgba(255,255,255,0.25)" font-size="11" font-weight="bold">{lot.replace('LOT-', 'L')}</text>
-								{/if}
-							{/if}
-						{/each}
-						<line x1="40" y1={targetY95} x2="580" y2={targetY95} stroke="#666666" stroke-dasharray="4 4" stroke-width="0.5" opacity="0.5" />
-						<text x="582" y={targetY95 + 3} fill="#666666" font-size="11" opacity="0.5">95%</text>
-						{#each ySteps as yv}
-							{@const yy = 10 + (1 - (yv - minR) / rangeR) * 115}
-							<text x="36" y={yy + 2} text-anchor="end" fill="#666666" font-size="11">{yv.toFixed(0)}%</text>
-						{/each}
-						<polyline points={rollPts} fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linejoin="round" />
-						{#each seq as s, si}
-							{@const cx = 40 + (si / (seq.length - 1)) * 540}
-							{@const cy = 10 + (1 - (s.recoveryPct - minR) / rangeR) * 115}
-							{@const lotIdx = lots.indexOf(s.lot)}
-							<circle {cx} {cy} r={s.lot === activeLot ? 3 : 2} fill={LOT_COLORS[lotIdx % LOT_COLORS.length]} opacity={s.lot === activeLot ? 1 : 0.4} style="cursor: pointer;" onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [s.batchNumber, `Recovery: ${s.recoveryPct.toFixed(1)}%`, `Lot: ${s.lot}`] }} onmouseleave={() => chartTooltip = null} />
-						{/each}
-					</svg>
-				</div>
-
-				<!-- Trend text summary -->
-				{@const firstHalfAvg = recoveryTrendChart.firstHalfAvg}
-				{@const secondHalfAvg = recoveryTrendChart.secondHalfAvg}
-				{@const trendDir = recoveryTrendChart.trendDir}
-				<p class="text-sm text-slate-400 mb-2 px-1">
-					Recovery {trendDir} — 2nd half avg <span class="font-bold text-white">{secondHalfAvg.toFixed(1)}%</span> vs 1st half <span class="font-bold text-white">{firstHalfAvg.toFixed(1)}%</span>
-					{#if trendDir === 'improving'}
-						<span style="color: #bef264;"> ▲ {(secondHalfAvg - firstHalfAvg).toFixed(1)}%</span>
-					{:else if trendDir === 'declining'}
-						<span style="color: #ef4444;"> ▼ {(firstHalfAvg - secondHalfAvg).toFixed(1)}%</span>
-					{/if}
-				</p>
-				{/if}
-
-				<!-- Lot Avg Recovery Bar Chart -->
-				{@const lotRecoveries = lots.map(l => lotSummaries.get(l)?.avgRecoveryPct ?? 0)}
-				{@const lotRecValid = lotRecoveries.filter(v => v > 0)}
-				{@const barMin = lotRecValid.length > 0 ? Math.min(...lotRecValid) * 0.995 : 84.0}
-				{@const barMax = lotRecValid.length > 0 ? Math.max(...lotRecValid) * 1.005 : 86.0}
-				{@const barRange = barMax - barMin || 1}
-				{@const avgLineBot = Math.min(100, Math.max(0, ((allTimeLotAvg.recoveryPct - barMin) / barRange) * 100))}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Lot Avg Recovery</h4>
-					<div class="relative flex items-end gap-1 px-1" style="height: 60px;">
-						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {avgLineBot}%; border-color: rgba(255,255,255,0.2);"></div>
-						{#each lots as lot, li}
-							{@const rec = lotSummaries.get(lot)?.avgRecoveryPct ?? 0}
-							{@const hPct = Math.min(100, Math.max(5, ((rec - barMin) / barRange) * 100))}
-							{@const isAboveAvg = rec >= allTimeLotAvg.recoveryPct}
-							{@const isCurrent = lot === activeLot}
-							{@const lotAggH = lotSummaries.get(lot)}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => { selectedLot = lot; ethanolMode = 'lot'; }}
-								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [lot, `Recovery: ${rec.toFixed(1)}%`, `Issued: ${(lotAggH?.totalEthIssued ?? 0).toFixed(0)}L`, `Lost: ${(lotAggH?.totalEthLost ?? 0).toFixed(0)}L`] }} onmouseleave={() => chartTooltip = null}>
-								<span class="text-xs font-mono font-bold mb-0.5" style="color: {isAboveAvg ? '#bef264' : '#ef4444'};">{rec.toFixed(1)}%</span>
-								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}" style="height: {hPct}%; background: {isAboveAvg ? 'rgba(190,242,100,0.6)' : 'rgba(239,68,68,0.5)'}; min-height: 4px;"></div>
-								<span class="text-[11px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-
-				<!-- Best / Worst Lot -->
-				{@const bestEthLot = lots.reduce((best, l) => { const a = lotSummaries.get(l); return a && a.avgRecoveryPct > 0 && (best === null || a.avgRecoveryPct > (lotSummaries.get(best)?.avgRecoveryPct ?? 0)) ? l : best; }, null as string | null)}
-				{@const worstEthLot = lots.reduce((worst, l) => { const a = lotSummaries.get(l); return a && a.avgRecoveryPct > 0 && (worst === null || a.avgRecoveryPct < (lotSummaries.get(worst)?.avgRecoveryPct ?? Infinity)) ? l : worst; }, null as string | null)}
-				{#if bestEthLot || worstEthLot}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Best / Worst Lot</h4>
-					<div class="flex gap-2">
-						{#if bestEthLot}
-						{@const ba = lotSummaries.get(bestEthLot)}
-						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestEthLot; ethanolMode = 'lot'; }}>
-							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
-							<div class="text-xs font-mono font-bold text-white">{bestEthLot.replace('LOT-', 'L')}</div>
-							<div class="text-sm font-mono text-slate-400">{ba ? ba.avgRecoveryPct.toFixed(1) : '—'}% recovery</div>
-						</button>
-						{/if}
-						{#if worstEthLot}
-						{@const wa = lotSummaries.get(worstEthLot)}
-						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstEthLot; ethanolMode = 'lot'; }}>
-							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
-							<div class="text-xs font-mono font-bold text-white">{worstEthLot.replace('LOT-', 'L')}</div>
-							<div class="text-sm font-mono text-slate-400">{wa ? wa.avgRecoveryPct.toFixed(1) : '—'}% recovery</div>
-						</button>
-						{/if}
-					</div>
-				</div>
-				{/if}
-
-				<!-- Lot-over-Lot Delta Table -->
-				{@const deltaLots = lots.slice(-5)}
-				{#if deltaLots.length >= 2}
-				<div class="mb-1">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Lot-over-Lot Delta</h4>
-					<div class="border border-white/10 rounded overflow-hidden">
-						<table class="w-full text-left border-collapse">
-							<thead style="background: #0d0d0d;">
-								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-									<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Lot</th>
-									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Recovery</th>
-									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">vs Prev</th>
-									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Lost (L)</th>
-									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Loss $</th>
-								</tr>
-							</thead>
-							<tbody class="text-sm font-mono">
-								{#each deltaLots as dLot, di}
-									{@const dAgg = lotSummaries.get(dLot)}
-									{@const dRec = dAgg?.avgRecoveryPct ?? 0}
-									{@const dLost = dAgg?.totalEthLost ?? 0}
-									{@const dCost = dLost * UNIT_RATES.ethanol70.rate}
-									{@const prevDLot = di > 0 ? deltaLots[di - 1] : null}
-									{@const prevDRec = prevDLot ? (lotSummaries.get(prevDLot)?.avgRecoveryPct ?? 0) : 0}
-									{@const dDelta = prevDLot ? dRec - prevDRec : 0}
-									<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);">
-										<td class="px-2 py-0.5 text-slate-400">{dLot.replace('LOT-', 'L')}</td>
-										<td class="px-2 py-0.5 text-right font-bold" style="color: {dRec >= allTimeLotAvg.recoveryPct ? '#bef264' : '#ef4444'};">{dRec.toFixed(1)}%</td>
-										<td class="px-2 py-0.5 text-right" style="color: {dDelta >= 0 ? '#bef264' : '#ef4444'};">{prevDLot ? (dDelta >= 0 ? '+' : '') + dDelta.toFixed(1) + '%' : '—'}</td>
-										<td class="px-2 py-0.5 text-right" style="color: #ef4444;">{dLost.toFixed(0)}</td>
-										<td class="px-2 py-0.5 text-right text-white">{fmt(dCost)}</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				</div>
-				{/if}
-				{/if}
-			{:else}
-				<!-- Batch Breakdown — Solvent Table + Loss Ranking + Filtrate Context -->
-				{#if true}
-				{@const bbBatches = data.activeBatchProgress.filter(b => b.supplier_lot === activeLot)}
-
-				<!-- Per-batch solvent table -->
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Solvent Usage — {activeLot?.replace('LOT-', 'L')}</h4>
-					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
-						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0 bg-bg-card">
-								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH In</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH Out</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH Lost</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">D-Limo In</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">D-Limo Out</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">D-Limo Lost</th>
-								</tr>
-							</thead>
-							<tbody class="text-sm font-mono">
-								{#each bbBatches as bb}
-									{@const etohLost = (bb.etoh_vol_L ?? 0) - (bb.etoh_recovered_L ?? 0)}
-									{@const dlimoLost = (bb.dlimo_vol_L ?? 0) - (bb.dlimo_recovered_L ?? 0)}
-									<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);"
-										onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [bb.batch_number, `EtOH: ${(bb.etoh_vol_L ?? 0).toFixed(0)}→${(bb.etoh_recovered_L ?? 0).toFixed(0)}L`, `D-Limo: ${(bb.dlimo_vol_L ?? 0).toFixed(1)}→${(bb.dlimo_recovered_L ?? 0).toFixed(1)}L`] }} onmouseleave={() => chartTooltip = null}>
-										<td class="px-1.5 py-0.5 text-slate-400">{bb.batch_number.replace('SG-', '')}</td>
-										<td class="px-1 py-0.5 text-right text-white">{(bb.etoh_vol_L ?? 0).toFixed(0)}</td>
-										<td class="px-1 py-0.5 text-right text-white">{(bb.etoh_recovered_L ?? 0).toFixed(0)}</td>
-										<td class="px-1 py-0.5 text-right" style="color: #ef4444;">{etohLost > 0 ? etohLost.toFixed(0) : '—'}</td>
-										<td class="px-1 py-0.5 text-right text-white">{(bb.dlimo_vol_L ?? 0).toFixed(1)}</td>
-										<td class="px-1 py-0.5 text-right text-white">{(bb.dlimo_recovered_L ?? 0).toFixed(1)}</td>
-										<td class="px-1 py-0.5 text-right" style="color: #ef4444;">{dlimoLost > 0 ? dlimoLost.toFixed(1) : '—'}</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				</div>
-
-				<!-- EtOH Loss Ranking — horizontal bars -->
-				{@const lossRanking = bbBatches.map(b => ({ bn: b.batch_number.replace('SG-', ''), lost: (b.etoh_vol_L ?? 0) - (b.etoh_recovered_L ?? 0) })).filter(b => b.lost > 0).sort((a, b) => b.lost - a.lost)}
-				{@const maxLoss = lossRanking.length > 0 ? lossRanking[0].lost : 1}
-				{#if lossRanking.length > 0}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">EtOH Loss Ranking</h4>
-					<div class="space-y-0.5">
-						{#each lossRanking as lr}
-							{@const wPct = (lr.lost / maxLoss) * 100}
-							{@const lossCostLr = lr.lost * UNIT_RATES.ethanol70.rate}
-							<div class="flex items-center gap-1.5"
-								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [lr.bn, `Lost: ${lr.lost.toFixed(0)}L`, `Cost: ${fmt(lossCostLr)}`] }} onmouseleave={() => chartTooltip = null}>
-								<span class="w-8 text-xs font-mono font-bold text-slate-500 text-right">{lr.bn}</span>
-								<div class="flex-1 h-2.5 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
-									<div class="h-full rounded-sm" style="width: {wPct}%; background: rgba(239,68,68,0.6);"></div>
-								</div>
-								<span class="text-xs font-mono font-bold" style="color: #ef4444;">{lr.lost.toFixed(0)}L</span>
-								<span class="text-xs font-mono text-slate-500">{fmt(lossCostLr)}</span>
-							</div>
-						{/each}
-					</div>
-				</div>
-				{/if}
-
-				<!-- Filtrate Recovery Context -->
-				{@const avgFiltrate = bbBatches.length > 0 ? bbBatches.reduce((s, b) => s + (b.filtrate_vol_L ?? 0), 0) / bbBatches.length : 0}
-				{@const avgEtohIn = bbBatches.length > 0 ? bbBatches.reduce((s, b) => s + (b.etoh_vol_L ?? 0), 0) / bbBatches.length : 0}
-				{@const filtrateReturnPct = avgEtohIn > 0 ? (avgFiltrate / avgEtohIn) * 100 : 0}
-				<div class="p-2 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
-					<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-1.5">Filtrate Recovery</h4>
-					<div class="flex gap-4 text-[11px] font-mono">
-						<div><span class="text-slate-500">Avg EtOH In</span> <span class="text-white font-bold">{avgEtohIn.toFixed(0)}L</span></div>
-						<div><span class="text-slate-500">Avg Filtrate</span> <span class="text-white font-bold">{avgFiltrate.toFixed(0)}L</span></div>
-						<div><span class="text-slate-500">Return</span> <span class="font-bold" style="color: {filtrateReturnPct >= 85 ? '#bef264' : '#f59e0b'};">{filtrateReturnPct.toFixed(1)}%</span></div>
-					</div>
-				</div>
-				{/if}
-			{/if}
-		{:else}
-			{#if yieldMode === 'lot'}
-				{#if true}
-				{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
-				{@const prevLot = previousLotId}
-				{@const prevLotAgg = prevLot ? lotSummaries.get(prevLot) : null}
-				{@const yieldDeltaKg = prevLotAgg ? (curLotAgg?.totalYieldKg ?? 0) - prevLotAgg.totalYieldKg : null}
-				{@const rateDelta = prevLotAgg ? (curLotAgg?.avgYieldPct ?? 0) - prevLotAgg.avgYieldPct : null}
-				{@const lots = allLots()}
-				{@const yieldRank = (() => { const sorted = lots.map(l => lotSummaries.get(l)?.totalYieldKg ?? 0).sort((a, b) => b - a); return sorted.indexOf(curLotAgg?.totalYieldKg ?? 0) + 1; })()}
-				{@const bestYieldBatch = data.runYieldBreakdown.filter(y => y.supplier_lot === activeLot && y.overall_yield_pct != null).sort((a, b) => (b.overall_yield_pct ?? 0) - (a.overall_yield_pct ?? 0))[0]}
-
-				<!-- S1: KPI Strip -->
-				<div class="flex gap-1.5 mb-2 overflow-x-auto">
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Final Yield</span>
-						<span class="text-lg font-black font-mono text-white">{(curLotAgg?.totalYieldKg ?? 0).toFixed(2)} kg</span>
-						{#if yieldDeltaKg !== null}
-							<span class="text-xs font-bold" style="color: {yieldDeltaKg >= 0 ? '#bef264' : '#ef4444'};">{yieldDeltaKg >= 0 ? '▲' : '▼'} {Math.abs(yieldDeltaKg).toFixed(2)}kg</span>
-						{:else}
-							<span class="text-sm font-bold text-slate-600">—</span>
-						{/if}
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Extract Rate</span>
-						<span class="text-sm font-black font-mono" style="color: #bef264;">{(curLotAgg?.avgYieldPct ?? 0).toFixed(2)}%</span>
-						{#if rateDelta !== null}
-							<span class="text-xs font-bold" style="color: {rateDelta >= 0 ? '#bef264' : '#ef4444'};">{rateDelta >= 0 ? '▲' : '▼'} {Math.abs(rateDelta).toFixed(2)}%</span>
-						{/if}
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Best Batch</span>
-						<span class="text-lg font-black font-mono text-white">{bestYieldBatch?.batch_number.replace('SG-', '') ?? '—'}</span>
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Purity</span>
-						<span class="text-lg font-black font-mono text-white">{curLotAgg?.avgPurity?.toFixed(1) ?? '—'}%</span>
-					</div>
-					<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Yield Rank</span>
-						<span class="text-lg font-black font-mono text-white">#{yieldRank}/{lots.length}</span>
-					</div>
-				</div>
-
-				<!-- S2: Batch Yield Bar Chart — HERO -->
-				{@const lotYieldData = data.runYieldBreakdown.filter(y => y.supplier_lot === activeLot && y.final_product_g != null)}
-				{@const yieldVals = lotYieldData.map(y => y.final_product_g ?? 0).filter(v => v > 0)}
-				{@const batchYieldMax = yieldVals.length > 0 ? Math.max(...yieldVals) * 1.05 : 1}
-				{@const batchYieldMin = yieldVals.length > 0 ? Math.max(0, Math.min(...yieldVals) * 0.9) : 0}
-				{@const batchYieldRange = batchYieldMax - batchYieldMin || 1}
-				{@const batchYieldAvg = lotYieldData.length > 0 ? lotYieldData.reduce((s, y) => s + (y.final_product_g ?? 0), 0) / lotYieldData.length : 0}
-				{@const yieldAvgLinePct = batchYieldAvg > 0 ? ((batchYieldAvg - batchYieldMin) / batchYieldRange) * 100 : 0}
-				{#if lotYieldData.length > 0}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Yield — {activeLot?.replace('LOT-', 'L')}</h4>
-					<div class="relative flex items-end gap-1 px-1 h-[110px]">
-						<div class="absolute left-0 right-0 border-t border-dashed" style="bottom: {yieldAvgLinePct}%; border-color: rgba(255,255,255,0.25);"></div>
-						<span class="absolute text-xs font-mono text-slate-400 right-1" style="bottom: {yieldAvgLinePct + 1}%;">avg {(batchYieldAvg / 1000).toFixed(2)}kg</span>
-						{#each lotYieldData as yb}
-							{@const yieldG = yb.final_product_g ?? 0}
-							{@const hPct = Math.min(100, Math.max(3, ((yieldG - batchYieldMin) / batchYieldRange) * 100))}
-							{@const isAboveAvg = yieldG >= batchYieldAvg}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => selectBatch(yb.batch_id)}
-								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [yb.batch_number, `Yield: ${(yieldG / 1000).toFixed(2)}kg`, `Rate: ${yb.overall_yield_pct?.toFixed(2) ?? '—'}%`] }} onmouseleave={() => chartTooltip = null}>
-								<span class="text-xs font-mono font-bold mb-0.5 text-white">{(yieldG / 1000).toFixed(1)}</span>
-								<div class="w-full rounded-t transition-all {selectedBatchId === yb.batch_id ? 'ring-2 ring-[#bef264]' : ''}" style="height: {hPct}%; background: {isAboveAvg ? 'rgba(190,242,100,0.6)' : 'rgba(239,68,68,0.5)'}; min-height: 4px;"></div>
-								<span class="text-[11px] font-bold text-slate-500 mt-0.5">{yb.batch_number.replace('SG-', '')}</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-				{/if}
-
-				<!-- S3: Stage Yield — Current vs Previous -->
-				<!-- Stage Yields: Grinding=material retention, Extraction=EtOH recovery, A/B Phase=D-Limo recovery, Drying=mass after moisture removal -->
-				{@const curStages = getLotStageYieldsForLot(activeLot)}
-				{@const prevStages = getLotStageYieldsForLot(prevLot)}
-				{@const yieldStageNames = ['Raw Leaf to Powder', 'Ethanol Extraction', 'Acid/Base Extraction and Partitioning', 'Back Extraction, Precipitation, Drying, and Final Product'] as const}
-				{@const stageKeys = ['grinding', 'extraction', 'abPhase', 'drying'] as const}
-				{@const stageThresholds = { grinding: { green: 93, orange: 88 }, extraction: { green: 82, orange: 78 }, abPhase: { green: 95, orange: 90 }, drying: { green: 70, orange: 60 } }}
-				{@const curBarColor = '#a3e635'}
-				{@const prevBarColor = '#38bdf8'}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Stage Yield — Current vs Previous</h4>
-					<div class="space-y-1.5">
-						{#each stageKeys as key, si}
-							{@const curVal = curStages[key]}
-							{@const prevVal = prevStages[key]}
-							<div class="flex items-center gap-1.5">
-								<span class="min-w-[140px] w-[140px] text-xs font-bold text-slate-500 leading-tight">{yieldStageNames[si]}</span>
-								<div class="flex-1 flex flex-col gap-0.5">
-									<div class="h-2.5 w-full rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
-										<div class="h-full rounded-sm" style="width: {Math.min(100, curVal)}%; background: {curBarColor};"></div>
 									</div>
-									{#if prevLot}
-										<div class="h-1.5 w-full rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.03);">
-											<div class="h-full rounded-sm" style="width: {Math.min(100, prevVal)}%; background: {prevBarColor};"></div>
-										</div>
-									{/if}
+								{/each}
+								<div></div>
+								<!-- Progress bar -->
+								<div
+									class="flex flex-col items-center justify-center px-0.5 hover:bg-bg-card-hover transition-colors rounded py-0.5"
+								>
+									<div class="h-1 w-full bg-border-card rounded-full overflow-hidden">
+										<div class="h-full bg-primary rounded-full" style="width: {(completedStages / 7) * 100}%"></div>
+									</div>
+									<p class="text-xs text-text-muted text-center mt-0.5">{completedStages}/7</p>
 								</div>
-								<div class="flex flex-col items-end w-12">
-									<span class="text-sm font-mono font-bold" style="color: {curBarColor};">{curVal.toFixed(0)}%</span>
-									{#if prevLot}
-										<span class="text-xs font-mono" style="color: {prevBarColor};">{prevVal.toFixed(0)}%</span>
-									{/if}
+								<!-- Current stage -->
+								<div
+									class="flex items-center justify-center hover:bg-bg-card-hover transition-colors rounded py-0.5 px-0.5 overflow-hidden"
+								>
+									<p class="text-sm font-bold text-text-secondary truncate text-center">
+										{#if batch.final_product_g != null}
+											Done
+										{:else if batch.wet_precipitate_g != null}
+											Drying
+										{:else}
+											{getStageName(batch.current_stage)}
+										{/if}
+									</p>
 								</div>
-							</div>
-						{/each}
-					</div>
-					<div class="flex items-center gap-3 mt-1.5">
-						<div class="flex items-center gap-1">
-							<span class="size-2.5 rounded-sm" style="background: {curBarColor};"></span>
-							<span class="text-xs text-slate-400">Current ({activeLot?.replace('LOT-', 'L') ?? '—'})</span>
-						</div>
-						{#if prevLot}
-							<div class="flex items-center gap-1">
-								<span class="size-2.5 rounded-sm" style="background: {prevBarColor};"></span>
-								<span class="text-xs text-slate-400">Previous ({prevLot.replace('LOT-', 'L')})</span>
-							</div>
-						{/if}
-					</div>
-				</div>
-
-				<!-- S5: Quality Specs -->
-				{@const mitVal = curLotAgg?.avgMitragynine ?? null}
-				{@const purVal = curLotAgg?.avgPurity ?? null}
-				{@const devCount = curLotAgg?.deviationCount ?? 0}
-				{@const lotMitValues = lots.map(l => lotSummaries.get(l)?.avgMitragynine ?? 0).filter(v => v > 0)}
-				{@const lotPurValues = lots.map(l => lotSummaries.get(l)?.avgPurity ?? 0).filter(v => v > 0)}
-				{#if mitVal !== null || purVal !== null || devCount > 0}
-				<div class="mb-1">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Quality Specs</h4>
-					<div class="space-y-1.5">
-						<div class="flex items-center gap-2">
-							<span class="w-20 text-sm font-bold text-slate-500">Mitragynine %</span>
-							<span class="text-sm font-mono font-bold text-white">{mitVal !== null ? mitVal.toFixed(1) + '%' : 'N/A'}</span>
-							{#if mitVal !== null}
-								<span class="text-xs px-1 py-0.5 rounded font-bold" style="background: {mitVal >= 1.0 ? 'rgba(190,242,100,0.15)' : 'rgba(239,68,68,0.15)'}; color: {mitVal >= 1.0 ? '#bef264' : '#ef4444'};">{mitVal >= 1.0 ? 'PASS' : 'FAIL'}</span>
-							{/if}
-							{#if lotMitValues.length >= 2}
-								{@const mitChart = smoothPath(lotMitValues, 60, 12)}
-								<svg viewBox="0 0 60 12" class="w-[60px] h-[12px]">
-									<path d={mitChart.line} fill="none" stroke="#bef264" stroke-width="1" opacity="0.6" />
-								</svg>
-							{/if}
-						</div>
-						<div class="flex items-center gap-2">
-							<span class="w-20 text-sm font-bold text-slate-500">Purity %</span>
-							<span class="text-sm font-mono font-bold text-white">{purVal !== null ? purVal.toFixed(1) + '%' : 'N/A'}</span>
-							{#if purVal !== null}
-								<span class="text-xs px-1 py-0.5 rounded font-bold" style="background: {purVal >= 80 ? 'rgba(190,242,100,0.15)' : 'rgba(239,68,68,0.15)'}; color: {purVal >= 80 ? '#bef264' : '#ef4444'};">{purVal >= 80 ? 'PASS' : 'FAIL'}</span>
-							{/if}
-							{#if purVal !== null}
-								<div class="flex-1 h-1.5 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.05);">
-									<div class="h-full rounded-full" style="width: {Math.min(100, purVal)}%; background: {purVal >= 80 ? '#bef264' : '#ef4444'};"></div>
+								<!-- Next action -->
+								<div class="flex items-center justify-center hover:bg-bg-card-hover transition-colors rounded py-0.5">
+									<span
+										class="text-xs font-bold uppercase px-1 py-0.5 rounded {nextAction(batch) === 'Review'
+											? 'bg-amber-900/30 text-amber-400'
+											: 'bg-blue-900/30 text-blue-400'}">{nextAction(batch)}</span
+									>
 								</div>
-							{/if}
-						</div>
-						<div class="flex items-center gap-2">
-							<span class="w-20 text-sm font-bold text-slate-500">Deviations</span>
-							<span class="text-sm font-mono font-bold" style="color: {devCount > 0 ? '#ef4444' : '#bef264'};">{devCount}</span>
-						</div>
-					</div>
-				</div>
-				{:else}
-				<div class="mb-1 p-2.5 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1.5">Quality Specs</h4>
-					<p class="text-sm text-slate-500 italic">Lab results pending — submit samples to populate quality data</p>
-				</div>
-				{/if}
-
-				<!-- Yield Summary -->
-				{@const ysLeafInput = lotBatches().reduce((s, b) => s + (b.leaf_input_kg ?? 0), 0)}
-				{@const ysFinalOutput = lotBatches().reduce((s, b) => s + (b.final_product_g ?? 0), 0) / 1000}
-				{@const ysExtractRate = ysLeafInput > 0 ? (ysFinalOutput / ysLeafInput) * 100 : 0}
-				{@const ysBatchCount = lotYieldData.length}
-				{@const ysBestBatch = lotYieldData.length > 0 ? lotYieldData.reduce((a, b) => (a.final_product_g ?? 0) > (b.final_product_g ?? 0) ? a : b) : null}
-				{@const ysWorstBatch = lotYieldData.length > 0 ? lotYieldData.reduce((a, b) => (a.final_product_g ?? 0) < (b.final_product_g ?? 0) ? a : b) : null}
-				<div class="mt-2 p-2 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
-					<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-1.5">Yield Summary</h4>
-					<div class="grid grid-cols-3 gap-x-3 gap-y-1 text-[11px] font-mono">
-						<div><span class="text-slate-500">Leaf Input</span> <span class="text-white font-bold">{ysLeafInput.toFixed(0)} kg</span></div>
-						<div><span class="text-slate-500">Final Output</span> <span class="text-white font-bold">{ysFinalOutput.toFixed(2)} kg</span></div>
-						<div><span class="text-slate-500">Extract Rate</span> <span class="font-bold" style="color: {ysExtractRate >= 1.2 ? '#bef264' : '#f59e0b'};">{ysExtractRate.toFixed(2)}%</span></div>
-						<div><span class="text-slate-500">Batches</span> <span class="text-white font-bold">{ysBatchCount}</span></div>
-						<div><span class="text-slate-500">Best</span> <span class="font-bold" style="color: #bef264;">{ysBestBatch ? ((ysBestBatch.final_product_g ?? 0) / 1000).toFixed(2) + 'kg' : '—'}</span></div>
-						<div><span class="text-slate-500">Worst</span> <span class="font-bold" style="color: #ef4444;">{ysWorstBatch ? ((ysWorstBatch.final_product_g ?? 0) / 1000).toFixed(2) + 'kg' : '—'}</span></div>
-					</div>
-				</div>
-				{/if}
-			{:else if yieldMode === 'batch'}
-				<!-- Lot History: Yield per Lot Bar Chart -->
-				{#if true}
-				{@const lots = allLots()}
-				{@const yieldMax = yieldPerLotChart.yieldMax}
-					<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Yield per Lot</h4>
-					<div class="relative flex items-end gap-1 px-1" style="height: 110px;">
-						{#each lots as lot, li}
-							{@const ykg = lotSummaries.get(lot)?.totalYieldKg ?? 0}
-							{@const hPct = (ykg / yieldMax) * 100}
-							{@const isCurrent = lot === activeLot}
-							{@const lotAggY = lotSummaries.get(lot)}
-							<button class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all" onclick={() => { selectedLot = lot; yieldMode = 'lot'; }}
-								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [lot, `Yield: ${ykg.toFixed(2)}kg`, `Rate: ${(lotAggY?.avgYieldPct ?? 0).toFixed(2)}%`, `Purity: ${lotAggY?.avgPurity?.toFixed(1) ?? 'N/A'}%`] }} onmouseleave={() => chartTooltip = null}>
-								<span class="text-xs font-mono font-bold mb-0.5 text-white">{ykg.toFixed(1)}</span>
-								<div class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#bef264]' : ''}" style="height: {hPct}%; background: rgba(190,242,100,{isCurrent ? 0.8 : 0.4}); min-height: 4px; opacity: {isCurrent ? 1 : 0.6};"></div>
-								<span class="text-[11px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
 							</button>
 						{/each}
-						<div class="flex items-center gap-3 mt-1 text-[11px] text-slate-500">
-							<span class="inline-block w-2 h-2 rounded-sm" style="background: rgba(190,242,100,0.6);"></span>
-							<span>Yield (kg)</span>
+					</div>
+				{/if}
+			</div>
+		</div>
+
+		<!-- Analytics Carousel - Intelligence Panels -->
+		<div
+			class="{expandedCard !== null
+				? 'fixed inset-4 z-50'
+				: 'col-span-6'} bg-bg-card border border-border-card rounded-xl px-4 pt-3 pb-2.5 flex flex-col {expandedCard ===
+			null
+				? 'min-h-[650px]'
+				: ''}"
+		>
+			<div class="flex-shrink-0">
+				{#if carouselIndex === 0}
+					<!-- ═══ COST INTELLIGENCE ═══ -->
+					<div class="flex items-center justify-between mb-1.5">
+						<div class="flex items-center gap-2">
+							<span class="material-symbols-outlined text-[14px] text-primary">payments</span>
+							<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Cost Intelligence</h3>
+							<button
+								class="text-text-muted/25 hover:text-text-muted/60 transition-colors"
+								aria-label="Toggle Cost Intelligence panel"
+								onclick={() => (expandedCard = expandedCard === carouselIndex ? null : carouselIndex)}
+							>
+								<span class="material-symbols-outlined text-sm"
+									>{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span
+								>
+							</button>
+						</div>
+						<div class="flex items-center gap-2">
+							{#if selectedBatchId && selectedBatchInfo}
+								<span class="text-xs font-medium text-primary">{selectedBatchInfo.batch_number}</span>
+								<span class="text-xs text-text-muted/25">|</span>
+								<span class="text-xs text-text-muted/35"
+									>{selectedBatchInfo.operator_name ?? selectedBatchInfo.status}</span
+								>
+							{:else}
+								<span class="text-xs text-text-muted/35">{runLabel}</span>
+								<span class="text-xs text-text-muted/25">|</span>
+								<span class="text-xs text-text-muted/35">{runCompletedBatches}/{runBatchCount} batches</span>
+							{/if}
 						</div>
 					</div>
-				</div>
-
-				<!-- Best / Worst Lot (Yield) -->
-				{@const bestYieldLot = lots.reduce((best, l) => { const a = lotSummaries.get(l); return a && a.avgYieldPct > 0 && (best === null || a.avgYieldPct > (lotSummaries.get(best)?.avgYieldPct ?? 0)) ? l : best; }, null as string | null)}
-				{@const worstYieldLot = lots.reduce((worst, l) => { const a = lotSummaries.get(l); return a && a.avgYieldPct > 0 && (worst === null || a.avgYieldPct < (lotSummaries.get(worst)?.avgYieldPct ?? Infinity)) ? l : worst; }, null as string | null)}
-				{#if bestYieldLot || worstYieldLot}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Best / Worst Lot</h4>
-					<div class="flex gap-2">
-						{#if bestYieldLot}
-						{@const ba = lotSummaries.get(bestYieldLot)}
-						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = bestYieldLot; yieldMode = 'lot'; }}>
-							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
-							<div class="text-xs font-mono font-bold text-white">{bestYieldLot.replace('LOT-', 'L')}</div>
-							<div class="text-sm font-mono text-slate-400">{ba ? ba.avgYieldPct.toFixed(2) : '—'}% rate</div>
-						</button>
+					<div class="flex items-baseline gap-1.5 mb-2">
+						{#if selectedBatchId && selectedCostRow}
+							<span class="text-xl font-semibold text-text-primary">{fmt(selectedCostRow.totalCost)}</span>
+							{#if selectedCostRow.costPerKg}
+								<span class="text-[11px] text-text-muted/50">{fmt(selectedCostRow.costPerKg)}/kg</span>
+							{/if}
+							{#if runCostAgg}
+								{@const batchDelta = selectedCostRow.totalCost - runCostAgg.avgCostPerBatch}
+								<span class="text-xs font-medium" style="color: {batchDelta <= 0 ? '#bef264' : '#ef4444'};"
+									>{batchDelta <= 0 ? '' : '+'}{Math.round(batchDelta).toLocaleString()} vs avg</span
+								>
+							{/if}
+							{#if batchAnomalyMap.get(selectedBatchId)?.some((a) => a.metric === 'cost')}
+								<span class="text-xs px-1 py-0.5 rounded bg-red-900/30 text-red-400">ANOMALY</span>
+							{/if}
+						{:else}
+							<span class="text-xl font-semibold text-text-primary">{runCostAgg ? fmt(runCostAgg.totalCost) : '—'}</span
+							>
+							{#if runCostAgg && rs}
+								{@const costVar =
+									runCostAgg.totalCost - runCostAgg.projectedTotal * (runCompletedBatches / runBatchCount)}
+								{#if costVar <= 0}
+									<span class="text-xs font-medium" style="color: #bef264;"
+										>{'-' + fmt(Math.abs(costVar))} under pace</span
+									>
+								{:else}
+									<span class="text-xs font-medium" style="color: #ef4444;">{'+' + fmt(costVar)} over pace</span>
+								{/if}
+							{/if}
+							{#if comparisonTarget}
+								{@const cd = compDelta(currentRunHistory?.avgCostPerBatch ?? 0, comparisonTarget, 'avgCostPerBatch')}
+								{#if cd !== null}
+									<span
+										class="text-xs px-1 py-0.5 rounded"
+										style="background: rgba({cd <= 0 ? '139,170,124' : '196,137,106'}, 0.15); color: {cd <= 0
+											? '#bef264'
+											: '#ef4444'};">{cd <= 0 ? '' : '+'}{Math.round(cd)} vs {comparisonTarget.runNumber}</span
+									>
+								{/if}
+							{/if}
 						{/if}
-						{#if worstYieldLot}
-						{@const wa = lotSummaries.get(worstYieldLot)}
-						<button class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors" onclick={() => { selectedLot = worstYieldLot; yieldMode = 'lot'; }}>
-							<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
-							<div class="text-xs font-mono font-bold text-white">{worstYieldLot.replace('LOT-', 'L')}</div>
-							<div class="text-sm font-mono text-slate-400">{wa ? wa.avgYieldPct.toFixed(2) : '—'}% rate</div>
-						</button>
+					</div>
+
+					<!-- Mode toggle -->
+					<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
+						<button
+							class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode ===
+							'lot'
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/35 hover:text-text-muted/60'}"
+							onclick={() => (costMode = 'lot')}>Run Summary</button
+						>
+						<button
+							class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode ===
+							'batch'
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/35 hover:text-text-muted/60'}"
+							onclick={() => (costMode = 'batch')}>Lot History</button
+						>
+						<button
+							class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {costMode ===
+							'history'
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/35 hover:text-text-muted/60'}"
+							onclick={() => (costMode = 'history')}>Cost Drivers</button
+						>
+					</div>
+				{:else if carouselIndex === 1}
+					<!-- ═══ SOLVENT INTELLIGENCE ═══ -->
+					<div class="flex items-center justify-between mb-1.5">
+						<div class="flex items-center gap-2">
+							<span class="material-symbols-outlined text-[14px] text-primary">water_drop</span>
+							<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">
+								Solvent Intelligence
+							</h3>
+							<button
+								class="text-text-muted/25 hover:text-text-muted/60 transition-colors"
+								aria-label="Toggle Solvent Intelligence panel"
+								onclick={() => (expandedCard = expandedCard === carouselIndex ? null : carouselIndex)}
+							>
+								<span class="material-symbols-outlined text-sm"
+									>{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span
+								>
+							</button>
+						</div>
+						<div class="flex items-center gap-2">
+							{#if selectedBatchId && selectedBatchInfo}
+								<span class="text-xs font-medium text-primary">{selectedBatchInfo.batch_number}</span>
+								<span class="text-xs text-text-muted/25">|</span>
+								<span class="text-xs text-text-muted/35"
+									>{selectedBatchInfo.operator_name ?? selectedBatchInfo.status}</span
+								>
+							{:else}
+								<span class="text-xs text-text-muted/35">{runLabel}</span>
+								<span class="text-xs text-text-muted/25">|</span>
+								<span class="text-xs text-text-muted/35">{runCompletedBatches}/{runBatchCount}</span>
+							{/if}
+						</div>
+					</div>
+					<div class="flex items-baseline gap-1.5 mb-2">
+						{#if selectedBatchId && selectedEthRow}
+							<span class="text-xl font-semibold text-text-primary"
+								>{selectedEthRow.recovery_pct?.toFixed(1) ?? '—'}%</span
+							>
+							{#if selectedEthRow.recovery_pct !== null && runEthAgg}
+								{@const ethDelta = selectedEthRow.recovery_pct - runEthAgg.avgRecovery}
+								<span class="text-xs font-medium" style="color: {ethDelta >= 0 ? '#bef264' : '#ef4444'};"
+									>{ethDelta >= 0 ? '+' : ''}{ethDelta.toFixed(1)} vs run avg</span
+								>
+							{/if}
+							{#if batchAnomalyMap.get(selectedBatchId)?.some((a) => a.metric === 'recovery')}
+								<span class="text-xs px-1 py-0.5 rounded bg-red-900/30 text-red-400">ANOMALY</span>
+							{/if}
+						{:else}
+							<span class="text-xl font-semibold text-text-primary">{runEthAgg?.avgRecovery.toFixed(1) ?? '—'}%</span>
+							{#if comparisonTarget}
+								{@const rd = compDelta(runEthAgg?.avgRecovery ?? 0, comparisonTarget, 'avgEthanolRecovery')}
+								{#if rd !== null}
+									<span class="text-xs font-medium" style="color: {rd >= 0 ? '#bef264' : '#ef4444'};"
+										>{rd >= 0 ? '+' : ''}{rd.toFixed(1)} vs {comparisonTarget.runNumber}</span
+									>
+								{/if}
+							{:else if runEthDelta >= 0}
+								<span class="text-xs font-medium" style="color: #bef264;">+{runEthDelta.toFixed(1)}</span>
+							{:else}
+								<span class="text-xs font-medium" style="color: #ef4444;">{runEthDelta.toFixed(1)}</span>
+							{/if}
+							<span class="text-xs text-text-muted/35">run avg recovery</span>
 						{/if}
 					</div>
-				</div>
-				{/if}
 
-				<!-- Lot Comparison Table -->
-				{@const compLots = lots.slice(-5)}
-				{#if compLots.length >= 2}
-				<div class="mb-1">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Lot Comparison</h4>
-					<div class="border border-white/10 rounded overflow-hidden">
-						<table class="w-full text-left border-collapse">
-							<thead style="background: #0d0d0d;">
-								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-									<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Lot</th>
-									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield (kg)</th>
-									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Rate %</th>
-									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Delta</th>
-									<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Purity</th>
-								</tr>
-							</thead>
-							<tbody class="text-sm font-mono">
-								{#each compLots as cLot, ci}
-									{@const cAgg = lotSummaries.get(cLot)}
-									{@const cRate = cAgg?.avgYieldPct ?? 0}
-									{@const cYld = cAgg?.totalYieldKg ?? 0}
-									{@const cPur = cAgg?.avgPurity}
-									{@const prevCLot = ci > 0 ? compLots[ci - 1] : null}
-									{@const prevCRate = prevCLot ? (lotSummaries.get(prevCLot)?.avgYieldPct ?? 0) : 0}
-									{@const cDelta = prevCLot ? cRate - prevCRate : 0}
-									<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);">
-										<td class="px-2 py-0.5 text-slate-400">{cLot.replace('LOT-', 'L')}</td>
-										<td class="px-2 py-0.5 text-right text-white font-bold">{cYld.toFixed(2)}</td>
-										<td class="px-2 py-0.5 text-right font-bold" style="color: {cRate >= allTimeLotAvg.yieldPct ? '#bef264' : '#ef4444'};">{cRate.toFixed(2)}%</td>
-										<td class="px-2 py-0.5 text-right" style="color: {cDelta >= 0 ? '#bef264' : '#ef4444'};">{prevCLot ? (cDelta >= 0 ? '+' : '') + cDelta.toFixed(2) + '%' : '—'}</td>
-										<td class="px-2 py-0.5 text-right text-white">{cPur !== null ? (cPur?.toFixed(1) ?? '—') + '%' : 'N/A'}</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
+					<!-- Mode toggle -->
+					<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
+						<button
+							class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode ===
+							'lot'
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/35 hover:text-text-muted/60'}"
+							onclick={() => (ethanolMode = 'lot')}>Run Summary</button
+						>
+						<button
+							class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode ===
+							'batch'
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/35 hover:text-text-muted/60'}"
+							onclick={() => (ethanolMode = 'batch')}>Lot History</button
+						>
+						<button
+							class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {ethanolMode ===
+							'history'
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/35 hover:text-text-muted/60'}"
+							onclick={() => (ethanolMode = 'history')}>Batch Breakdown</button
+						>
 					</div>
-				</div>
-				{/if}
-				{/if}
-			{:else if yieldMode === 'history'}
-				<!-- Batch Contribution — bars + mass balance table -->
-				{#if true}
-				{@const contribBatches = data.activeBatchProgress.filter(b => b.supplier_lot === activeLot && b.final_product_g != null).sort((a, b) => (b.final_product_g ?? 0) - (a.final_product_g ?? 0))}
-				{@const contribTotal = contribBatches.reduce((s, b) => s + (b.final_product_g ?? 0), 0)}
-				{@const contribMax = contribBatches.length > 0 ? (contribBatches[0].final_product_g ?? 0) : 1}
-
-				<!-- Batch contribution bars -->
-				{#if contribBatches.length > 0}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Contribution — {activeLot?.replace('LOT-', 'L')}</h4>
-					<div class="space-y-0.5">
-						{#each contribBatches as cb}
-							{@const cbG = cb.final_product_g ?? 0}
-							{@const cbPct = contribTotal > 0 ? (cbG / contribTotal) * 100 : 0}
-							{@const cbWPct = contribMax > 0 ? (cbG / contribMax) * 100 : 0}
-							<div class="flex items-center gap-1.5"
-								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [cb.batch_number, `Output: ${(cbG / 1000).toFixed(2)}kg`, `Share: ${cbPct.toFixed(1)}%`, `Rate: ${cb.overall_yield_pct?.toFixed(2) ?? '—'}%`, `Leaf: ${(cb.leaf_input_kg ?? 0).toFixed(0)}kg`] }} onmouseleave={() => chartTooltip = null}>
-								<span class="w-8 text-xs font-mono font-bold text-slate-500 text-right">{cb.batch_number.replace('SG-', '')}</span>
-								<div class="flex-1 h-2.5 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
-									<div class="h-full rounded-sm" style="width: {cbWPct}%; background: rgba(190,242,100,0.5);"></div>
-								</div>
-								<span class="text-xs font-mono font-bold text-white">{(cbG / 1000).toFixed(2)}kg</span>
-								<span class="text-xs font-mono text-slate-500">{cbPct.toFixed(0)}%</span>
-							</div>
-						{/each}
-					</div>
-				</div>
-				{/if}
-
-				<!-- Stage mass balance table -->
-				{@const mbBatches = data.activeBatchProgress.filter(b => b.supplier_lot === activeLot)}
-				<div class="mb-1">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Mass Balance</h4>
-					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
-						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0 bg-bg-card">
-								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Leaf (kg)</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Powder (kg)</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Precip (g)</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Final (g)</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield %</th>
-								</tr>
-							</thead>
-							<tbody class="text-sm font-mono">
-								{#each mbBatches as mb}
-									<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);"
-										onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [mb.batch_number, `Leaf: ${(mb.leaf_input_kg ?? 0).toFixed(1)}kg`, `Final: ${((mb.final_product_g ?? 0) / 1000).toFixed(2)}kg`, `Yield: ${mb.overall_yield_pct?.toFixed(2) ?? '—'}%`] }} onmouseleave={() => chartTooltip = null}>
-										<td class="px-1.5 py-0.5 text-slate-400">{mb.batch_number.replace('SG-', '')}</td>
-										<td class="px-1 py-0.5 text-right text-white">{(mb.leaf_input_kg ?? 0).toFixed(1)}</td>
-										<td class="px-1 py-0.5 text-right text-white">{(mb.powder_output_kg ?? 0).toFixed(1)}</td>
-										<td class="px-1 py-0.5 text-right text-white">{(mb.wet_precipitate_g ?? 0).toFixed(0)}</td>
-										<td class="px-1 py-0.5 text-right font-bold" style="color: #bef264;">{(mb.final_product_g ?? 0).toFixed(0)}</td>
-										<td class="px-1 py-0.5 text-right font-bold" style="color: {(mb.overall_yield_pct ?? 0) >= 1.2 ? '#bef264' : '#f59e0b'};">{mb.overall_yield_pct?.toFixed(2) ?? '—'}%</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				</div>
-				{/if}
-			{:else}
-				<!-- Quality Tab -->
-				{#if data.qualityCorrelation.length > 0}
-				{@const qcData = data.qualityCorrelation}
-
-				<!-- HPLC Results Table -->
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">HPLC Results</h4>
-					<div class="border border-white/10 rounded overflow-hidden" style="max-height: 100px;">
-						<table class="w-full text-left border-collapse">
-							<thead class="sticky top-0 bg-bg-card">
-								<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-									<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Purity %</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Mitragynine %</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">7-OH %</th>
-									<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield %</th>
-								</tr>
-							</thead>
-							<tbody class="text-sm font-mono">
-								{#each qcData as qc}
-									<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);"
-										onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [qc.batchNumber, `Purity: ${qc.purityPct?.toFixed(1) ?? 'N/A'}%`, `Mitragynine: ${qc.mitragynine?.toFixed(2) ?? 'N/A'}%`, `7-OH: ${qc.hydroxymitragynine?.toFixed(3) ?? 'N/A'}%`, `Yield: ${qc.yieldPct.toFixed(2)}%`] }} onmouseleave={() => chartTooltip = null}>
-										<td class="px-1.5 py-0.5 text-slate-400">{qc.batchNumber.replace('SG-', '')}</td>
-										<td class="px-1 py-0.5 text-right font-bold" style="color: {(qc.purityPct ?? 0) >= 80 ? '#bef264' : '#ef4444'};">{qc.purityPct?.toFixed(1) ?? 'N/A'}</td>
-										<td class="px-1 py-0.5 text-right font-bold" style="color: {(qc.mitragynine ?? 0) >= 1.0 ? '#bef264' : '#ef4444'};">{qc.mitragynine?.toFixed(2) ?? 'N/A'}</td>
-										<td class="px-1 py-0.5 text-right text-white">{qc.hydroxymitragynine?.toFixed(3) ?? 'N/A'}</td>
-										<td class="px-1 py-0.5 text-right text-white">{qc.yieldPct.toFixed(2)}</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				</div>
-
-				<!-- Purity vs Yield Scatter -->
-				{#if qualityScatter}
-				{@const qcPurMin = qualityScatter.qcPurMin}
-				{@const qcPurMax = qualityScatter.qcPurMax}
-				{@const qcYldMin = qualityScatter.qcYldMin}
-				{@const qcYldMax = qualityScatter.qcYldMax}
-				{@const qcAvgYld = qualityScatter.qcAvgYld}
-				{@const qcCrossX = qualityScatter.qcCrossX}
-				{@const qcCrossY = qualityScatter.qcCrossY}
-				<div class="mb-2">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Purity vs Yield</h4>
-					<svg viewBox="0 0 500 75" class="w-full" style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;">
-						<line x1={qcCrossX} y1="5" x2={qcCrossX} y2="65" stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 3" stroke-width="0.5" />
-						<line x1="30" y1={qcCrossY} x2="470" y2={qcCrossY} stroke="rgba(255,255,255,0.12)" stroke-dasharray="3 3" stroke-width="0.5" />
-						{#each qualityScatter.qcWithPurity as qp}
-							{@const qpx = 30 + (((qp.purityPct ?? 0) - qcPurMin) / (qcPurMax - qcPurMin || 1)) * 440}
-							{@const qpy = 5 + (1 - (qp.yieldPct - qcYldMin) / (qcYldMax - qcYldMin || 1)) * 60}
-							{@const aboveAvg = qp.yieldPct >= qcAvgYld}
-							<circle cx={qpx} cy={qpy} r="4" fill={aboveAvg ? '#bef264' : '#ef4444'} opacity="0.8" style="cursor: pointer;"
-								onmouseenter={(e) => chartTooltip = { x: e.clientX, y: e.clientY, lines: [qp.batchNumber, `Purity: ${(qp.purityPct ?? 0).toFixed(1)}%`, `Yield: ${qp.yieldPct.toFixed(2)}%`] }} onmouseleave={() => chartTooltip = null} />
-						{/each}
-						<text x="250" y="73" text-anchor="middle" fill="#666666" font-size="11">Purity %</text>
-						<text x="5" y="35" text-anchor="start" fill="#666666" font-size="11" transform="rotate(-90, 5, 35)">Yield %</text>
-					</svg>
-				</div>
-				{/if}
-
-				<!-- Avg Alkaloid Profile -->
-				{@const alkData = [
-					{ name: 'Mitragynine', values: qcData.map(q => q.mitragynine).filter((v): v is number => v !== null) },
-					{ name: '7-OH-Mitragynine', values: qcData.map(q => q.hydroxymitragynine).filter((v): v is number => v !== null) },
-					{ name: 'Paynantheine', values: qcData.map(q => q.paynantheine).filter((v): v is number => v !== null) },
-				]}
-				{@const alkAvgs = alkData.map(a => ({ name: a.name, avg: a.values.length > 0 ? a.values.reduce((s, v) => s + v, 0) / a.values.length : 0 }))}
-				{@const alkMax = Math.max(...alkAvgs.map(a => a.avg), 0.01)}
-				{#if alkAvgs.some(a => a.avg > 0)}
-				<div class="mb-1">
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Avg Alkaloid Profile</h4>
-					<div class="space-y-0.5">
-						{#each alkAvgs as alk}
-							{@const alkWPct = alkMax > 0 ? (alk.avg / alkMax) * 100 : 0}
-							<div class="flex items-center gap-1.5">
-								<span class="w-20 text-xs font-bold text-slate-500 truncate">{alk.name}</span>
-								<div class="flex-1 h-2 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
-									<div class="h-full rounded-sm" style="width: {alkWPct}%; background: rgba(190,242,100,0.5);"></div>
-								</div>
-								<span class="text-xs font-mono font-bold text-white">{alk.avg.toFixed(3)}%</span>
-							</div>
-						{/each}
-					</div>
-				</div>
-				{/if}
-
 				{:else}
-				<!-- No quality data placeholder -->
-				<div class="flex-1 flex flex-col items-center justify-center p-4">
-					<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">science</span>
-					<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-2">Lab Results Pending</h4>
-					<div class="space-y-1 text-sm font-mono text-slate-500">
+					<!-- ═══ YIELD & QUALITY ═══ -->
+					<div class="flex items-center justify-between mb-1.5">
 						<div class="flex items-center gap-2">
-							<span class="text-xs px-1 py-0.5 rounded font-bold" style="background: rgba(190,242,100,0.15); color: #bef264;">SPEC</span>
-							<span>Purity >= 80%</span>
+							<span class="material-symbols-outlined text-[14px] text-primary">science</span>
+							<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-text-secondary">Yield & Quality</h3>
+							<button
+								class="text-text-muted/25 hover:text-text-muted/60 transition-colors"
+								aria-label="Toggle Yield & Quality panel"
+								onclick={() => (expandedCard = expandedCard === carouselIndex ? null : carouselIndex)}
+							>
+								<span class="material-symbols-outlined text-sm"
+									>{expandedCard === carouselIndex ? 'close_fullscreen' : 'open_in_full'}</span
+								>
+							</button>
 						</div>
 						<div class="flex items-center gap-2">
-							<span class="text-xs px-1 py-0.5 rounded font-bold" style="background: rgba(190,242,100,0.15); color: #bef264;">SPEC</span>
-							<span>Mitragynine >= 1.0%</span>
+							{#if selectedBatchId && selectedBatchInfo}
+								<span class="text-xs font-medium text-primary">{selectedBatchInfo.batch_number}</span>
+								<span class="text-xs text-text-muted/25">|</span>
+								<span class="text-xs text-text-muted/35"
+									>{selectedBatchInfo.operator_name ?? selectedBatchInfo.status}</span
+								>
+							{:else}
+								<span class="text-xs text-text-muted/35">{runLabel}</span>
+								<span class="text-xs text-text-muted/25">|</span>
+								<span class="text-xs text-text-muted/35">{yieldFinishedBatches.length}/{runBatchCount} finished</span>
+							{/if}
 						</div>
 					</div>
-					<p class="text-sm text-slate-600 italic mt-2">Submit HPLC samples to populate quality data</p>
-				</div>
-				{/if}
-			{/if}
-		{/if}
-		</div>
+					<div class="flex items-baseline gap-1.5 mb-2">
+						{#if selectedBatchId && selectedYieldRow}
+							<span class="text-xl font-semibold text-text-primary"
+								>{selectedYieldRow.final_product_g != null ? (selectedYieldRow.final_product_g / 1000).toFixed(2) : '—'} kg</span
+							>
+							<span class="text-[11px] text-text-muted/50"
+								>{selectedYieldRow.overall_yield_pct?.toFixed(2) ?? '—'}%</span
+							>
+							{#if selectedYieldRow.overall_yield_pct !== null && runYieldAgg}
+								{@const yieldDiff = selectedYieldRow.overall_yield_pct - runYieldAgg.overallYield}
+								<span class="text-xs font-medium" style="color: {yieldDiff >= 0 ? '#bef264' : '#ef4444'};"
+									>{yieldDiff >= 0 ? '+' : ''}{yieldDiff.toFixed(2)} vs avg</span
+								>
+							{/if}
+							{#if batchAnomalyMap.get(selectedBatchId)?.some((a) => a.metric === 'yield')}
+								<span class="text-xs px-1 py-0.5 rounded bg-red-900/30 text-red-400">ANOMALY</span>
+							{/if}
+						{:else}
+							<span class="text-xl font-semibold text-text-primary"
+								>{runYieldAgg?.totalProduced.toFixed(1) ?? '—'} kg</span
+							>
+							<span class="text-[11px] text-text-muted/50">{runYieldAgg?.overallYield.toFixed(2) ?? '—'}%</span>
+							{#if comparisonTarget}
+								{@const yd = compDelta(runYieldAgg?.overallYield ?? 0, comparisonTarget, 'overallYieldPct')}
+								{#if yd !== null}
+									<span class="text-xs font-medium" style="color: {yd >= 0 ? '#bef264' : '#ef4444'};"
+										>{yd >= 0 ? '+' : ''}{yd.toFixed(2)} vs {comparisonTarget.runNumber}</span
+									>
+								{/if}
+							{:else if runYieldAgg}
+								{@const yd2 = runYieldAgg.overallYield - avgYield}
+								{#if yd2 >= 0}
+									<span class="text-xs font-medium" style="color: #bef264;">+{yd2.toFixed(2)}</span>
+								{:else}
+									<span class="text-xs font-medium" style="color: #ef4444;">{yd2.toFixed(2)}</span>
+								{/if}
+							{/if}
+						{/if}
+					</div>
 
-		<!-- Carousel navigation -->
-		<div class="flex-shrink-0 flex items-center justify-center gap-1.5 pt-2" style="border-top: 1px solid rgba(30, 30, 30, 0.8);">
-			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 0 ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 0}>Cost</button>
-			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 1 ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 1}>Ethanol</button>
-			<button class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex === 2 ? 'text-primary bg-primary/20' : 'text-text-muted/40 hover:text-text-muted/60'}" onclick={() => carouselIndex = 2}>Yield</button>
-		</div>
-	</div>
-
-	<!-- Inventory Status -->
-	<div class="col-span-12">
-		<div class="flex items-center justify-between mb-3">
-			<h2 class="text-base font-bold uppercase tracking-wide text-text-secondary flex items-center gap-2">
-				<span class="material-symbols-outlined text-lg">inventory_2</span>
-				Inventory Status
-			</h2>
-			<a href="/inventory" class="text-xs text-text-muted hover:text-text-primary transition-colors">View All →</a>
-		</div>
-		<div class="grid grid-cols-6 gap-3">
-			{#each data.materials ?? [] as mat}
-				{@const cfg = inventoryConfig[mat.name]}
-				{#if cfg}
-					{@const status = getInventoryStatus(mat.on_hand_qty, cfg.threshold)}
-					{@const barPct = Math.min(100, (mat.on_hand_qty / (cfg.threshold * 2)) * 100)}
-					{@const lotsRemaining = cfg.usagePerLot > 0 ? (mat.on_hand_qty / cfg.usagePerLot) : 0}
-					<div class="bg-bg-card border border-border-card rounded p-3 {mat.on_hand_qty <= cfg.threshold ? 'border-red-500/30' : ''}">
-						<div class="flex justify-between items-start mb-2">
-							<span class="text-xs font-bold uppercase tracking-wider text-text-muted">{mat.name}</span>
-							<span class="text-xs font-bold px-2 py-0.5 rounded-full {status.bgColor} {status.color}">{status.label}</span>
-						</div>
-						<div class="text-2xl font-black font-mono text-text-primary">{mat.on_hand_qty % 1 === 0 ? mat.on_hand_qty : mat.on_hand_qty.toFixed(1)} {mat.unit}</div>
-						<div class="text-[11px] text-text-muted mt-1">Threshold: {cfg.threshold} {mat.unit}</div>
-						<div class="h-1.5 w-full bg-border-card rounded-full mt-2 overflow-hidden">
-							<div class="h-full {getBarColor(mat.on_hand_qty, cfg.threshold)} rounded-full transition-all" style="width: {barPct}%"></div>
-						</div>
-						<div class="text-[11px] text-text-muted mt-2">~{cfg.usagePerLot} {mat.unit}/lot · <span class="text-text-primary font-bold">{lotsRemaining.toFixed(1)} lots</span> remaining</div>
+					<!-- Mode toggle (4 modes for yield) -->
+					<div class="flex gap-px rounded overflow-hidden mb-2" style="border: 1px solid rgba(30, 30, 30, 0.8);">
+						<button
+							class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode ===
+							'lot'
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/35 hover:text-text-muted/60'}"
+							onclick={() => (yieldMode = 'lot')}>Run Summary</button
+						>
+						<button
+							class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode ===
+							'batch'
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/35 hover:text-text-muted/60'}"
+							onclick={() => (yieldMode = 'batch')}>Lot History</button
+						>
+						<button
+							class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode ===
+							'history'
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/35 hover:text-text-muted/60'}"
+							onclick={() => (yieldMode = 'history')}>Batch Contrib.</button
+						>
+						<button
+							class="flex-1 px-1.5 py-px text-xs font-medium uppercase tracking-wider transition-colors {yieldMode ===
+							'quality'
+								? 'text-primary bg-primary/20'
+								: 'text-text-muted/35 hover:text-text-muted/60'}"
+							onclick={() => (yieldMode = 'quality')}>Quality</button
+						>
 					</div>
 				{/if}
-			{/each}
+			</div>
+			<div
+				class="flex-1 overflow-y-auto overflow-x-hidden min-h-0"
+				style="scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;"
+			>
+				{#if carouselIndex === 0}
+					{#if costMode === 'lot'}
+						{#if true}
+							{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
+							{@const prevLot = previousLotId}
+							{@const prevLotAgg = prevLot ? lotSummaries.get(prevLot) : null}
+							{@const cpkDelta =
+								prevLotAgg && prevLotAgg.avgCostPerKg > 0
+									? (curLotAgg?.avgCostPerKg ?? 0) - prevLotAgg.avgCostPerKg
+									: null}
+							{@const costDelta = prevLotAgg ? (curLotAgg?.totalCost ?? 0) - prevLotAgg.totalCost : null}
+							{@const lots = allLots()}
+							{@const bestLot = lots.reduce(
+								(best, l) => {
+									const a = lotSummaries.get(l);
+									return a &&
+										a.avgCostPerKg > 0 &&
+										(best === null || a.avgCostPerKg < (lotSummaries.get(best)?.avgCostPerKg ?? Infinity))
+										? l
+										: best;
+								},
+								null as string | null
+							)}
+							{@const matCost = curLotAgg
+								? curLotAgg.costBySegment.leaf + curLotAgg.costBySegment.solvent + curLotAgg.costBySegment.chemicals
+								: 0}
+
+							<!-- S1: KPI Strip -->
+							<div class="flex gap-1.5 mb-2 overflow-x-auto">
+								<div
+									class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5"
+								>
+									<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Cost/KG</span>
+									<span class="text-lg font-black font-mono text-white"
+										>{curLotAgg?.avgCostPerKg ? fmt(curLotAgg.avgCostPerKg) : '—'}</span
+									>
+									{#if cpkDelta !== null}
+										<span class="text-xs font-bold" style="color: {cpkDelta <= 0 ? '#bef264' : '#ef4444'};"
+											>{cpkDelta <= 0 ? '▼' : '▲'} {fmt(Math.abs(cpkDelta))} vs prev</span
+										>
+									{:else}
+										<span class="text-sm font-bold text-slate-600">—</span>
+									{/if}
+								</div>
+								<div
+									class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5"
+								>
+									<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Lot Cost</span>
+									<span class="text-lg font-black font-mono text-white"
+										>{curLotAgg ? fmt(curLotAgg.totalCost) : '—'}</span
+									>
+									{#if costDelta !== null}
+										<span class="text-xs font-bold" style="color: {costDelta <= 0 ? '#bef264' : '#ef4444'};"
+											>{costDelta <= 0 ? '▼' : '▲'} {fmt(Math.abs(costDelta))}</span
+										>
+									{/if}
+								</div>
+								<div
+									class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5"
+								>
+									<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Material Cost</span>
+									<span class="text-lg font-black font-mono text-white">{fmt(matCost)}</span>
+								</div>
+								<div
+									class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5"
+								>
+									<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Avg/Batch</span>
+									<span class="text-lg font-black font-mono text-white"
+										>{curLotAgg && curLotAgg.batchCount > 0
+											? fmt(curLotAgg.totalCost / curLotAgg.batchCount)
+											: '—'}</span
+									>
+								</div>
+								<div
+									class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5"
+								>
+									<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Best Lot</span>
+									<span class="text-lg font-black font-mono text-white"
+										>{bestLot ? bestLot.replace('LOT-', 'L') : '—'}</span
+									>
+								</div>
+							</div>
+
+							<!-- S2: Batch Cost Bar Chart — HERO -->
+							{@const lotBatchCosts = batchCostChart.lotBatchCosts}
+							{@const batchCostVals = batchCostChart.batchCostVals}
+							{@const batchCostMax = batchCostChart.batchCostMax}
+							{@const batchCostMin = batchCostChart.batchCostMin}
+							{@const batchCostAvg = batchCostChart.batchCostAvg}
+							{@const avgLinePct = batchCostChart.avgLinePct}
+							{#if lotBatchCosts.length > 0}
+								<div class="mb-2">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+										Batch Cost — {activeLot?.replace('LOT-', 'L')}
+									</h4>
+									<div class="relative flex items-end gap-1 px-1 h-[110px]">
+										<div
+											class="absolute left-0 right-0 border-t border-dashed"
+											style="bottom: {avgLinePct}%; border-color: rgba(255,255,255,0.25);"
+										></div>
+										<span class="absolute text-xs font-mono text-slate-400 right-1" style="bottom: {avgLinePct + 1}%;"
+											>avg {fmt(batchCostAvg)}</span
+										>
+										{#each lotBatchCosts as bc}
+											{@const hPct =
+												batchCostMax > batchCostMin
+													? ((bc.totalCost - batchCostMin) / (batchCostMax - batchCostMin)) * 100
+													: 50}
+											<button
+												class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all"
+												onclick={() => selectBatch(bc.batch_id)}
+												onmouseenter={(e) => {
+													const seg = data.batchCostBreakdown.find((s) => s.batchId === bc.batch_id);
+													const devPct = batchCostAvg > 0 ? ((bc.totalCost - batchCostAvg) / batchCostAvg) * 100 : 0;
+													const lines = [bc.batch_number, `Total: ${fmt(bc.totalCost)}`];
+													if (bc.costPerKg) lines.push(`$/kg: ${fmt(bc.costPerKg)}`);
+													lines.push(`${devPct <= 0 ? '▼' : '▲'}${Math.abs(devPct).toFixed(1)}% vs avg`);
+													if (seg) {
+														const cats = (['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const)
+															.map((k) => ({ k, v: seg[k] }))
+															.sort((a, b) => b.v - a.v)
+															.slice(0, 3);
+														cats.forEach((c) => lines.push(`${c.k}: ${fmt(c.v)}`));
+													}
+													chartTooltip = { x: e.clientX, y: e.clientY, lines };
+												}}
+												onmouseleave={() => (chartTooltip = null)}
+											>
+												<span class="text-xs font-mono font-bold mb-0.5 text-white">{fmt(bc.totalCost)}</span>
+												<div
+													class="w-full rounded-t transition-all {selectedBatchId === bc.batch_id
+														? 'ring-2 ring-[#ec5b13]'
+														: ''}"
+													style="height: {hPct}%; background: {costBarColorByRange(
+														bc.totalCost,
+														batchCostVals,
+														selectedBatchId === bc.batch_id
+													)}; min-height: 4px;"
+												></div>
+												<span
+													class="{lotBatchCosts.length > 7
+														? 'text-[9px]'
+														: 'text-[11px]'} font-bold text-slate-500 mt-0.5"
+													>{lotBatchCosts.length > 7
+														? bc.batch_number.replace('SG-', '').slice(-3)
+														: bc.batch_number.replace('SG-', '')}</span
+												>
+											</button>
+										{/each}
+									</div>
+								</div>
+							{/if}
+
+							<!-- S3: Cost Variance Heatmap -->
+							{@const lotCostSegs = data.batchCostBreakdown.filter((s) => s.supplierLot === activeLot)}
+							{#if lotCostSegs.length > 0}
+								{@const segCats = ['leaf', 'solvent', 'chemicals'] as const}
+								{@const segLabels = ['Leaf', 'Solvent', 'Chem']}
+								{@const segAvgs = segCats.map((cat) => {
+									const vals = lotCostSegs.map((s) => s[cat]);
+									return vals.reduce((a, b) => a + b, 0) / vals.length;
+								})}
+								<div class="mb-2">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+										Cost Variance Heatmap
+									</h4>
+									<div
+										class="border border-white/10 rounded overflow-auto"
+										style="max-height: 180px; scrollbar-width: thin; scrollbar-color: rgba(55,65,81,0.4) transparent;"
+									>
+										<table class="w-full text-left border-collapse">
+											<thead class="sticky top-0 bg-bg-card">
+												<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+													<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
+													{#each segLabels as label}
+														<th class="px-1 py-0.5 text-center" style="border-bottom: 1px solid #1e1e1e;">{label}</th>
+													{/each}
+												</tr>
+											</thead>
+											<tbody class="text-sm font-mono">
+												{#each lotCostSegs as seg}
+													<tr
+														class="cursor-pointer hover:bg-white/5 transition-colors"
+														style="border-bottom: 1px solid rgba(30,30,30,0.5);"
+														role="link"
+														tabindex="0"
+														onclick={() => selectBatch(seg.batchId)}
+														onkeydown={(e) => {
+															if (e.key === 'Enter' || e.key === ' ') {
+																e.preventDefault();
+																selectBatch(seg.batchId);
+															}
+														}}
+													>
+														<td class="px-1.5 py-0.5 text-slate-400">{seg.batchNumber.replace('SG-', '')}</td>
+														{#each segCats as cat, ci}
+															{@const val = seg[cat]}
+															{@const avg = segAvgs[ci]}
+															{@const devPct = avg > 0 ? ((val - avg) / avg) * 100 : 0}
+															{@const bgColor =
+																devPct <= -10
+																	? 'rgba(190,242,100,0.3)'
+																	: devPct <= -3
+																		? 'rgba(190,242,100,0.15)'
+																		: devPct >= 10
+																			? 'rgba(239,68,68,0.3)'
+																			: devPct >= 3
+																				? 'rgba(239,68,68,0.15)'
+																				: 'transparent'}
+															{@const txtColor = devPct <= -3 ? '#bef264' : devPct >= 3 ? '#ef4444' : '#cbd5e1'}
+															<td class="px-1 py-0.5 text-center" style="background: {bgColor}; color: {txtColor};"
+																>{fmt(val)}</td
+															>
+														{/each}
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+									</div>
+									<p class="text-[11px] text-slate-600 mt-0.5 italic">
+										Labor, electricity & testing costs are fixed per batch
+									</p>
+								</div>
+							{/if}
+
+							<!-- S4: Batch Cost Variance -->
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Batch Cost Variance</h4>
+								<div class="space-y-0.5">
+									{#each lotBatchCosts.toSorted((a, b) => b.totalCost - a.totalCost) as bc}
+										{@const devPct = batchCostAvg > 0 ? ((bc.totalCost - batchCostAvg) / batchCostAvg) * 100 : 0}
+										<button
+											class="w-full flex items-center gap-2 text-sm hover:bg-white/5 rounded px-1 py-0.5 transition-colors"
+											onclick={() => selectBatch(bc.batch_id)}
+										>
+											<span class="w-16 font-bold text-slate-500 font-mono">{bc.batch_number.replace('SG-', '')}</span>
+											<span class="font-mono font-bold text-white">{fmt(bc.totalCost)}</span>
+											<span class="font-mono whitespace-nowrap" style="color: {devPct <= 0 ? '#bef264' : '#ef4444'};">
+												{devPct <= 0 ? '▼' : '▲'}{Math.abs(devPct).toFixed(1)}%
+											</span>
+											{#if bc.costPerKg}
+												<span class="text-slate-500 ml-auto">{fmt(bc.costPerKg)}/kg</span>
+											{/if}
+										</button>
+									{/each}
+								</div>
+							</div>
+						{/if}
+					{:else if costMode === 'batch'}
+						<!-- Lot History: Cost/KG Per Lot + Cost Breakdown -->
+						{#if true}
+							{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
+							{@const prevLot = previousLotId}
+							{@const prevLotAgg = prevLot ? lotSummaries.get(prevLot) : null}
+							{@const lots = allLots()}
+
+							<!-- Cost/KG per Lot Bar Chart -->
+							{@const lotCpks = lots.map((l) => lotSummaries.get(l)?.avgCostPerKg ?? 0)}
+							{@const cpkMax = Math.max(...lotCpks, TARGETS.costPerKg) * 1.05}
+							{@const cpkMin = Math.max(0, Math.min(...lotCpks.filter((v) => v > 0)) * 0.9)}
+							{@const tgtBot = ((TARGETS.costPerKg - cpkMin) / (cpkMax - cpkMin)) * 100}
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Cost/KG per Lot</h4>
+								<div class="relative flex items-end gap-1 px-1" style="height: 110px;">
+									<div
+										class="absolute left-0 right-0 border-t border-dashed"
+										style="bottom: {tgtBot}%; border-color: rgba(239,68,68,0.4);"
+									></div>
+									<span class="absolute text-xs font-mono text-red-400/60 right-1" style="bottom: {tgtBot + 1}%;"
+										>{fmt(TARGETS.costPerKg)}</span
+									>
+									{#each lots as lot, li}
+										{@const cpk = lotSummaries.get(lot)?.avgCostPerKg ?? 0}
+										{@const hPct = cpk > 0 ? ((cpk - cpkMin) / (cpkMax - cpkMin)) * 100 : 0}
+										{@const isCurrent = lot === activeLot}
+										<button
+											class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all"
+											onclick={() => {
+												selectedLot = lot;
+												costMode = 'lot';
+											}}
+											onmouseenter={(e) => {
+												const a = lotSummaries.get(lot);
+												const lines = [lot.replace('LOT-', 'Lot '), `$/kg: ${cpk > 0 ? fmt(cpk) : '—'}`];
+												if (a) {
+													lines.push(`Total: ${fmt(a.totalCost)}`, `Batches: ${a.batchCount}`);
+												}
+												chartTooltip = { x: e.clientX, y: e.clientY, lines };
+											}}
+											onmouseleave={() => (chartTooltip = null)}
+										>
+											<span class="text-xs font-mono font-bold mb-0.5 text-white">{cpk > 0 ? fmt(cpk) : '—'}</span>
+											<div
+												class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}"
+												style="height: {hPct}%; background: {costBarColorByRange(
+													cpk,
+													lotCpks,
+													isCurrent
+												)}; min-height: 4px;"
+											></div>
+											<span class="text-[11px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
+										</button>
+									{/each}
+									<!-- SVG trend line overlay -->
+									{#if lots.length >= 2}
+										<svg
+											class="absolute inset-0 pointer-events-none"
+											viewBox="0 0 {lots.length * 100} 100"
+											preserveAspectRatio="none"
+											style="overflow: visible;"
+										>
+											<polyline
+												fill="none"
+												stroke="rgba(255,255,255,0.3)"
+												stroke-width="2"
+												vector-effect="non-scaling-stroke"
+												points={lots
+													.map((lot, i) => {
+														const cpk = lotSummaries.get(lot)?.avgCostPerKg ?? 0;
+														const x = i * 100 + 50;
+														const y = cpk > 0 ? 100 - ((cpk - cpkMin) / (cpkMax - cpkMin)) * 100 : 100;
+														return `${x},${y}`;
+													})
+													.join(' ')}
+											/>
+										</svg>
+									{/if}
+								</div>
+							</div>
+
+							<!-- Cost Breakdown — Current vs Previous -->
+							{@const segColors = {
+								leaf: '#a3e635',
+								solvent: '#f97316',
+								chemicals: '#ef4444',
+								labor: '#9ca3af',
+								electricity: '#eab308',
+								testing: '#6b7280'
+							}}
+							{@const segKeys = ['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const}
+							{@const curSegs = curLotAgg?.costBySegment ?? {
+								leaf: 0,
+								solvent: 0,
+								chemicals: 0,
+								labor: 0,
+								electricity: 0,
+								testing: 0
+							}}
+							{@const curTotal = Object.values(curSegs).reduce((a, b) => a + b, 0) || 1}
+							{@const prevSegs = prevLotAgg?.costBySegment ?? null}
+							{@const prevTotal = prevSegs ? Object.values(prevSegs).reduce((a, b) => a + b, 0) || 1 : 1}
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+									Cost Breakdown — Current vs Previous
+								</h4>
+								<div class="space-y-1">
+									<div>
+										<span class="text-xs font-bold text-slate-500 uppercase"
+											>CURRENT ({activeLot?.replace('LOT-', 'L')})</span
+										>
+										<div class="flex h-4 w-full rounded-sm overflow-hidden mt-0.5">
+											{#each segKeys as key}
+												{@const pct = (curSegs[key] / curTotal) * 100}
+												{#if pct > 0}
+													<div
+														class="h-full flex items-center justify-center overflow-hidden"
+														style="width: {pct}%; background: {segColors[key]}; border-right: 1px solid #161616;"
+														title="{key}: {pct.toFixed(0)}%"
+													>
+														{#if pct >= 12}
+															<span class="text-[11px] font-mono font-bold text-black/70 truncate px-0.5"
+																>{fmt(curSegs[key])}</span
+															>
+														{/if}
+													</div>
+												{/if}
+											{/each}
+										</div>
+									</div>
+									<div>
+										<span class="text-xs font-bold text-slate-500 uppercase"
+											>PREVIOUS ({prevLot ? prevLot.replace('LOT-', 'L') : '—'})</span
+										>
+										{#if prevSegs}
+											<div class="flex h-4 w-full rounded-sm overflow-hidden mt-0.5">
+												{#each segKeys as key}
+													{@const pct = (prevSegs[key] / prevTotal) * 100}
+													{#if pct > 0}
+														<div
+															class="h-full opacity-50 flex items-center justify-center overflow-hidden"
+															style="width: {pct}%; background: {segColors[key]}; border-right: 1px solid #161616;"
+														>
+															{#if pct >= 12}
+																<span class="text-[11px] font-mono font-bold text-black/70 truncate px-0.5"
+																	>{fmt(prevSegs[key])}</span
+																>
+															{/if}
+														</div>
+													{/if}
+												{/each}
+											</div>
+										{:else}
+											<div
+												class="h-4 w-full rounded-sm mt-0.5 flex items-center justify-center"
+												style="background: rgba(255,255,255,0.03);"
+											>
+												<span class="text-[11px] text-slate-600 italic">No previous lot data</span>
+											</div>
+										{/if}
+									</div>
+									<div class="flex flex-wrap gap-2 mt-0.5">
+										{#each segKeys as key}
+											<div class="flex items-center gap-1" title={costCategoryMeta[key]?.label ?? key}>
+												<span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span
+													class="text-xs font-bold text-slate-400">{costCategoryMeta[key]?.label ?? key}</span
+												>
+											</div>
+										{/each}
+									</div>
+								</div>
+							</div>
+
+							<!-- Top Cost Drivers -->
+							{@const segEntries = curLotAgg
+								? Object.entries(curLotAgg.costBySegment)
+										.sort((a, b) => b[1] - a[1])
+										.slice(0, 4)
+								: []}
+							{@const driverTotal = curLotAgg?.totalCost || 1}
+							<div class="mb-1">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Top Cost Drivers</h4>
+								<div class="space-y-0.5">
+									{#each segEntries as [cat, amount]}
+										{@const pct = (amount / driverTotal) * 100}
+										{@const prevAmt = prevLotAgg
+											? prevLotAgg.costBySegment[cat as keyof typeof prevLotAgg.costBySegment]
+											: null}
+										{@const driverDelta = prevAmt !== null ? amount - prevAmt : null}
+										<div class="flex items-center gap-1.5 text-sm">
+											<span class="w-5 h-5 flex-none" title={costCategoryMeta[cat]?.label ?? cat}
+												>{@html costCategoryMeta[cat]?.svg ?? ''}</span
+											>
+											<span class="font-bold text-slate-400 capitalize">{costCategoryMeta[cat]?.label ?? cat}</span>
+											<span class="font-mono font-bold text-white">{fmt(amount)}</span>
+											<span class="text-slate-500">{pct.toFixed(0)}%</span>
+											{#if driverDelta !== null}
+												<span style="color: {driverDelta <= 0 ? '#bef264' : '#ef4444'};"
+													>{driverDelta <= 0 ? '▼' : '▲'}{fmt(Math.abs(driverDelta))}</span
+												>
+											{/if}
+										</div>
+									{/each}
+								</div>
+							</div>
+
+							<!-- Cost Category Shift — Last Lots -->
+							{@const shiftLots = lots.slice(-4)}
+							{@const shiftKeys = ['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const}
+							{#if shiftLots.length >= 2}
+								<div class="mb-2">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Category % Shift</h4>
+									<div class="border border-white/10 rounded overflow-hidden">
+										<table class="w-full text-left border-collapse">
+											<thead>
+												<tr
+													class="text-xs font-bold text-slate-400 uppercase tracking-widest"
+													style="border-bottom: 1px solid #1e1e1e;"
+												>
+													<th class="px-1.5 py-0.5"></th>
+													{#each shiftLots as sl}
+														<th class="px-1 py-0.5 text-center">{sl.replace('LOT-', 'L')}</th>
+													{/each}
+												</tr>
+											</thead>
+											<tbody class="text-sm font-mono">
+												{#each shiftKeys as key}
+													{@const vals = shiftLots.map((l) => {
+														const a = lotSummaries.get(l);
+														const segs = a?.costBySegment;
+														if (!segs) return 0;
+														const tot = Object.values(segs).reduce((s, v) => s + v, 0) || 1;
+														return (segs[key] / tot) * 100;
+													})}
+													{@const trend = vals.length >= 2 ? vals[vals.length - 1] - vals[0] : 0}
+													<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+														<td
+															class="px-1.5 py-0.5 flex items-center gap-1"
+															title={costCategoryMeta[key]?.label ?? key}
+															><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span
+																class="text-slate-400 font-bold">{costCategoryMeta[key]?.label ?? key}</span
+															></td
+														>
+														{#each vals as v}
+															<td
+																class="px-1 py-0.5 text-center"
+																style="color: {trend <= -2 ? '#bef264' : trend >= 2 ? '#ef4444' : '#cbd5e1'};"
+																>{v.toFixed(0)}%</td
+															>
+														{/each}
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+									</div>
+								</div>
+							{/if}
+
+							<!-- Best / Worst Lot -->
+							{@const bestLotH = lots.reduce(
+								(best, l) => {
+									const a = lotSummaries.get(l);
+									return a &&
+										a.avgCostPerKg > 0 &&
+										(best === null || a.avgCostPerKg < (lotSummaries.get(best)?.avgCostPerKg ?? Infinity))
+										? l
+										: best;
+								},
+								null as string | null
+							)}
+							{@const worstLotH = lots.reduce(
+								(worst, l) => {
+									const a = lotSummaries.get(l);
+									return a &&
+										a.avgCostPerKg > 0 &&
+										(worst === null || a.avgCostPerKg > (lotSummaries.get(worst)?.avgCostPerKg ?? 0))
+										? l
+										: worst;
+								},
+								null as string | null
+							)}
+							{#if bestLotH || worstLotH}
+								<div class="mb-1">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Best / Worst Lot</h4>
+									<div class="flex gap-2">
+										{#if bestLotH}
+											{@const ba = lotSummaries.get(bestLotH)}
+											<button
+												class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors"
+												onclick={() => {
+													selectedLot = bestLotH;
+													costMode = 'lot';
+												}}
+											>
+												<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span
+												>
+												<div class="text-xs font-mono font-bold text-white">{bestLotH.replace('LOT-', 'L')}</div>
+												<div class="text-sm font-mono text-slate-400">{ba ? fmt(ba.avgCostPerKg) : '—'}/kg</div>
+											</button>
+										{/if}
+										{#if worstLotH}
+											{@const wa = lotSummaries.get(worstLotH)}
+											<button
+												class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors"
+												onclick={() => {
+													selectedLot = worstLotH;
+													costMode = 'lot';
+												}}
+											>
+												<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;"
+													>Worst</span
+												>
+												<div class="text-xs font-mono font-bold text-white">{worstLotH.replace('LOT-', 'L')}</div>
+												<div class="text-sm font-mono text-slate-400">{wa ? fmt(wa.avgCostPerKg) : '—'}/kg</div>
+											</button>
+										{/if}
+									</div>
+								</div>
+							{/if}
+						{/if}
+					{:else}
+						<!-- Cost Drivers Tab -->
+						{#if true}
+							{@const allSegs = data.batchCostBreakdown}
+							{@const catTotals = (['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const)
+								.map((cat) => ({
+									cat,
+									total: allSegs.reduce((s, b) => s + b[cat], 0)
+								}))
+								.sort((a, b) => b.total - a.total)}
+							{@const grandTotal = catTotals.reduce((s, c) => s + c.total, 0) || 1}
+							{@const paretoMax = catTotals[0]?.total || 1}
+							{@const driverSegColors = {
+								leaf: '#a3e635',
+								solvent: '#f97316',
+								chemicals: '#ef4444',
+								labor: '#9ca3af',
+								electricity: '#eab308',
+								testing: '#6b7280'
+							} as Record<string, string>}
+
+							<!-- 4a: Pareto Chart -->
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+									Cost Pareto — All Batches
+								</h4>
+								<div class="space-y-1">
+									{#each catTotals as { cat, total }, ci}
+										{@const cumPct = (catTotals.slice(0, ci + 1).reduce((s, c) => s + c.total, 0) / grandTotal) * 100}
+										<div class="flex items-center gap-1.5">
+											<span class="w-5 h-5 flex-none" title={costCategoryMeta[cat]?.label ?? cat}
+												>{@html costCategoryMeta[cat]?.svg ?? ''}</span
+											>
+											<div class="flex-1 h-3 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.03);">
+												<div
+													class="h-full rounded-sm"
+													style="width: {(total / paretoMax) * 100}%; background: {driverSegColors[cat] ?? '#9ca3af'};"
+													onmouseenter={(e) =>
+														(chartTooltip = {
+															x: e.clientX,
+															y: e.clientY,
+															lines: [cat, fmt(total), `${((total / grandTotal) * 100).toFixed(1)}% of total`]
+														})}
+													onmouseleave={() => (chartTooltip = null)}
+												></div>
+											</div>
+											<span class="text-sm font-mono font-bold text-white w-12 text-right">{fmt(total)}</span>
+											<span class="text-xs font-mono text-slate-400 w-8 text-right"
+												>{((total / grandTotal) * 100).toFixed(0)}%</span
+											>
+											<span class="text-xs font-mono text-slate-600 w-8 text-right">Σ{cumPct.toFixed(0)}%</span>
+										</div>
+									{/each}
+								</div>
+							</div>
+
+							<!-- 4b: Variable vs Fixed -->
+							{@const varCost = catTotals
+								.filter((c) => ['leaf', 'solvent', 'chemicals'].includes(c.cat))
+								.reduce((s, c) => s + c.total, 0)}
+							{@const fixCost = catTotals
+								.filter((c) => ['labor', 'electricity', 'testing'].includes(c.cat))
+								.reduce((s, c) => s + c.total, 0)}
+							{@const varPct = (varCost / grandTotal) * 100}
+							{@const fixPct = (fixCost / grandTotal) * 100}
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Variable vs Fixed</h4>
+								<div class="flex h-5 w-full rounded-sm overflow-hidden">
+									<div
+										class="h-full flex items-center justify-center"
+										style="width: {varPct}%; background: rgba(190,242,100,0.5);"
+									>
+										<span class="text-xs font-mono font-bold text-black/70">Variable {varPct.toFixed(0)}%</span>
+									</div>
+									<div
+										class="h-full flex items-center justify-center"
+										style="width: {fixPct}%; background: rgba(156,163,175,0.5);"
+									>
+										<span class="text-xs font-mono font-bold text-black/70">Fixed {fixPct.toFixed(0)}%</span>
+									</div>
+								</div>
+								<div class="flex justify-between mt-0.5">
+									<span class="text-[11px] text-slate-400">Leaf + Solvent + Chemicals: {fmt(varCost)}</span>
+									<span class="text-[11px] text-slate-400">Labor + Elec + Testing: {fmt(fixCost)}</span>
+								</div>
+							</div>
+
+							<!-- 4c: Cost/KG by Category -->
+							{@const curLotAggD = activeLot ? lotSummaries.get(activeLot) : null}
+							{@const lotYieldKg = curLotAggD?.totalYieldKg ?? 0}
+							{@const curSegsD = curLotAggD?.costBySegment ?? {
+								leaf: 0,
+								solvent: 0,
+								chemicals: 0,
+								labor: 0,
+								electricity: 0,
+								testing: 0
+							}}
+							{@const totalCpk = lotYieldKg > 0 ? Object.values(curSegsD).reduce((a, b) => a + b, 0) / lotYieldKg : 0}
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+									Cost/KG by Category — {activeLot?.replace('LOT-', 'L')}
+								</h4>
+								{#if lotYieldKg > 0}
+									<div class="border border-white/10 rounded overflow-hidden">
+										<table class="w-full text-left border-collapse">
+											<thead>
+												<tr
+													class="text-xs font-bold text-slate-400 uppercase tracking-widest"
+													style="border-bottom: 1px solid #1e1e1e;"
+												>
+													<th class="px-1.5 py-0.5">Category</th>
+													<th class="px-1 py-0.5 text-right">$/kg</th>
+													<th class="px-1 py-0.5 text-right">% of Total</th>
+												</tr>
+											</thead>
+											<tbody class="text-sm font-mono">
+												{#each ['leaf', 'solvent', 'chemicals', 'labor', 'electricity', 'testing'] as const as key}
+													{@const cpk = curSegsD[key] / lotYieldKg}
+													{@const pctOfTotal = totalCpk > 0 ? (cpk / totalCpk) * 100 : 0}
+													<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+														<td
+															class="px-1.5 py-0.5 flex items-center gap-1"
+															title={costCategoryMeta[key]?.label ?? key}
+															><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span
+																class="text-slate-400">{costCategoryMeta[key]?.label ?? key}</span
+															></td
+														>
+														<td class="px-1 py-0.5 text-right text-white">{fmt(cpk)}</td>
+														<td class="px-1 py-0.5 text-right text-slate-400">{pctOfTotal.toFixed(1)}%</td>
+													</tr>
+												{/each}
+												<tr class="font-bold" style="border-top: 1px solid #333;">
+													<td class="px-1.5 py-0.5 text-slate-300 uppercase">Total</td>
+													<td class="px-1 py-0.5 text-right text-white">{fmt(totalCpk)}</td>
+													<td class="px-1 py-0.5 text-right text-slate-400">100%</td>
+												</tr>
+											</tbody>
+										</table>
+									</div>
+								{:else}
+									<p class="text-sm text-slate-600 italic">No yield data for $/kg breakdown</p>
+								{/if}
+							</div>
+
+							<!-- 4d: Sensitivity Analysis -->
+							{#if lotYieldKg > 0}
+								{@const varKeys = ['leaf', 'solvent', 'chemicals'] as const}
+								<div class="mb-1">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+										Sensitivity — ±10% Variable Cost
+									</h4>
+									<div class="border border-white/10 rounded overflow-hidden">
+										<table class="w-full text-left border-collapse">
+											<thead>
+												<tr
+													class="text-xs font-bold text-slate-400 uppercase tracking-widest"
+													style="border-bottom: 1px solid #1e1e1e;"
+												>
+													<th class="px-1.5 py-0.5">Category</th>
+													<th class="px-1 py-0.5 text-right">Current $/kg</th>
+													<th class="px-1 py-0.5 text-right">-10%</th>
+													<th class="px-1 py-0.5 text-right">+10%</th>
+												</tr>
+											</thead>
+											<tbody class="text-sm font-mono">
+												{#each varKeys as key}
+													{@const cpk = curSegsD[key] / lotYieldKg}
+													{@const impactDown = cpk * -0.1}
+													{@const impactUp = cpk * 0.1}
+													<tr style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+														<td
+															class="px-1.5 py-0.5 flex items-center gap-1"
+															title={costCategoryMeta[key]?.label ?? key}
+															><span class="w-4 h-4 flex-none">{@html costCategoryMeta[key]?.svg ?? ''}</span><span
+																class="text-slate-400">{costCategoryMeta[key]?.label ?? key}</span
+															></td
+														>
+														<td class="px-1 py-0.5 text-right text-white">{fmt(cpk)}</td>
+														<td class="px-1 py-0.5 text-right" style="color: #bef264;">{fmt(impactDown)}</td>
+														<td class="px-1 py-0.5 text-right" style="color: #ef4444;">+{fmt(impactUp)}</td>
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+									</div>
+									<p class="text-[11px] text-slate-600 mt-0.5 italic">
+										Impact on total $/kg if category cost changes by ±10%
+									</p>
+								</div>
+							{/if}
+						{/if}
+					{/if}
+				{:else if carouselIndex === 1}
+					{#if ethanolMode === 'lot'}
+						{#if true}
+							{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
+							{@const prevLot = previousLotId}
+							{@const prevLotAgg = prevLot ? lotSummaries.get(prevLot) : null}
+							{@const recDelta = prevLotAgg && curLotAgg ? curLotAgg.avgRecoveryPct - prevLotAgg.avgRecoveryPct : null}
+							{@const lostDelta = prevLotAgg && curLotAgg ? curLotAgg.totalEthLost - prevLotAgg.totalEthLost : null}
+							{@const costImpact = curLotAgg ? curLotAgg.totalEthLost * UNIT_RATES.ethanol70.rate : 0}
+
+							<!-- S1: KPI Strip -->
+							<div class="flex gap-1.5 mb-2 overflow-x-auto">
+								<div
+									class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5"
+								>
+									<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Recovery %</span>
+									<span
+										class="text-sm font-black font-mono"
+										style="color: {(curLotAgg?.avgRecoveryPct ?? 0) >= 85 ? '#bef264' : '#ef4444'};"
+										>{(curLotAgg?.avgRecoveryPct ?? 0).toFixed(1)}%</span
+									>
+									{#if recDelta !== null}
+										<span class="text-xs font-bold" style="color: {recDelta >= 0 ? '#bef264' : '#ef4444'};"
+											>{recDelta >= 0 ? '▲' : '▼'} {Math.abs(recDelta).toFixed(1)}% vs prev</span
+										>
+									{:else}
+										<span class="text-sm font-bold text-slate-600">—</span>
+									{/if}
+								</div>
+								<div
+									class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5"
+								>
+									<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Liters Issued</span>
+									<span class="text-lg font-black font-mono text-white"
+										>{(curLotAgg?.totalEthIssued ?? 0).toFixed(0)}L</span
+									>
+								</div>
+								<div
+									class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5"
+								>
+									<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Liters Lost</span>
+									<span class="text-sm font-black font-mono" style="color: #ef4444;"
+										>{(curLotAgg?.totalEthLost ?? 0).toFixed(0)}L</span
+									>
+									{#if lostDelta !== null}
+										<span class="text-xs font-bold" style="color: {lostDelta <= 0 ? '#bef264' : '#ef4444'};"
+											>{lostDelta <= 0 ? '▼' : '▲'} {Math.abs(lostDelta).toFixed(0)}L</span
+										>
+									{/if}
+								</div>
+								<div
+									class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5"
+								>
+									<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Cost Impact</span>
+									<span class="text-lg font-black font-mono text-white">{fmt(costImpact)}</span>
+								</div>
+								<div
+									class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5"
+								>
+									<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Best Batch</span>
+									<span class="text-lg font-black font-mono text-white">{curLotAgg?.bestBatchRecovery ?? '—'}</span>
+								</div>
+							</div>
+
+							<!-- S2: Batch Recovery Bar Chart — HERO -->
+							{@const lotEthData = data.runEthanolBreakdown.filter(
+								(e) => e.supplier_lot === activeLot && e.recovery_pct != null
+							)}
+							{@const lotRecAvg =
+								lotEthData.length > 0
+									? lotEthData.reduce((s, e) => s + (e.recovery_pct ?? 0), 0) / lotEthData.length
+									: 0}
+							{@const recValues = lotEthData.map((e) => e.recovery_pct ?? 0).filter((v) => v > 0)}
+							{@const recBarMin = recValues.length > 0 ? Math.min(...recValues) * 0.98 : 82}
+							{@const recBarMax = recValues.length > 0 ? Math.max(...recValues) * 1.02 : 88}
+							{@const recBarRange = recBarMax - recBarMin || 1}
+							{@const avgRecLinePct = lotRecAvg > 0 ? ((lotRecAvg - recBarMin) / recBarRange) * 100 : 0}
+							{@const tgt95Pct = ((95 - recBarMin) / recBarRange) * 100}
+							{#if lotEthData.length > 0}
+								<div class="mb-2">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+										Batch Recovery — {activeLot?.replace('LOT-', 'L')}
+									</h4>
+									<div class="relative flex items-end gap-1 px-1 h-[110px]">
+										<div
+											class="absolute left-0 right-0 border-t border-dashed"
+											style="bottom: {avgRecLinePct}%; border-color: rgba(255,255,255,0.25);"
+										></div>
+										<span
+											class="absolute text-xs font-mono text-slate-400 right-1"
+											style="bottom: {avgRecLinePct + 1}%;">avg {lotRecAvg.toFixed(1)}%</span
+										>
+										<div
+											class="absolute left-0 right-0 border-t border-dashed"
+											style="bottom: {tgt95Pct}%; border-color: rgba(102,102,102,0.3);"
+										></div>
+										<span class="absolute text-xs font-mono text-slate-600 left-1" style="bottom: {tgt95Pct + 1}%;"
+											>95%</span
+										>
+										{#each lotEthData as eb}
+											{@const recPct = eb.recovery_pct ?? 0}
+											{@const hPct = Math.min(100, Math.max(3, ((recPct - recBarMin) / recBarRange) * 100))}
+											{@const barColor = recPct >= 86 ? '#bef264' : recPct >= 83 ? '#f59e0b' : '#ef4444'}
+											{@const vsAvgPct = recPct - lotRecAvg}
+											<button
+												class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all"
+												onclick={() => selectBatch(eb.batch_id)}
+												onmouseenter={(e) =>
+													(chartTooltip = {
+														x: e.clientX,
+														y: e.clientY,
+														lines: [
+															eb.batch_number,
+															`Recovery: ${recPct.toFixed(1)}%`,
+															`Issued: ${eb.ethanol_issued_l?.toFixed(0) ?? '—'}L`,
+															`Recovered: ${eb.ethanol_recovered_l?.toFixed(0) ?? '—'}L`,
+															`Lost: ${eb.ethanol_lost_l?.toFixed(0) ?? '—'}L`,
+															`vs Avg: ${vsAvgPct >= 0 ? '+' : ''}${vsAvgPct.toFixed(1)}%`
+														]
+													})}
+												onmouseleave={() => (chartTooltip = null)}
+											>
+												<span class="text-xs font-mono font-bold mb-0.5" style="color: {barColor};"
+													>{recPct.toFixed(1)}%</span
+												>
+												<div
+													class="w-full rounded-t transition-all {selectedBatchId === eb.batch_id
+														? 'ring-2 ring-[#ec5b13]'
+														: ''}"
+													style="height: {hPct}%; background: {barColor}; opacity: 0.7; min-height: 4px;"
+												></div>
+												<span class="text-[11px] font-bold text-slate-500 mt-0.5"
+													>{eb.batch_number.replace('SG-', '')}</span
+												>
+											</button>
+										{/each}
+									</div>
+								</div>
+							{/if}
+
+							<!-- S4: Recovery Distribution Strip -->
+							{#if batchSequenceEthanol.length > 0}
+								{@const seq = batchSequenceEthanol}
+								{@const lots = allLots()}
+								<div class="mb-2">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+										Recovery Distribution
+									</h4>
+									<svg
+										viewBox="0 0 500 25"
+										class="w-full"
+										style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;"
+									>
+										<!-- Range 82-88% -->
+										<text x="5" y="22" fill="#666666" font-size="11">82%</text>
+										<text x="475" y="22" fill="#666666" font-size="11">88%</text>
+										{#each seq as s}
+											{@const xPos = 25 + ((s.recoveryPct - 82) / 6) * 450}
+											{@const lotIdx = lots.indexOf(s.lot)}
+											<circle
+												cx={Math.min(480, Math.max(25, xPos))}
+												cy="10"
+												r={s.lot === activeLot ? 3 : 2}
+												fill={LOT_COLORS[lotIdx % LOT_COLORS.length]}
+												opacity={s.lot === activeLot ? 1 : 0.35}
+												style="cursor: pointer;"
+												onmouseenter={(e) =>
+													(chartTooltip = {
+														x: e.clientX,
+														y: e.clientY,
+														lines: [s.batchNumber, `Recovery: ${s.recoveryPct.toFixed(1)}%`, `Lot: ${s.lot}`]
+													})}
+												onmouseleave={() => (chartTooltip = null)}
+											/>
+										{/each}
+									</svg>
+								</div>
+							{/if}
+
+							<!-- S5: Batch Table — current lot only -->
+							{@const lotEthBatches = data.runEthanolBreakdown.filter((e) => e.supplier_lot === activeLot)}
+							{@const lotAvgRec = curLotAgg?.avgRecoveryPct ?? 0}
+							<div class="border border-white/10 rounded overflow-hidden" style="max-height: 70px;">
+								<table class="w-full text-left border-collapse">
+									<thead class="sticky top-0 bg-bg-card">
+										<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+											<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
+											<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Issued</th>
+											<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Recov.</th>
+											<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Lost</th>
+											<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Rec%</th>
+											<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">vs Avg</th>
+										</tr>
+									</thead>
+									<tbody class="text-sm font-mono overflow-y-auto">
+										{#each lotEthBatches as eb}
+											{@const recPct = eb.recovery_pct ?? 0}
+											{@const vsAvg = recPct - lotAvgRec}
+											<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+												<td class="px-2 py-0.5 text-slate-400">{eb.batch_number.replace('SG-', '')}</td>
+												<td class="px-2 py-0.5 text-right text-white">{eb.ethanol_issued_l?.toFixed(0) ?? '—'}</td>
+												<td class="px-2 py-0.5 text-right text-white">{eb.ethanol_recovered_l?.toFixed(0) ?? '—'}</td>
+												<td class="px-2 py-0.5 text-right" style="color: #ef4444;"
+													>{eb.ethanol_lost_l?.toFixed(0) ?? '—'}</td
+												>
+												<td
+													class="px-2 py-0.5 text-right font-bold"
+													style="color: {recPct >= 86 ? '#bef264' : recPct >= 83 ? '#f59e0b' : '#ef4444'};"
+													>{recPct.toFixed(1)}%</td
+												>
+												<td class="px-2 py-0.5 text-right" style="color: {vsAvg >= 0 ? '#bef264' : '#ef4444'};"
+													>{vsAvg >= 0 ? '+' : ''}{vsAvg.toFixed(1)}%</td
+												>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+
+							<!-- Solvent Loss Summary -->
+							{@const slTotalIssued = lotEthBatches.reduce((s, e) => s + (e.ethanol_issued_l ?? 0), 0)}
+							{@const slTotalRecovered = lotEthBatches.reduce((s, e) => s + (e.ethanol_recovered_l ?? 0), 0)}
+							{@const slTotalLost = lotEthBatches.reduce((s, e) => s + (e.ethanol_lost_l ?? 0), 0)}
+							{@const slLossRate = slTotalIssued > 0 ? (slTotalLost / slTotalIssued) * 100 : 0}
+							{@const slLossCost = slTotalLost * UNIT_RATES.ethanol70.rate}
+							{@const slBatchRecs = lotEthBatches
+								.filter((e) => e.recovery_pct != null)
+								.map((e) => ({ bn: e.batch_number.replace('SG-', ''), rec: e.recovery_pct ?? 0 }))}
+							{@const slBest = slBatchRecs.length > 0 ? slBatchRecs.reduce((a, b) => (a.rec > b.rec ? a : b)) : null}
+							{@const slWorst = slBatchRecs.length > 0 ? slBatchRecs.reduce((a, b) => (a.rec < b.rec ? a : b)) : null}
+							<div class="mt-2 p-2 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
+								<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-1.5">Solvent Loss Summary</h4>
+								<div class="grid grid-cols-3 gap-x-3 gap-y-1 text-[11px] font-mono">
+									<div>
+										<span class="text-slate-500">Issued</span>
+										<span class="text-white font-bold">{slTotalIssued.toFixed(0)}L</span>
+									</div>
+									<div>
+										<span class="text-slate-500">Recovered</span>
+										<span class="text-white font-bold">{slTotalRecovered.toFixed(0)}L</span>
+									</div>
+									<div>
+										<span class="text-slate-500">Lost</span>
+										<span class="font-bold" style="color: #ef4444;">{slTotalLost.toFixed(0)}L</span>
+									</div>
+									<div>
+										<span class="text-slate-500">Loss Rate</span>
+										<span class="font-bold" style="color: {slLossRate <= 15 ? '#bef264' : '#ef4444'};"
+											>{slLossRate.toFixed(1)}%</span
+										>
+									</div>
+									<div>
+										<span class="text-slate-500">Loss Cost</span>
+										<span class="font-bold" style="color: #ef4444;">{fmt(slLossCost)}</span>
+									</div>
+									<div>
+										<span class="text-slate-500">Batches</span>
+										<span class="text-white font-bold">{lotEthBatches.length}</span>
+									</div>
+								</div>
+								{#if slBest && slWorst}
+									<div class="flex gap-2 mt-1.5">
+										<div class="flex-1 text-sm">
+											<span class="text-slate-500">Best:</span>
+											<span class="font-bold" style="color: #bef264;">{slBest.bn} ({slBest.rec.toFixed(1)}%)</span>
+										</div>
+										<div class="flex-1 text-sm">
+											<span class="text-slate-500">Worst:</span>
+											<span class="font-bold" style="color: #ef4444;">{slWorst.bn} ({slWorst.rec.toFixed(1)}%)</span>
+										</div>
+									</div>
+								{/if}
+							</div>
+						{/if}
+					{:else if ethanolMode === 'batch'}
+						<!-- Lot History: Recovery Trend + Lot Avg Recovery -->
+						{#if true}
+							{@const lots = allLots()}
+
+							<!-- Recovery Trend — All Batches -->
+							{#if recoveryTrendChart}
+								{@const seq = recoveryTrendChart.seq}
+								{@const minR = recoveryTrendChart.minR}
+								{@const maxR = recoveryTrendChart.maxR}
+								{@const rangeR = recoveryTrendChart.rangeR}
+								{@const targetY95 = recoveryTrendChart.targetY95}
+								{@const ySteps = recoveryTrendChart.ySteps}
+								{@const rollPts = recoveryTrendChart.rollPts}
+								<div class="mb-2">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+										Recovery Trend — All Batches
+									</h4>
+									<svg
+										viewBox="0 0 600 140"
+										class="w-full"
+										style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px;"
+									>
+										{#each lots as lot, li}
+											{@const lotBatchesInSeq = seq.filter((s) => s.lot === lot)}
+											{#if lotBatchesInSeq.length > 0}
+												{@const firstIdx = seq.indexOf(lotBatchesInSeq[0])}
+												{@const lastIdx = seq.indexOf(lotBatchesInSeq[lotBatchesInSeq.length - 1])}
+												{@const x1 = 40 + (firstIdx / (seq.length - 1)) * 540}
+												{@const x2 = 40 + (lastIdx / (seq.length - 1)) * 540}
+												<rect
+													x={x1 - 2}
+													y="10"
+													width={Math.max(4, x2 - x1 + 4)}
+													height="115"
+													fill={lot === activeLot
+														? 'rgba(236,91,19,0.06)'
+														: li % 2 === 0
+															? 'rgba(255,255,255,0.02)'
+															: 'rgba(255,255,255,0.04)'}
+												/>
+											{/if}
+										{/each}
+										{#each lots as lot, li}
+											{#if li > 0}
+												{@const lotBatchesInSeq = seq.filter((s) => s.lot === lot)}
+												{#if lotBatchesInSeq.length > 0}
+													{@const firstIdx = seq.indexOf(lotBatchesInSeq[0])}
+													{@const bx = 40 + (firstIdx / (seq.length - 1)) * 540}
+													<line
+														x1={bx}
+														y1="10"
+														x2={bx}
+														y2="125"
+														stroke="rgba(255,255,255,0.1)"
+														stroke-dasharray="3 3"
+														stroke-width="0.5"
+													/>
+													<text x={bx + 2} y="18" fill="rgba(255,255,255,0.25)" font-size="11" font-weight="bold"
+														>{lot.replace('LOT-', 'L')}</text
+													>
+												{/if}
+											{/if}
+										{/each}
+										<line
+											x1="40"
+											y1={targetY95}
+											x2="580"
+											y2={targetY95}
+											stroke="#666666"
+											stroke-dasharray="4 4"
+											stroke-width="0.5"
+											opacity="0.5"
+										/>
+										<text x="582" y={targetY95 + 3} fill="#666666" font-size="11" opacity="0.5">95%</text>
+										{#each ySteps as yv}
+											{@const yy = 10 + (1 - (yv - minR) / rangeR) * 115}
+											<text x="36" y={yy + 2} text-anchor="end" fill="#666666" font-size="11">{yv.toFixed(0)}%</text>
+										{/each}
+										<polyline
+											points={rollPts}
+											fill="none"
+											stroke="rgba(255,255,255,0.5)"
+											stroke-width="1.5"
+											stroke-linejoin="round"
+										/>
+										{#each seq as s, si}
+											{@const cx = 40 + (si / (seq.length - 1)) * 540}
+											{@const cy = 10 + (1 - (s.recoveryPct - minR) / rangeR) * 115}
+											{@const lotIdx = lots.indexOf(s.lot)}
+											<circle
+												{cx}
+												{cy}
+												r={s.lot === activeLot ? 3 : 2}
+												fill={LOT_COLORS[lotIdx % LOT_COLORS.length]}
+												opacity={s.lot === activeLot ? 1 : 0.4}
+												style="cursor: pointer;"
+												onmouseenter={(e) =>
+													(chartTooltip = {
+														x: e.clientX,
+														y: e.clientY,
+														lines: [s.batchNumber, `Recovery: ${s.recoveryPct.toFixed(1)}%`, `Lot: ${s.lot}`]
+													})}
+												onmouseleave={() => (chartTooltip = null)}
+											/>
+										{/each}
+									</svg>
+								</div>
+
+								<!-- Trend text summary -->
+								{@const firstHalfAvg = recoveryTrendChart.firstHalfAvg}
+								{@const secondHalfAvg = recoveryTrendChart.secondHalfAvg}
+								{@const trendDir = recoveryTrendChart.trendDir}
+								<p class="text-sm text-slate-400 mb-2 px-1">
+									Recovery {trendDir} — 2nd half avg
+									<span class="font-bold text-white">{secondHalfAvg.toFixed(1)}%</span>
+									vs 1st half <span class="font-bold text-white">{firstHalfAvg.toFixed(1)}%</span>
+									{#if trendDir === 'improving'}
+										<span style="color: #bef264;"> ▲ {(secondHalfAvg - firstHalfAvg).toFixed(1)}%</span>
+									{:else if trendDir === 'declining'}
+										<span style="color: #ef4444;"> ▼ {(firstHalfAvg - secondHalfAvg).toFixed(1)}%</span>
+									{/if}
+								</p>
+							{/if}
+
+							<!-- Lot Avg Recovery Bar Chart -->
+							{@const lotRecoveries = lots.map((l) => lotSummaries.get(l)?.avgRecoveryPct ?? 0)}
+							{@const lotRecValid = lotRecoveries.filter((v) => v > 0)}
+							{@const barMin = lotRecValid.length > 0 ? Math.min(...lotRecValid) * 0.995 : 84.0}
+							{@const barMax = lotRecValid.length > 0 ? Math.max(...lotRecValid) * 1.005 : 86.0}
+							{@const barRange = barMax - barMin || 1}
+							{@const avgLineBot = Math.min(100, Math.max(0, ((allTimeLotAvg.recoveryPct - barMin) / barRange) * 100))}
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Lot Avg Recovery</h4>
+								<div class="relative flex items-end gap-1 px-1" style="height: 60px;">
+									<div
+										class="absolute left-0 right-0 border-t border-dashed"
+										style="bottom: {avgLineBot}%; border-color: rgba(255,255,255,0.2);"
+									></div>
+									{#each lots as lot, li}
+										{@const rec = lotSummaries.get(lot)?.avgRecoveryPct ?? 0}
+										{@const hPct = Math.min(100, Math.max(5, ((rec - barMin) / barRange) * 100))}
+										{@const isAboveAvg = rec >= allTimeLotAvg.recoveryPct}
+										{@const isCurrent = lot === activeLot}
+										{@const lotAggH = lotSummaries.get(lot)}
+										<button
+											class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all"
+											onclick={() => {
+												selectedLot = lot;
+												ethanolMode = 'lot';
+											}}
+											onmouseenter={(e) =>
+												(chartTooltip = {
+													x: e.clientX,
+													y: e.clientY,
+													lines: [
+														lot,
+														`Recovery: ${rec.toFixed(1)}%`,
+														`Issued: ${(lotAggH?.totalEthIssued ?? 0).toFixed(0)}L`,
+														`Lost: ${(lotAggH?.totalEthLost ?? 0).toFixed(0)}L`
+													]
+												})}
+											onmouseleave={() => (chartTooltip = null)}
+										>
+											<span
+												class="text-xs font-mono font-bold mb-0.5"
+												style="color: {isAboveAvg ? '#bef264' : '#ef4444'};">{rec.toFixed(1)}%</span
+											>
+											<div
+												class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#ec5b13]' : ''}"
+												style="height: {hPct}%; background: {isAboveAvg
+													? 'rgba(190,242,100,0.6)'
+													: 'rgba(239,68,68,0.5)'}; min-height: 4px;"
+											></div>
+											<span class="text-[11px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
+										</button>
+									{/each}
+								</div>
+							</div>
+
+							<!-- Best / Worst Lot -->
+							{@const bestEthLot = lots.reduce(
+								(best, l) => {
+									const a = lotSummaries.get(l);
+									return a &&
+										a.avgRecoveryPct > 0 &&
+										(best === null || a.avgRecoveryPct > (lotSummaries.get(best)?.avgRecoveryPct ?? 0))
+										? l
+										: best;
+								},
+								null as string | null
+							)}
+							{@const worstEthLot = lots.reduce(
+								(worst, l) => {
+									const a = lotSummaries.get(l);
+									return a &&
+										a.avgRecoveryPct > 0 &&
+										(worst === null || a.avgRecoveryPct < (lotSummaries.get(worst)?.avgRecoveryPct ?? Infinity))
+										? l
+										: worst;
+								},
+								null as string | null
+							)}
+							{#if bestEthLot || worstEthLot}
+								<div class="mb-2">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Best / Worst Lot</h4>
+									<div class="flex gap-2">
+										{#if bestEthLot}
+											{@const ba = lotSummaries.get(bestEthLot)}
+											<button
+												class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors"
+												onclick={() => {
+													selectedLot = bestEthLot;
+													ethanolMode = 'lot';
+												}}
+											>
+												<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span
+												>
+												<div class="text-xs font-mono font-bold text-white">{bestEthLot.replace('LOT-', 'L')}</div>
+												<div class="text-sm font-mono text-slate-400">
+													{ba ? ba.avgRecoveryPct.toFixed(1) : '—'}% recovery
+												</div>
+											</button>
+										{/if}
+										{#if worstEthLot}
+											{@const wa = lotSummaries.get(worstEthLot)}
+											<button
+												class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors"
+												onclick={() => {
+													selectedLot = worstEthLot;
+													ethanolMode = 'lot';
+												}}
+											>
+												<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;"
+													>Worst</span
+												>
+												<div class="text-xs font-mono font-bold text-white">{worstEthLot.replace('LOT-', 'L')}</div>
+												<div class="text-sm font-mono text-slate-400">
+													{wa ? wa.avgRecoveryPct.toFixed(1) : '—'}% recovery
+												</div>
+											</button>
+										{/if}
+									</div>
+								</div>
+							{/if}
+
+							<!-- Lot-over-Lot Delta Table -->
+							{@const deltaLots = lots.slice(-5)}
+							{#if deltaLots.length >= 2}
+								<div class="mb-1">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Lot-over-Lot Delta</h4>
+									<div class="border border-white/10 rounded overflow-hidden">
+										<table class="w-full text-left border-collapse">
+											<thead style="background: #0d0d0d;">
+												<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+													<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Lot</th>
+													<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Recovery</th>
+													<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">vs Prev</th>
+													<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Lost (L)</th>
+													<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Loss $</th>
+												</tr>
+											</thead>
+											<tbody class="text-sm font-mono">
+												{#each deltaLots as dLot, di}
+													{@const dAgg = lotSummaries.get(dLot)}
+													{@const dRec = dAgg?.avgRecoveryPct ?? 0}
+													{@const dLost = dAgg?.totalEthLost ?? 0}
+													{@const dCost = dLost * UNIT_RATES.ethanol70.rate}
+													{@const prevDLot = di > 0 ? deltaLots[di - 1] : null}
+													{@const prevDRec = prevDLot ? (lotSummaries.get(prevDLot)?.avgRecoveryPct ?? 0) : 0}
+													{@const dDelta = prevDLot ? dRec - prevDRec : 0}
+													<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+														<td class="px-2 py-0.5 text-slate-400">{dLot.replace('LOT-', 'L')}</td>
+														<td
+															class="px-2 py-0.5 text-right font-bold"
+															style="color: {dRec >= allTimeLotAvg.recoveryPct ? '#bef264' : '#ef4444'};"
+															>{dRec.toFixed(1)}%</td
+														>
+														<td class="px-2 py-0.5 text-right" style="color: {dDelta >= 0 ? '#bef264' : '#ef4444'};"
+															>{prevDLot ? (dDelta >= 0 ? '+' : '') + dDelta.toFixed(1) + '%' : '—'}</td
+														>
+														<td class="px-2 py-0.5 text-right" style="color: #ef4444;">{dLost.toFixed(0)}</td>
+														<td class="px-2 py-0.5 text-right text-white">{fmt(dCost)}</td>
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+									</div>
+								</div>
+							{/if}
+						{/if}
+					{:else}
+						<!-- Batch Breakdown — Solvent Table + Loss Ranking + Filtrate Context -->
+						{#if true}
+							{@const bbBatches = data.activeBatchProgress.filter((b) => b.supplier_lot === activeLot)}
+
+							<!-- Per-batch solvent table -->
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+									Solvent Usage — {activeLot?.replace('LOT-', 'L')}
+								</h4>
+								<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
+									<table class="w-full text-left border-collapse">
+										<thead class="sticky top-0 bg-bg-card">
+											<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+												<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
+												<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH In</th>
+												<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH Out</th>
+												<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">EtOH Lost</th>
+												<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">D-Limo In</th>
+												<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">D-Limo Out</th>
+												<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">D-Limo Lost</th>
+											</tr>
+										</thead>
+										<tbody class="text-sm font-mono">
+											{#each bbBatches as bb}
+												{@const etohLost = (bb.etoh_vol_L ?? 0) - (bb.etoh_recovered_L ?? 0)}
+												{@const dlimoLost = (bb.dlimo_vol_L ?? 0) - (bb.dlimo_recovered_L ?? 0)}
+												<tr
+													class="hover:bg-white/5"
+													style="border-bottom: 1px solid rgba(30,30,30,0.5);"
+													onmouseenter={(e) =>
+														(chartTooltip = {
+															x: e.clientX,
+															y: e.clientY,
+															lines: [
+																bb.batch_number,
+																`EtOH: ${(bb.etoh_vol_L ?? 0).toFixed(0)}→${(bb.etoh_recovered_L ?? 0).toFixed(0)}L`,
+																`D-Limo: ${(bb.dlimo_vol_L ?? 0).toFixed(1)}→${(bb.dlimo_recovered_L ?? 0).toFixed(1)}L`
+															]
+														})}
+													onmouseleave={() => (chartTooltip = null)}
+												>
+													<td class="px-1.5 py-0.5 text-slate-400">{bb.batch_number.replace('SG-', '')}</td>
+													<td class="px-1 py-0.5 text-right text-white">{(bb.etoh_vol_L ?? 0).toFixed(0)}</td>
+													<td class="px-1 py-0.5 text-right text-white">{(bb.etoh_recovered_L ?? 0).toFixed(0)}</td>
+													<td class="px-1 py-0.5 text-right" style="color: #ef4444;"
+														>{etohLost > 0 ? etohLost.toFixed(0) : '—'}</td
+													>
+													<td class="px-1 py-0.5 text-right text-white">{(bb.dlimo_vol_L ?? 0).toFixed(1)}</td>
+													<td class="px-1 py-0.5 text-right text-white">{(bb.dlimo_recovered_L ?? 0).toFixed(1)}</td>
+													<td class="px-1 py-0.5 text-right" style="color: #ef4444;"
+														>{dlimoLost > 0 ? dlimoLost.toFixed(1) : '—'}</td
+													>
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
+							</div>
+
+							<!-- EtOH Loss Ranking — horizontal bars -->
+							{@const lossRanking = bbBatches
+								.map((b) => ({
+									bn: b.batch_number.replace('SG-', ''),
+									lost: (b.etoh_vol_L ?? 0) - (b.etoh_recovered_L ?? 0)
+								}))
+								.filter((b) => b.lost > 0)
+								.sort((a, b) => b.lost - a.lost)}
+							{@const maxLoss = lossRanking.length > 0 ? lossRanking[0].lost : 1}
+							{#if lossRanking.length > 0}
+								<div class="mb-2">
+									<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">EtOH Loss Ranking</h4>
+									<div class="space-y-0.5">
+										{#each lossRanking as lr}
+											{@const wPct = (lr.lost / maxLoss) * 100}
+											{@const lossCostLr = lr.lost * UNIT_RATES.ethanol70.rate}
+											<div
+												class="flex items-center gap-1.5"
+												onmouseenter={(e) =>
+													(chartTooltip = {
+														x: e.clientX,
+														y: e.clientY,
+														lines: [lr.bn, `Lost: ${lr.lost.toFixed(0)}L`, `Cost: ${fmt(lossCostLr)}`]
+													})}
+												onmouseleave={() => (chartTooltip = null)}
+											>
+												<span class="w-8 text-xs font-mono font-bold text-slate-500 text-right">{lr.bn}</span>
+												<div
+													class="flex-1 h-2.5 rounded-sm overflow-hidden"
+													style="background: rgba(255,255,255,0.05);"
+												>
+													<div class="h-full rounded-sm" style="width: {wPct}%; background: rgba(239,68,68,0.6);"></div>
+												</div>
+												<span class="text-xs font-mono font-bold" style="color: #ef4444;">{lr.lost.toFixed(0)}L</span>
+												<span class="text-xs font-mono text-slate-500">{fmt(lossCostLr)}</span>
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+
+							<!-- Filtrate Recovery Context -->
+							{@const avgFiltrate =
+								bbBatches.length > 0
+									? bbBatches.reduce((s, b) => s + (b.filtrate_vol_L ?? 0), 0) / bbBatches.length
+									: 0}
+							{@const avgEtohIn =
+								bbBatches.length > 0 ? bbBatches.reduce((s, b) => s + (b.etoh_vol_L ?? 0), 0) / bbBatches.length : 0}
+							{@const filtrateReturnPct = avgEtohIn > 0 ? (avgFiltrate / avgEtohIn) * 100 : 0}
+							<div class="p-2 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
+								<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-1.5">Filtrate Recovery</h4>
+								<div class="flex gap-4 text-[11px] font-mono">
+									<div>
+										<span class="text-slate-500">Avg EtOH In</span>
+										<span class="text-white font-bold">{avgEtohIn.toFixed(0)}L</span>
+									</div>
+									<div>
+										<span class="text-slate-500">Avg Filtrate</span>
+										<span class="text-white font-bold">{avgFiltrate.toFixed(0)}L</span>
+									</div>
+									<div>
+										<span class="text-slate-500">Return</span>
+										<span class="font-bold" style="color: {filtrateReturnPct >= 85 ? '#bef264' : '#f59e0b'};"
+											>{filtrateReturnPct.toFixed(1)}%</span
+										>
+									</div>
+								</div>
+							</div>
+						{/if}
+					{/if}
+				{:else if yieldMode === 'lot'}
+					{#if true}
+						{@const curLotAgg = activeLot ? lotSummaries.get(activeLot) : null}
+						{@const prevLot = previousLotId}
+						{@const prevLotAgg = prevLot ? lotSummaries.get(prevLot) : null}
+						{@const yieldDeltaKg = prevLotAgg ? (curLotAgg?.totalYieldKg ?? 0) - prevLotAgg.totalYieldKg : null}
+						{@const rateDelta = prevLotAgg ? (curLotAgg?.avgYieldPct ?? 0) - prevLotAgg.avgYieldPct : null}
+						{@const lots = allLots()}
+						{@const yieldRank = (() => {
+							const sorted = lots.map((l) => lotSummaries.get(l)?.totalYieldKg ?? 0).sort((a, b) => b - a);
+							return sorted.indexOf(curLotAgg?.totalYieldKg ?? 0) + 1;
+						})()}
+						{@const bestYieldBatch = data.runYieldBreakdown
+							.filter((y) => y.supplier_lot === activeLot && y.overall_yield_pct != null)
+							.sort((a, b) => (b.overall_yield_pct ?? 0) - (a.overall_yield_pct ?? 0))[0]}
+
+						<!-- S1: KPI Strip -->
+						<div class="flex gap-1.5 mb-2 overflow-x-auto">
+							<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
+								<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Final Yield</span>
+								<span class="text-lg font-black font-mono text-white"
+									>{(curLotAgg?.totalYieldKg ?? 0).toFixed(2)} kg</span
+								>
+								{#if yieldDeltaKg !== null}
+									<span class="text-xs font-bold" style="color: {yieldDeltaKg >= 0 ? '#bef264' : '#ef4444'};"
+										>{yieldDeltaKg >= 0 ? '▲' : '▼'} {Math.abs(yieldDeltaKg).toFixed(2)}kg</span
+									>
+								{:else}
+									<span class="text-sm font-bold text-slate-600">—</span>
+								{/if}
+							</div>
+							<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
+								<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Extract Rate</span>
+								<span class="text-sm font-black font-mono" style="color: #bef264;"
+									>{(curLotAgg?.avgYieldPct ?? 0).toFixed(2)}%</span
+								>
+								{#if rateDelta !== null}
+									<span class="text-xs font-bold" style="color: {rateDelta >= 0 ? '#bef264' : '#ef4444'};"
+										>{rateDelta >= 0 ? '▲' : '▼'} {Math.abs(rateDelta).toFixed(2)}%</span
+									>
+								{/if}
+							</div>
+							<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
+								<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Best Batch</span>
+								<span class="text-lg font-black font-mono text-white"
+									>{bestYieldBatch?.batch_number.replace('SG-', '') ?? '—'}</span
+								>
+							</div>
+							<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
+								<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Purity</span>
+								<span class="text-lg font-black font-mono text-white">{curLotAgg?.avgPurity?.toFixed(1) ?? '—'}%</span>
+							</div>
+							<div class="flex-1 min-w-[120px] bg-bg-input border border-border-card rounded p-2 flex flex-col gap-0.5">
+								<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Yield Rank</span>
+								<span class="text-lg font-black font-mono text-white">#{yieldRank}/{lots.length}</span>
+							</div>
+						</div>
+
+						<!-- S2: Batch Yield Bar Chart — HERO -->
+						{@const lotYieldData = data.runYieldBreakdown.filter(
+							(y) => y.supplier_lot === activeLot && y.final_product_g != null
+						)}
+						{@const yieldVals = lotYieldData.map((y) => y.final_product_g ?? 0).filter((v) => v > 0)}
+						{@const batchYieldMax = yieldVals.length > 0 ? Math.max(...yieldVals) * 1.05 : 1}
+						{@const batchYieldMin = yieldVals.length > 0 ? Math.max(0, Math.min(...yieldVals) * 0.9) : 0}
+						{@const batchYieldRange = batchYieldMax - batchYieldMin || 1}
+						{@const batchYieldAvg =
+							lotYieldData.length > 0
+								? lotYieldData.reduce((s, y) => s + (y.final_product_g ?? 0), 0) / lotYieldData.length
+								: 0}
+						{@const yieldAvgLinePct = batchYieldAvg > 0 ? ((batchYieldAvg - batchYieldMin) / batchYieldRange) * 100 : 0}
+						{#if lotYieldData.length > 0}
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+									Batch Yield — {activeLot?.replace('LOT-', 'L')}
+								</h4>
+								<div class="relative flex items-end gap-1 px-1 h-[110px]">
+									<div
+										class="absolute left-0 right-0 border-t border-dashed"
+										style="bottom: {yieldAvgLinePct}%; border-color: rgba(255,255,255,0.25);"
+									></div>
+									<span
+										class="absolute text-xs font-mono text-slate-400 right-1"
+										style="bottom: {yieldAvgLinePct + 1}%;">avg {(batchYieldAvg / 1000).toFixed(2)}kg</span
+									>
+									{#each lotYieldData as yb}
+										{@const yieldG = yb.final_product_g ?? 0}
+										{@const hPct = Math.min(100, Math.max(3, ((yieldG - batchYieldMin) / batchYieldRange) * 100))}
+										{@const isAboveAvg = yieldG >= batchYieldAvg}
+										<button
+											class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all"
+											onclick={() => selectBatch(yb.batch_id)}
+											onmouseenter={(e) =>
+												(chartTooltip = {
+													x: e.clientX,
+													y: e.clientY,
+													lines: [
+														yb.batch_number,
+														`Yield: ${(yieldG / 1000).toFixed(2)}kg`,
+														`Rate: ${yb.overall_yield_pct?.toFixed(2) ?? '—'}%`
+													]
+												})}
+											onmouseleave={() => (chartTooltip = null)}
+										>
+											<span class="text-xs font-mono font-bold mb-0.5 text-white">{(yieldG / 1000).toFixed(1)}</span>
+											<div
+												class="w-full rounded-t transition-all {selectedBatchId === yb.batch_id
+													? 'ring-2 ring-[#bef264]'
+													: ''}"
+												style="height: {hPct}%; background: {isAboveAvg
+													? 'rgba(190,242,100,0.6)'
+													: 'rgba(239,68,68,0.5)'}; min-height: 4px;"
+											></div>
+											<span class="text-[11px] font-bold text-slate-500 mt-0.5"
+												>{yb.batch_number.replace('SG-', '')}</span
+											>
+										</button>
+									{/each}
+								</div>
+							</div>
+						{/if}
+
+						<!-- S3: Stage Yield — Current vs Previous -->
+						<!-- Stage Yields: Grinding=material retention, Extraction=EtOH recovery, A/B Phase=D-Limo recovery, Drying=mass after moisture removal -->
+						{@const curStages = getLotStageYieldsForLot(activeLot)}
+						{@const prevStages = getLotStageYieldsForLot(prevLot)}
+						{@const yieldStageNames = [
+							'Raw Leaf to Powder',
+							'Ethanol Extraction',
+							'Acid/Base Extraction and Partitioning',
+							'Back Extraction, Precipitation, Drying, and Final Product'
+						] as const}
+						{@const stageKeys = ['grinding', 'extraction', 'abPhase', 'drying'] as const}
+						{@const stageThresholds = {
+							grinding: { green: 93, orange: 88 },
+							extraction: { green: 82, orange: 78 },
+							abPhase: { green: 95, orange: 90 },
+							drying: { green: 70, orange: 60 }
+						}}
+						{@const curBarColor = '#a3e635'}
+						{@const prevBarColor = '#38bdf8'}
+						<div class="mb-2">
+							<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+								Stage Yield — Current vs Previous
+							</h4>
+							<div class="space-y-1.5">
+								{#each stageKeys as key, si}
+									{@const curVal = curStages[key]}
+									{@const prevVal = prevStages[key]}
+									<div class="flex items-center gap-1.5">
+										<span class="min-w-[140px] w-[140px] text-xs font-bold text-slate-500 leading-tight"
+											>{yieldStageNames[si]}</span
+										>
+										<div class="flex-1 flex flex-col gap-0.5">
+											<div class="h-2.5 w-full rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
+												<div
+													class="h-full rounded-sm"
+													style="width: {Math.min(100, curVal)}%; background: {curBarColor};"
+												></div>
+											</div>
+											{#if prevLot}
+												<div
+													class="h-1.5 w-full rounded-sm overflow-hidden"
+													style="background: rgba(255,255,255,0.03);"
+												>
+													<div
+														class="h-full rounded-sm"
+														style="width: {Math.min(100, prevVal)}%; background: {prevBarColor};"
+													></div>
+												</div>
+											{/if}
+										</div>
+										<div class="flex flex-col items-end w-12">
+											<span class="text-sm font-mono font-bold" style="color: {curBarColor};">{curVal.toFixed(0)}%</span
+											>
+											{#if prevLot}
+												<span class="text-xs font-mono" style="color: {prevBarColor};">{prevVal.toFixed(0)}%</span>
+											{/if}
+										</div>
+									</div>
+								{/each}
+							</div>
+							<div class="flex items-center gap-3 mt-1.5">
+								<div class="flex items-center gap-1">
+									<span class="size-2.5 rounded-sm" style="background: {curBarColor};"></span>
+									<span class="text-xs text-slate-400">Current ({activeLot?.replace('LOT-', 'L') ?? '—'})</span>
+								</div>
+								{#if prevLot}
+									<div class="flex items-center gap-1">
+										<span class="size-2.5 rounded-sm" style="background: {prevBarColor};"></span>
+										<span class="text-xs text-slate-400">Previous ({prevLot.replace('LOT-', 'L')})</span>
+									</div>
+								{/if}
+							</div>
+						</div>
+
+						<!-- S5: Quality Specs -->
+						{@const mitVal = curLotAgg?.avgMitragynine ?? null}
+						{@const purVal = curLotAgg?.avgPurity ?? null}
+						{@const devCount = curLotAgg?.deviationCount ?? 0}
+						{@const lotMitValues = lots.map((l) => lotSummaries.get(l)?.avgMitragynine ?? 0).filter((v) => v > 0)}
+						{@const lotPurValues = lots.map((l) => lotSummaries.get(l)?.avgPurity ?? 0).filter((v) => v > 0)}
+						{#if mitVal !== null || purVal !== null || devCount > 0}
+							<div class="mb-1">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Quality Specs</h4>
+								<div class="space-y-1.5">
+									<div class="flex items-center gap-2">
+										<span class="w-20 text-sm font-bold text-slate-500">Mitragynine %</span>
+										<span class="text-sm font-mono font-bold text-white"
+											>{mitVal !== null ? mitVal.toFixed(1) + '%' : 'N/A'}</span
+										>
+										{#if mitVal !== null}
+											<span
+												class="text-xs px-1 py-0.5 rounded font-bold"
+												style="background: {mitVal >= 1.0
+													? 'rgba(190,242,100,0.15)'
+													: 'rgba(239,68,68,0.15)'}; color: {mitVal >= 1.0 ? '#bef264' : '#ef4444'};"
+												>{mitVal >= 1.0 ? 'PASS' : 'FAIL'}</span
+											>
+										{/if}
+										{#if lotMitValues.length >= 2}
+											{@const mitChart = smoothPath(lotMitValues, 60, 12)}
+											<svg viewBox="0 0 60 12" class="w-[60px] h-[12px]">
+												<path d={mitChart.line} fill="none" stroke="#bef264" stroke-width="1" opacity="0.6" />
+											</svg>
+										{/if}
+									</div>
+									<div class="flex items-center gap-2">
+										<span class="w-20 text-sm font-bold text-slate-500">Purity %</span>
+										<span class="text-sm font-mono font-bold text-white"
+											>{purVal !== null ? purVal.toFixed(1) + '%' : 'N/A'}</span
+										>
+										{#if purVal !== null}
+											<span
+												class="text-xs px-1 py-0.5 rounded font-bold"
+												style="background: {purVal >= 80
+													? 'rgba(190,242,100,0.15)'
+													: 'rgba(239,68,68,0.15)'}; color: {purVal >= 80 ? '#bef264' : '#ef4444'};"
+												>{purVal >= 80 ? 'PASS' : 'FAIL'}</span
+											>
+										{/if}
+										{#if purVal !== null}
+											<div
+												class="flex-1 h-1.5 rounded-full overflow-hidden"
+												style="background: rgba(255,255,255,0.05);"
+											>
+												<div
+													class="h-full rounded-full"
+													style="width: {Math.min(100, purVal)}%; background: {purVal >= 80 ? '#bef264' : '#ef4444'};"
+												></div>
+											</div>
+										{/if}
+									</div>
+									<div class="flex items-center gap-2">
+										<span class="w-20 text-sm font-bold text-slate-500">Deviations</span>
+										<span class="text-sm font-mono font-bold" style="color: {devCount > 0 ? '#ef4444' : '#bef264'};"
+											>{devCount}</span
+										>
+									</div>
+								</div>
+							</div>
+						{:else}
+							<div class="mb-1 p-2.5 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1.5">Quality Specs</h4>
+								<p class="text-sm text-slate-500 italic">
+									Lab results pending — submit samples to populate quality data
+								</p>
+							</div>
+						{/if}
+
+						<!-- Yield Summary -->
+						{@const ysLeafInput = lotBatches().reduce((s, b) => s + (b.leaf_input_kg ?? 0), 0)}
+						{@const ysFinalOutput = lotBatches().reduce((s, b) => s + (b.final_product_g ?? 0), 0) / 1000}
+						{@const ysExtractRate = ysLeafInput > 0 ? (ysFinalOutput / ysLeafInput) * 100 : 0}
+						{@const ysBatchCount = lotYieldData.length}
+						{@const ysBestBatch =
+							lotYieldData.length > 0
+								? lotYieldData.reduce((a, b) => ((a.final_product_g ?? 0) > (b.final_product_g ?? 0) ? a : b))
+								: null}
+						{@const ysWorstBatch =
+							lotYieldData.length > 0
+								? lotYieldData.reduce((a, b) => ((a.final_product_g ?? 0) < (b.final_product_g ?? 0) ? a : b))
+								: null}
+						<div class="mt-2 p-2 rounded border border-white/5" style="background: rgba(255,255,255,0.02);">
+							<h4 class="text-sm font-bold uppercase tracking-widest text-slate-500 mb-1.5">Yield Summary</h4>
+							<div class="grid grid-cols-3 gap-x-3 gap-y-1 text-[11px] font-mono">
+								<div>
+									<span class="text-slate-500">Leaf Input</span>
+									<span class="text-white font-bold">{ysLeafInput.toFixed(0)} kg</span>
+								</div>
+								<div>
+									<span class="text-slate-500">Final Output</span>
+									<span class="text-white font-bold">{ysFinalOutput.toFixed(2)} kg</span>
+								</div>
+								<div>
+									<span class="text-slate-500">Extract Rate</span>
+									<span class="font-bold" style="color: {ysExtractRate >= 1.2 ? '#bef264' : '#f59e0b'};"
+										>{ysExtractRate.toFixed(2)}%</span
+									>
+								</div>
+								<div>
+									<span class="text-slate-500">Batches</span> <span class="text-white font-bold">{ysBatchCount}</span>
+								</div>
+								<div>
+									<span class="text-slate-500">Best</span>
+									<span class="font-bold" style="color: #bef264;"
+										>{ysBestBatch ? ((ysBestBatch.final_product_g ?? 0) / 1000).toFixed(2) + 'kg' : '—'}</span
+									>
+								</div>
+								<div>
+									<span class="text-slate-500">Worst</span>
+									<span class="font-bold" style="color: #ef4444;"
+										>{ysWorstBatch ? ((ysWorstBatch.final_product_g ?? 0) / 1000).toFixed(2) + 'kg' : '—'}</span
+									>
+								</div>
+							</div>
+						</div>
+					{/if}
+				{:else if yieldMode === 'batch'}
+					<!-- Lot History: Yield per Lot Bar Chart -->
+					{#if true}
+						{@const lots = allLots()}
+						{@const yieldMax = yieldPerLotChart.yieldMax}
+						<div class="mb-2">
+							<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Yield per Lot</h4>
+							<div class="relative flex items-end gap-1 px-1" style="height: 110px;">
+								{#each lots as lot, li}
+									{@const ykg = lotSummaries.get(lot)?.totalYieldKg ?? 0}
+									{@const hPct = (ykg / yieldMax) * 100}
+									{@const isCurrent = lot === activeLot}
+									{@const lotAggY = lotSummaries.get(lot)}
+									<button
+										class="flex-1 flex flex-col items-center justify-end h-full cursor-pointer hover:opacity-80 active:scale-[0.98] transition-all"
+										onclick={() => {
+											selectedLot = lot;
+											yieldMode = 'lot';
+										}}
+										onmouseenter={(e) =>
+											(chartTooltip = {
+												x: e.clientX,
+												y: e.clientY,
+												lines: [
+													lot,
+													`Yield: ${ykg.toFixed(2)}kg`,
+													`Rate: ${(lotAggY?.avgYieldPct ?? 0).toFixed(2)}%`,
+													`Purity: ${lotAggY?.avgPurity?.toFixed(1) ?? 'N/A'}%`
+												]
+											})}
+										onmouseleave={() => (chartTooltip = null)}
+									>
+										<span class="text-xs font-mono font-bold mb-0.5 text-white">{ykg.toFixed(1)}</span>
+										<div
+											class="w-full rounded-t transition-all {isCurrent ? 'ring-2 ring-[#bef264]' : ''}"
+											style="height: {hPct}%; background: rgba(190,242,100,{isCurrent
+												? 0.8
+												: 0.4}); min-height: 4px; opacity: {isCurrent ? 1 : 0.6};"
+										></div>
+										<span class="text-[11px] font-bold text-slate-500 mt-0.5">{lot.replace('LOT-', 'L')}</span>
+									</button>
+								{/each}
+								<div class="flex items-center gap-3 mt-1 text-[11px] text-slate-500">
+									<span class="inline-block w-2 h-2 rounded-sm" style="background: rgba(190,242,100,0.6);"></span>
+									<span>Yield (kg)</span>
+								</div>
+							</div>
+						</div>
+
+						<!-- Best / Worst Lot (Yield) -->
+						{@const bestYieldLot = lots.reduce(
+							(best, l) => {
+								const a = lotSummaries.get(l);
+								return a &&
+									a.avgYieldPct > 0 &&
+									(best === null || a.avgYieldPct > (lotSummaries.get(best)?.avgYieldPct ?? 0))
+									? l
+									: best;
+							},
+							null as string | null
+						)}
+						{@const worstYieldLot = lots.reduce(
+							(worst, l) => {
+								const a = lotSummaries.get(l);
+								return a &&
+									a.avgYieldPct > 0 &&
+									(worst === null || a.avgYieldPct < (lotSummaries.get(worst)?.avgYieldPct ?? Infinity))
+									? l
+									: worst;
+							},
+							null as string | null
+						)}
+						{#if bestYieldLot || worstYieldLot}
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Best / Worst Lot</h4>
+								<div class="flex gap-2">
+									{#if bestYieldLot}
+										{@const ba = lotSummaries.get(bestYieldLot)}
+										<button
+											class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors"
+											onclick={() => {
+												selectedLot = bestYieldLot;
+												yieldMode = 'lot';
+											}}
+										>
+											<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #bef264;">Best</span>
+											<div class="text-xs font-mono font-bold text-white">{bestYieldLot.replace('LOT-', 'L')}</div>
+											<div class="text-sm font-mono text-slate-400">{ba ? ba.avgYieldPct.toFixed(2) : '—'}% rate</div>
+										</button>
+									{/if}
+									{#if worstYieldLot}
+										{@const wa = lotSummaries.get(worstYieldLot)}
+										<button
+											class="flex-1 bg-bg-input border border-border-card rounded p-1.5 text-left hover:bg-white/5 transition-colors"
+											onclick={() => {
+												selectedLot = worstYieldLot;
+												yieldMode = 'lot';
+											}}
+										>
+											<span class="text-[11px] font-bold uppercase tracking-widest" style="color: #ef4444;">Worst</span>
+											<div class="text-xs font-mono font-bold text-white">{worstYieldLot.replace('LOT-', 'L')}</div>
+											<div class="text-sm font-mono text-slate-400">{wa ? wa.avgYieldPct.toFixed(2) : '—'}% rate</div>
+										</button>
+									{/if}
+								</div>
+							</div>
+						{/if}
+
+						<!-- Lot Comparison Table -->
+						{@const compLots = lots.slice(-5)}
+						{#if compLots.length >= 2}
+							<div class="mb-1">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Lot Comparison</h4>
+								<div class="border border-white/10 rounded overflow-hidden">
+									<table class="w-full text-left border-collapse">
+										<thead style="background: #0d0d0d;">
+											<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+												<th class="px-2 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Lot</th>
+												<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield (kg)</th>
+												<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Rate %</th>
+												<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Delta</th>
+												<th class="px-2 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Purity</th>
+											</tr>
+										</thead>
+										<tbody class="text-sm font-mono">
+											{#each compLots as cLot, ci}
+												{@const cAgg = lotSummaries.get(cLot)}
+												{@const cRate = cAgg?.avgYieldPct ?? 0}
+												{@const cYld = cAgg?.totalYieldKg ?? 0}
+												{@const cPur = cAgg?.avgPurity}
+												{@const prevCLot = ci > 0 ? compLots[ci - 1] : null}
+												{@const prevCRate = prevCLot ? (lotSummaries.get(prevCLot)?.avgYieldPct ?? 0) : 0}
+												{@const cDelta = prevCLot ? cRate - prevCRate : 0}
+												<tr class="hover:bg-white/5" style="border-bottom: 1px solid rgba(30,30,30,0.5);">
+													<td class="px-2 py-0.5 text-slate-400">{cLot.replace('LOT-', 'L')}</td>
+													<td class="px-2 py-0.5 text-right text-white font-bold">{cYld.toFixed(2)}</td>
+													<td
+														class="px-2 py-0.5 text-right font-bold"
+														style="color: {cRate >= allTimeLotAvg.yieldPct ? '#bef264' : '#ef4444'};"
+														>{cRate.toFixed(2)}%</td
+													>
+													<td class="px-2 py-0.5 text-right" style="color: {cDelta >= 0 ? '#bef264' : '#ef4444'};"
+														>{prevCLot ? (cDelta >= 0 ? '+' : '') + cDelta.toFixed(2) + '%' : '—'}</td
+													>
+													<td class="px-2 py-0.5 text-right text-white"
+														>{cPur !== null ? (cPur?.toFixed(1) ?? '—') + '%' : 'N/A'}</td
+													>
+												</tr>
+											{/each}
+										</tbody>
+									</table>
+								</div>
+							</div>
+						{/if}
+					{/if}
+				{:else if yieldMode === 'history'}
+					<!-- Batch Contribution — bars + mass balance table -->
+					{#if true}
+						{@const contribBatches = data.activeBatchProgress
+							.filter((b) => b.supplier_lot === activeLot && b.final_product_g != null)
+							.sort((a, b) => (b.final_product_g ?? 0) - (a.final_product_g ?? 0))}
+						{@const contribTotal = contribBatches.reduce((s, b) => s + (b.final_product_g ?? 0), 0)}
+						{@const contribMax = contribBatches.length > 0 ? (contribBatches[0].final_product_g ?? 0) : 1}
+
+						<!-- Batch contribution bars -->
+						{#if contribBatches.length > 0}
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">
+									Batch Contribution — {activeLot?.replace('LOT-', 'L')}
+								</h4>
+								<div class="space-y-0.5">
+									{#each contribBatches as cb}
+										{@const cbG = cb.final_product_g ?? 0}
+										{@const cbPct = contribTotal > 0 ? (cbG / contribTotal) * 100 : 0}
+										{@const cbWPct = contribMax > 0 ? (cbG / contribMax) * 100 : 0}
+										<div
+											class="flex items-center gap-1.5"
+											onmouseenter={(e) =>
+												(chartTooltip = {
+													x: e.clientX,
+													y: e.clientY,
+													lines: [
+														cb.batch_number,
+														`Output: ${(cbG / 1000).toFixed(2)}kg`,
+														`Share: ${cbPct.toFixed(1)}%`,
+														`Rate: ${cb.overall_yield_pct?.toFixed(2) ?? '—'}%`,
+														`Leaf: ${(cb.leaf_input_kg ?? 0).toFixed(0)}kg`
+													]
+												})}
+											onmouseleave={() => (chartTooltip = null)}
+										>
+											<span class="w-8 text-xs font-mono font-bold text-slate-500 text-right"
+												>{cb.batch_number.replace('SG-', '')}</span
+											>
+											<div class="flex-1 h-2.5 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
+												<div
+													class="h-full rounded-sm"
+													style="width: {cbWPct}%; background: rgba(190,242,100,0.5);"
+												></div>
+											</div>
+											<span class="text-xs font-mono font-bold text-white">{(cbG / 1000).toFixed(2)}kg</span>
+											<span class="text-xs font-mono text-slate-500">{cbPct.toFixed(0)}%</span>
+										</div>
+									{/each}
+								</div>
+							</div>
+						{/if}
+
+						<!-- Stage mass balance table -->
+						{@const mbBatches = data.activeBatchProgress.filter((b) => b.supplier_lot === activeLot)}
+						<div class="mb-1">
+							<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Mass Balance</h4>
+							<div class="border border-white/10 rounded overflow-hidden" style="max-height: 120px;">
+								<table class="w-full text-left border-collapse">
+									<thead class="sticky top-0 bg-bg-card">
+										<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+											<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
+											<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Leaf (kg)</th>
+											<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Powder (kg)</th>
+											<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Precip (g)</th>
+											<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Final (g)</th>
+											<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield %</th>
+										</tr>
+									</thead>
+									<tbody class="text-sm font-mono">
+										{#each mbBatches as mb}
+											<tr
+												class="hover:bg-white/5"
+												style="border-bottom: 1px solid rgba(30,30,30,0.5);"
+												onmouseenter={(e) =>
+													(chartTooltip = {
+														x: e.clientX,
+														y: e.clientY,
+														lines: [
+															mb.batch_number,
+															`Leaf: ${(mb.leaf_input_kg ?? 0).toFixed(1)}kg`,
+															`Final: ${((mb.final_product_g ?? 0) / 1000).toFixed(2)}kg`,
+															`Yield: ${mb.overall_yield_pct?.toFixed(2) ?? '—'}%`
+														]
+													})}
+												onmouseleave={() => (chartTooltip = null)}
+											>
+												<td class="px-1.5 py-0.5 text-slate-400">{mb.batch_number.replace('SG-', '')}</td>
+												<td class="px-1 py-0.5 text-right text-white">{(mb.leaf_input_kg ?? 0).toFixed(1)}</td>
+												<td class="px-1 py-0.5 text-right text-white">{(mb.powder_output_kg ?? 0).toFixed(1)}</td>
+												<td class="px-1 py-0.5 text-right text-white">{(mb.wet_precipitate_g ?? 0).toFixed(0)}</td>
+												<td class="px-1 py-0.5 text-right font-bold" style="color: #bef264;"
+													>{(mb.final_product_g ?? 0).toFixed(0)}</td
+												>
+												<td
+													class="px-1 py-0.5 text-right font-bold"
+													style="color: {(mb.overall_yield_pct ?? 0) >= 1.2 ? '#bef264' : '#f59e0b'};"
+													>{mb.overall_yield_pct?.toFixed(2) ?? '—'}%</td
+												>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+						</div>
+					{/if}
+				{:else}
+					<!-- Quality Tab -->
+					{#if data.qualityCorrelation.length > 0}
+						{@const qcData = data.qualityCorrelation}
+
+						<!-- HPLC Results Table -->
+						<div class="mb-2">
+							<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">HPLC Results</h4>
+							<div class="border border-white/10 rounded overflow-hidden" style="max-height: 100px;">
+								<table class="w-full text-left border-collapse">
+									<thead class="sticky top-0 bg-bg-card">
+										<tr class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+											<th class="px-1.5 py-0.5" style="border-bottom: 1px solid #1e1e1e;">Batch</th>
+											<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Purity %</th>
+											<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Mitragynine %</th>
+											<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">7-OH %</th>
+											<th class="px-1 py-0.5 text-right" style="border-bottom: 1px solid #1e1e1e;">Yield %</th>
+										</tr>
+									</thead>
+									<tbody class="text-sm font-mono">
+										{#each qcData as qc}
+											<tr
+												class="hover:bg-white/5"
+												style="border-bottom: 1px solid rgba(30,30,30,0.5);"
+												onmouseenter={(e) =>
+													(chartTooltip = {
+														x: e.clientX,
+														y: e.clientY,
+														lines: [
+															qc.batchNumber,
+															`Purity: ${qc.purityPct?.toFixed(1) ?? 'N/A'}%`,
+															`Mitragynine: ${qc.mitragynine?.toFixed(2) ?? 'N/A'}%`,
+															`7-OH: ${qc.hydroxymitragynine?.toFixed(3) ?? 'N/A'}%`,
+															`Yield: ${qc.yieldPct.toFixed(2)}%`
+														]
+													})}
+												onmouseleave={() => (chartTooltip = null)}
+											>
+												<td class="px-1.5 py-0.5 text-slate-400">{qc.batchNumber.replace('SG-', '')}</td>
+												<td
+													class="px-1 py-0.5 text-right font-bold"
+													style="color: {(qc.purityPct ?? 0) >= 80 ? '#bef264' : '#ef4444'};"
+													>{qc.purityPct?.toFixed(1) ?? 'N/A'}</td
+												>
+												<td
+													class="px-1 py-0.5 text-right font-bold"
+													style="color: {(qc.mitragynine ?? 0) >= 1.0 ? '#bef264' : '#ef4444'};"
+													>{qc.mitragynine?.toFixed(2) ?? 'N/A'}</td
+												>
+												<td class="px-1 py-0.5 text-right text-white">{qc.hydroxymitragynine?.toFixed(3) ?? 'N/A'}</td>
+												<td class="px-1 py-0.5 text-right text-white">{qc.yieldPct.toFixed(2)}</td>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+						</div>
+
+						<!-- Purity vs Yield Scatter -->
+						{#if qualityScatter}
+							{@const qcPurMin = qualityScatter.qcPurMin}
+							{@const qcPurMax = qualityScatter.qcPurMax}
+							{@const qcYldMin = qualityScatter.qcYldMin}
+							{@const qcYldMax = qualityScatter.qcYldMax}
+							{@const qcAvgYld = qualityScatter.qcAvgYld}
+							{@const qcCrossX = qualityScatter.qcCrossX}
+							{@const qcCrossY = qualityScatter.qcCrossY}
+							<div class="mb-2">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Purity vs Yield</h4>
+								<svg
+									viewBox="0 0 500 75"
+									class="w-full"
+									style="background: #0d0d0d; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;"
+								>
+									<line
+										x1={qcCrossX}
+										y1="5"
+										x2={qcCrossX}
+										y2="65"
+										stroke="rgba(255,255,255,0.12)"
+										stroke-dasharray="3 3"
+										stroke-width="0.5"
+									/>
+									<line
+										x1="30"
+										y1={qcCrossY}
+										x2="470"
+										y2={qcCrossY}
+										stroke="rgba(255,255,255,0.12)"
+										stroke-dasharray="3 3"
+										stroke-width="0.5"
+									/>
+									{#each qualityScatter.qcWithPurity as qp}
+										{@const qpx = 30 + (((qp.purityPct ?? 0) - qcPurMin) / (qcPurMax - qcPurMin || 1)) * 440}
+										{@const qpy = 5 + (1 - (qp.yieldPct - qcYldMin) / (qcYldMax - qcYldMin || 1)) * 60}
+										{@const aboveAvg = qp.yieldPct >= qcAvgYld}
+										<circle
+											cx={qpx}
+											cy={qpy}
+											r="4"
+											fill={aboveAvg ? '#bef264' : '#ef4444'}
+											opacity="0.8"
+											style="cursor: pointer;"
+											onmouseenter={(e) =>
+												(chartTooltip = {
+													x: e.clientX,
+													y: e.clientY,
+													lines: [
+														qp.batchNumber,
+														`Purity: ${(qp.purityPct ?? 0).toFixed(1)}%`,
+														`Yield: ${qp.yieldPct.toFixed(2)}%`
+													]
+												})}
+											onmouseleave={() => (chartTooltip = null)}
+										/>
+									{/each}
+									<text x="250" y="73" text-anchor="middle" fill="#666666" font-size="11">Purity %</text>
+									<text x="5" y="35" text-anchor="start" fill="#666666" font-size="11" transform="rotate(-90, 5, 35)"
+										>Yield %</text
+									>
+								</svg>
+							</div>
+						{/if}
+
+						<!-- Avg Alkaloid Profile -->
+						{@const alkData = [
+							{ name: 'Mitragynine', values: qcData.map((q) => q.mitragynine).filter((v): v is number => v !== null) },
+							{
+								name: '7-OH-Mitragynine',
+								values: qcData.map((q) => q.hydroxymitragynine).filter((v): v is number => v !== null)
+							},
+							{ name: 'Paynantheine', values: qcData.map((q) => q.paynantheine).filter((v): v is number => v !== null) }
+						]}
+						{@const alkAvgs = alkData.map((a) => ({
+							name: a.name,
+							avg: a.values.length > 0 ? a.values.reduce((s, v) => s + v, 0) / a.values.length : 0
+						}))}
+						{@const alkMax = Math.max(...alkAvgs.map((a) => a.avg), 0.01)}
+						{#if alkAvgs.some((a) => a.avg > 0)}
+							<div class="mb-1">
+								<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-1">Avg Alkaloid Profile</h4>
+								<div class="space-y-0.5">
+									{#each alkAvgs as alk}
+										{@const alkWPct = alkMax > 0 ? (alk.avg / alkMax) * 100 : 0}
+										<div class="flex items-center gap-1.5">
+											<span class="w-20 text-xs font-bold text-slate-500 truncate">{alk.name}</span>
+											<div class="flex-1 h-2 rounded-sm overflow-hidden" style="background: rgba(255,255,255,0.05);">
+												<div
+													class="h-full rounded-sm"
+													style="width: {alkWPct}%; background: rgba(190,242,100,0.5);"
+												></div>
+											</div>
+											<span class="text-xs font-mono font-bold text-white">{alk.avg.toFixed(3)}%</span>
+										</div>
+									{/each}
+								</div>
+							</div>
+						{/if}
+					{:else}
+						<!-- No quality data placeholder -->
+						<div class="flex-1 flex flex-col items-center justify-center p-4">
+							<span class="material-symbols-outlined text-[24px] text-slate-600 mb-2">science</span>
+							<h4 class="text-base font-bold uppercase tracking-widest text-slate-500 mb-2">Lab Results Pending</h4>
+							<div class="space-y-1 text-sm font-mono text-slate-500">
+								<div class="flex items-center gap-2">
+									<span
+										class="text-xs px-1 py-0.5 rounded font-bold"
+										style="background: rgba(190,242,100,0.15); color: #bef264;">SPEC</span
+									>
+									<span>Purity >= 80%</span>
+								</div>
+								<div class="flex items-center gap-2">
+									<span
+										class="text-xs px-1 py-0.5 rounded font-bold"
+										style="background: rgba(190,242,100,0.15); color: #bef264;">SPEC</span
+									>
+									<span>Mitragynine >= 1.0%</span>
+								</div>
+							</div>
+							<p class="text-sm text-slate-600 italic mt-2">Submit HPLC samples to populate quality data</p>
+						</div>
+					{/if}
+				{/if}
+			</div>
+
+			<!-- Carousel navigation -->
+			<div
+				class="flex-shrink-0 flex items-center justify-center gap-1.5 pt-2"
+				style="border-top: 1px solid rgba(30, 30, 30, 0.8);"
+			>
+				<button
+					class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex ===
+					0
+						? 'text-primary bg-primary/20'
+						: 'text-text-muted/40 hover:text-text-muted/60'}"
+					onclick={() => (carouselIndex = 0)}>Cost</button
+				>
+				<button
+					class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex ===
+					1
+						? 'text-primary bg-primary/20'
+						: 'text-text-muted/40 hover:text-text-muted/60'}"
+					onclick={() => (carouselIndex = 1)}>Ethanol</button
+				>
+				<button
+					class="px-2 py-0.5 text-sm font-bold uppercase tracking-wider rounded-full transition-colors {carouselIndex ===
+					2
+						? 'text-primary bg-primary/20'
+						: 'text-text-muted/40 hover:text-text-muted/60'}"
+					onclick={() => (carouselIndex = 2)}>Yield</button
+				>
+			</div>
+		</div>
+
+		<!-- Inventory Status -->
+		<div class="col-span-12">
+			<div class="flex items-center justify-between mb-3">
+				<h2 class="text-base font-bold uppercase tracking-wide text-text-secondary flex items-center gap-2">
+					<span class="material-symbols-outlined text-lg">inventory_2</span>
+					Inventory Status
+				</h2>
+				<a href="/inventory" class="text-xs text-text-muted hover:text-text-primary transition-colors">View All →</a>
+			</div>
+			<div class="grid grid-cols-6 gap-3">
+				{#each data.materials ?? [] as mat}
+					{@const cfg = inventoryConfig[mat.name]}
+					{#if cfg}
+						{@const status = getInventoryStatus(mat.on_hand_qty, cfg.threshold)}
+						{@const barPct = Math.min(100, (mat.on_hand_qty / (cfg.threshold * 2)) * 100)}
+						{@const lotsRemaining = cfg.usagePerLot > 0 ? mat.on_hand_qty / cfg.usagePerLot : 0}
+						<div
+							class="bg-bg-card border border-border-card rounded p-3 {mat.on_hand_qty <= cfg.threshold
+								? 'border-red-500/30'
+								: ''}"
+						>
+							<div class="flex justify-between items-start mb-2">
+								<span class="text-xs font-bold uppercase tracking-wider text-text-muted">{mat.name}</span>
+								<span class="text-xs font-bold px-2 py-0.5 rounded-full {status.bgColor} {status.color}"
+									>{status.label}</span
+								>
+							</div>
+							<div class="text-2xl font-black font-mono text-text-primary">
+								{mat.on_hand_qty % 1 === 0 ? mat.on_hand_qty : mat.on_hand_qty.toFixed(1)}
+								{mat.unit}
+							</div>
+							<div class="text-[11px] text-text-muted mt-1">Threshold: {cfg.threshold} {mat.unit}</div>
+							<div class="h-1.5 w-full bg-border-card rounded-full mt-2 overflow-hidden">
+								<div
+									class="h-full {getBarColor(mat.on_hand_qty, cfg.threshold)} rounded-full transition-all"
+									style="width: {barPct}%"
+								></div>
+							</div>
+							<div class="text-[11px] text-text-muted mt-2">
+								~{cfg.usagePerLot}
+								{mat.unit}/lot · <span class="text-text-primary font-bold">{lotsRemaining.toFixed(1)} lots</span> remaining
+							</div>
+						</div>
+					{/if}
+				{/each}
+			</div>
 		</div>
 	</div>
-
-</div>
 {:else}
-<div class="text-center py-12 text-[#666666]"><p class="text-sm">No data available</p><p class="text-xs mt-1">Import data via the Admin page to get started.</p></div>
+	<div class="text-center py-12 text-[#666666]">
+		<p class="text-sm">No data available</p>
+		<p class="text-xs mt-1">Import data via the Admin page to get started.</p>
+	</div>
 {/if}
 
 {#if chartTooltip}
-	<div class="fixed z-[60] pointer-events-none px-2 py-1.5 rounded-lg border border-white/10 shadow-xl text-[11px] font-mono"
-		style="left: {chartTooltip.x + 12}px; top: {chartTooltip.y - 10}px; background: #1a1a1a;">
+	<div
+		class="fixed z-[60] pointer-events-none px-2 py-1.5 rounded-lg border border-white/10 shadow-xl text-[11px] font-mono"
+		style="left: {chartTooltip.x + 12}px; top: {chartTooltip.y - 10}px; background: #1a1a1a;"
+	>
 		{#each chartTooltip.lines as line}
 			<div class="text-text-secondary whitespace-nowrap">{line}</div>
 		{/each}
@@ -2634,10 +4276,15 @@
 {/if}
 
 {#if expandedCard !== null}
-	<button class="fixed inset-0 z-40 bg-black/60" aria-label="Close expanded panel" onclick={() => expandedCard = null}></button>
+	<button class="fixed inset-0 z-40 bg-black/60" aria-label="Close expanded panel" onclick={() => (expandedCard = null)}
+	></button>
 {/if}
 
-<svelte:window onkeydown={(e) => { if (e.key === 'Escape') expandedCard = null; }} />
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === 'Escape') expandedCard = null;
+	}}
+/>
 
 <!-- Batch Detail Drawer -->
-<BatchDrawer batchId={drawerBatchId} runId={data.activeRunId} onclose={() => drawerBatchId = null} />
+<BatchDrawer batchId={drawerBatchId} runId={data.activeRunId} onclose={() => (drawerBatchId = null)} />

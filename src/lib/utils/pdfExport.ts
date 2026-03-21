@@ -1,5 +1,15 @@
 import { jsPDF } from 'jspdf';
-import type { Batch, BatchStage, Stage1Record, Stage2Record, Stage3Record, Stage4Record, BatchCost, LabResult, Deviation } from '$lib/domain/types';
+import type {
+	Batch,
+	BatchStage,
+	Stage1Record,
+	Stage2Record,
+	Stage3Record,
+	Stage4Record,
+	BatchCost,
+	LabResult,
+	Deviation
+} from '$lib/domain/types';
 
 export function generateBatchPDF(
 	batch: Batch,
@@ -20,7 +30,10 @@ export function generateBatchPDF(
 	const pageWidth = 180;
 
 	function addSection(title: string) {
-		if (y > 250) { doc.addPage(); y = 20; }
+		if (y > 250) {
+			doc.addPage();
+			y = 20;
+		}
 		y += 6;
 		doc.setFontSize(11);
 		doc.setFont('helvetica', 'bold');
@@ -32,7 +45,10 @@ export function generateBatchPDF(
 	}
 
 	function addRow(label: string, value: string | number | null | undefined) {
-		if (y > 275) { doc.addPage(); y = 20; }
+		if (y > 275) {
+			doc.addPage();
+			y = 20;
+		}
 		doc.setFontSize(9);
 		doc.setFont('helvetica', 'normal');
 		doc.text(label, leftMargin, y);
@@ -52,9 +68,17 @@ export function generateBatchPDF(
 	y += 8;
 	doc.setFontSize(9);
 	doc.setFont('helvetica', 'normal');
-	doc.text(`Status: ${batch.status}  |  Operator: ${batch.operator_name ?? '—'}  |  Supplier: ${batch.supplier ?? '—'}`, leftMargin, y);
+	doc.text(
+		`Status: ${batch.status}  |  Operator: ${batch.operator_name ?? '—'}  |  Supplier: ${batch.supplier ?? '—'}`,
+		leftMargin,
+		y
+	);
 	y += 5;
-	doc.text(`Leaf Input: ${batch.leaf_input_kg} kg  |  Started: ${batch.started_at ? new Date(batch.started_at).toLocaleDateString() : '—'}`, leftMargin, y);
+	doc.text(
+		`Leaf Input: ${batch.leaf_input_kg} kg  |  Started: ${batch.started_at ? new Date(batch.started_at).toLocaleDateString() : '—'}`,
+		leftMargin,
+		y
+	);
 	y += 5;
 	doc.text(`Generated: ${new Date().toLocaleString()}`, leftMargin, y);
 	y += 4;

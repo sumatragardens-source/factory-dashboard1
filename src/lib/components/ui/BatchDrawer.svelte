@@ -22,9 +22,14 @@
 			detail = null;
 			activeTab = 'overview';
 			fetch(`/api/batch-detail/${batchId}?runId=${runId}`)
-				.then(r => r.json())
-				.then(d => { detail = d; loading = false; })
-				.catch(() => { loading = false; });
+				.then((r) => r.json())
+				.then((d) => {
+					detail = d;
+					loading = false;
+				})
+				.catch(() => {
+					loading = false;
+				});
 		}
 	});
 
@@ -63,7 +68,9 @@
 	<button class="fixed inset-0 bg-black/40 z-40" onclick={onclose} aria-label="Close drawer"></button>
 
 	<!-- Drawer -->
-	<div class="fixed right-0 top-0 h-full w-[420px] z-50 bg-bg-card border-l border-border-card shadow-2xl flex flex-col overflow-hidden">
+	<div
+		class="fixed right-0 top-0 h-full w-[420px] z-50 bg-bg-card border-l border-border-card shadow-2xl flex flex-col overflow-hidden"
+	>
 		{#if loading}
 			<div class="flex-1 flex items-center justify-center">
 				<span class="text-text-muted text-sm">Loading...</span>
@@ -73,7 +80,9 @@
 			<div class="px-4 pt-4 pb-3 border-b border-border-card flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<h2 class="text-sm font-bold text-text-primary">{detail.batch.batch_number}</h2>
-					<span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded {statusColor(detail.batch.status)}">{detail.batch.status}</span>
+					<span class="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded {statusColor(detail.batch.status)}"
+						>{detail.batch.status}</span
+					>
 				</div>
 				<button class="text-text-muted hover:text-text-primary transition-colors" onclick={onclose}>
 					<span class="material-symbols-outlined text-[18px]">close</span>
@@ -94,19 +103,30 @@
 			<div class="px-4 py-2 border-b border-border-card/50">
 				<div class="flex gap-0.5">
 					{#each detail.stages as stage}
-						<div class="flex-1 h-1.5 rounded-full {stageColor(stage.status)}" title="{getProcessStageName(stage.stage_number)}: {stage.status}"></div>
+						<div
+							class="flex-1 h-1.5 rounded-full {stageColor(stage.status)}"
+							title="{getProcessStageName(stage.stage_number)}: {stage.status}"
+						></div>
 					{/each}
 				</div>
-				<p class="text-[7px] text-text-muted/40 mt-1">{detail.stages.filter(s => s.status === 'Finalized').length}/4 stages complete</p>
+				<p class="text-[7px] text-text-muted/40 mt-1">
+					{detail.stages.filter((s) => s.status === 'Finalized').length}/4 stages complete
+				</p>
 			</div>
 
 			<!-- Tab nav -->
 			<div class="px-4 pt-2 flex gap-1 border-b border-border-card/50">
 				{#each tabs as tab}
 					<button
-						class="px-2 py-1 text-[8px] font-bold uppercase tracking-wider rounded-t transition-colors {activeTab === tab.id ? 'text-text-primary bg-bg-input border-b-2 border-primary' : 'text-text-muted/40 hover:text-text-muted/60'}"
-						onclick={() => activeTab = tab.id}
-					>{tab.label}{#if tab.id === 'deviations' && detail.deviations.length > 0}<span class="ml-1 text-[7px] text-red-400">({detail.deviations.length})</span>{/if}</button>
+						class="px-2 py-1 text-[8px] font-bold uppercase tracking-wider rounded-t transition-colors {activeTab ===
+						tab.id
+							? 'text-text-primary bg-bg-input border-b-2 border-primary'
+							: 'text-text-muted/40 hover:text-text-muted/60'}"
+						onclick={() => (activeTab = tab.id)}
+						>{tab.label}{#if tab.id === 'deviations' && detail.deviations.length > 0}<span
+								class="ml-1 text-[7px] text-red-400">({detail.deviations.length})</span
+							>{/if}</button
+					>
 				{/each}
 			</div>
 
@@ -138,7 +158,9 @@
 						</div>
 						<div class="bg-bg-input rounded p-2">
 							<p class="text-[7px] text-text-muted/40 uppercase">Output</p>
-							<p class="text-sm font-bold text-text-primary">{detail.stage4?.final_product_g != null ? (detail.stage4.final_product_g / 1000).toFixed(2) : '—'} kg</p>
+							<p class="text-sm font-bold text-text-primary">
+								{detail.stage4?.final_product_g != null ? (detail.stage4.final_product_g / 1000).toFixed(2) : '—'} kg
+							</p>
 							<p class="text-[7px] text-text-muted/40">from {detail.batch.leaf_input_kg} kg leaf</p>
 						</div>
 					</div>
@@ -172,9 +194,17 @@
 								<div class="flex items-center gap-2">
 									<span class="text-[8px] text-text-muted w-14">Yield</span>
 									<div class="flex-1 h-1 rounded-full bg-border-card overflow-hidden">
-										<div class="h-full rounded-full" style="width: {Math.min(100, (detail.stage4.overall_yield_pct / 10) * 100)}%; background: {diff >= 0 ? '#8BAA7C' : '#C4896A'};"></div>
+										<div
+											class="h-full rounded-full"
+											style="width: {Math.min(100, (detail.stage4.overall_yield_pct / 10) * 100)}%; background: {diff >=
+											0
+												? '#8BAA7C'
+												: '#C4896A'};"
+										></div>
 									</div>
-									<span class="text-[8px] font-medium" style="color: {diff >= 0 ? '#8BAA7C' : '#C4896A'};">{diff >= 0 ? '+' : ''}{diff.toFixed(1)}%</span>
+									<span class="text-[8px] font-medium" style="color: {diff >= 0 ? '#8BAA7C' : '#C4896A'};"
+										>{diff >= 0 ? '+' : ''}{diff.toFixed(1)}%</span
+									>
 								</div>
 							{/if}
 							{#if detail.stage2?.etoh_recovery_pct && detail.runAvgRecovery}
@@ -182,9 +212,16 @@
 								<div class="flex items-center gap-2">
 									<span class="text-[8px] text-text-muted w-14">Recovery</span>
 									<div class="flex-1 h-1 rounded-full bg-border-card overflow-hidden">
-										<div class="h-full rounded-full" style="width: {Math.min(100, detail.stage2.etoh_recovery_pct)}%; background: {diff >= 0 ? '#8BAA7C' : '#C4896A'};"></div>
+										<div
+											class="h-full rounded-full"
+											style="width: {Math.min(100, detail.stage2.etoh_recovery_pct)}%; background: {diff >= 0
+												? '#8BAA7C'
+												: '#C4896A'};"
+										></div>
 									</div>
-									<span class="text-[8px] font-medium" style="color: {diff >= 0 ? '#8BAA7C' : '#C4896A'};">{diff >= 0 ? '+' : ''}{diff.toFixed(1)}%</span>
+									<span class="text-[8px] font-medium" style="color: {diff >= 0 ? '#8BAA7C' : '#C4896A'};"
+										>{diff >= 0 ? '+' : ''}{diff.toFixed(1)}%</span
+									>
 								</div>
 							{/if}
 						</div>
@@ -204,15 +241,20 @@
 
 					<!-- Category bars -->
 					<p class="text-[8px] font-medium uppercase tracking-wider text-text-muted/60 mb-1.5">Cost by Category</p>
-					{@const maxCatCost = Math.max(...detail.costs.map(c => c.total), 1)}
+					{@const maxCatCost = Math.max(...detail.costs.map((c) => c.total), 1)}
 					<div class="space-y-1.5 mb-3">
 						{#each detail.costs as cat}
 							<div class="flex items-center gap-2">
 								<span class="text-[8px] text-text-muted w-16 flex-none">{cat.category}</span>
 								<div class="flex-1 h-1 rounded-full bg-border-card overflow-hidden">
-									<div class="h-full rounded-full" style="width: {(cat.total / maxCatCost) * 100}%; background: rgba(107, 140, 168, 0.7);"></div>
+									<div
+										class="h-full rounded-full"
+										style="width: {(cat.total / maxCatCost) * 100}%; background: rgba(107, 140, 168, 0.7);"
+									></div>
 								</div>
-								<span class="text-[8px] font-medium text-text-secondary w-14 text-right flex-none">${Math.round(cat.total).toLocaleString()}</span>
+								<span class="text-[8px] font-medium text-text-secondary w-14 text-right flex-none"
+									>${Math.round(cat.total).toLocaleString()}</span
+								>
 							</div>
 						{/each}
 					</div>
@@ -280,7 +322,9 @@
 						</div>
 						{#if detail.stage1?.powder_output_kg}
 							<div class="flex items-center gap-1.5 py-px">
-								<div class="w-1 flex justify-center"><div class="w-px h-2" style="background: rgba(139, 170, 124, 0.25);"></div></div>
+								<div class="w-1 flex justify-center">
+									<div class="w-px h-2" style="background: rgba(139, 170, 124, 0.25);"></div>
+								</div>
 								<span class="text-[7px] text-text-muted/35">{detail.stage1.powder_yield_pct}%</span>
 							</div>
 							<div class="flex items-center gap-1.5">
@@ -291,7 +335,9 @@
 						{/if}
 						{#if detail.stage2?.crude_extract_wt_kg}
 							<div class="flex items-center gap-1.5 py-px">
-								<div class="w-1 flex justify-center"><div class="w-px h-2" style="background: rgba(139, 170, 124, 0.25);"></div></div>
+								<div class="w-1 flex justify-center">
+									<div class="w-px h-2" style="background: rgba(139, 170, 124, 0.25);"></div>
+								</div>
 							</div>
 							<div class="flex items-center gap-1.5">
 								<span class="h-1 w-1 rounded-full flex-none" style="background: rgba(139, 170, 124, 0.4);"></span>
@@ -301,19 +347,23 @@
 						{/if}
 						{#if detail.stage4?.final_product_g}
 							<div class="flex items-center gap-1.5 py-px">
-								<div class="w-1 flex justify-center"><div class="w-px h-2" style="background: rgba(139, 170, 124, 0.25);"></div></div>
+								<div class="w-1 flex justify-center">
+									<div class="w-px h-2" style="background: rgba(139, 170, 124, 0.25);"></div>
+								</div>
 							</div>
 							<div class="flex items-center gap-1.5">
 								<span class="h-1 w-1 rounded-full flex-none" style="background: rgba(139, 170, 124, 0.2);"></span>
 								<span class="text-[8px] text-text-muted flex-1">Final Product</span>
-								<span class="text-[8px] font-medium text-text-secondary">{(detail.stage4.final_product_g / 1000).toFixed(2)} kg</span>
+								<span class="text-[8px] font-medium text-text-secondary"
+									>{(detail.stage4.final_product_g / 1000).toFixed(2)} kg</span
+								>
 							</div>
 						{/if}
 					</div>
 
 					<!-- HPLC Profile -->
 					{#if detail.labResults.length > 0}
-						{@const hplc = detail.labResults.find(r => r.test_type === 'HPLC' && r.status === 'Completed')}
+						{@const hplc = detail.labResults.find((r) => r.test_type === 'HPLC' && r.status === 'Completed')}
 						{#if hplc}
 							<p class="text-[8px] font-medium uppercase tracking-wider text-text-muted/60 mb-1.5">HPLC Profile</p>
 							<div class="space-y-1 mb-2">
@@ -338,7 +388,9 @@
 						{@const diff = detail.stage4.overall_yield_pct - detail.runAvgYield}
 						<div class="flex items-center gap-2 mt-2 pt-2" style="border-top: 1px solid rgba(55, 65, 81, 0.2);">
 							<span class="text-[8px] text-text-muted">vs Run Avg Yield:</span>
-							<span class="text-[8px] font-medium" style="color: {diff >= 0 ? '#8BAA7C' : '#C4896A'};">{diff >= 0 ? '+' : ''}{diff.toFixed(2)}%</span>
+							<span class="text-[8px] font-medium" style="color: {diff >= 0 ? '#8BAA7C' : '#C4896A'};"
+								>{diff >= 0 ? '+' : ''}{diff.toFixed(2)}%</span
+							>
 						</div>
 					{/if}
 				{:else if activeTab === 'deviations'}
@@ -352,16 +404,29 @@
 							{#each detail.deviations as dev}
 								<div class="bg-bg-input rounded p-2">
 									<div class="flex items-center gap-2 mb-1">
-										<span class="text-[7px] font-bold uppercase px-1 py-0.5 rounded {severityColor(dev.severity)}">{dev.severity}</span>
-										<span class="text-[7px] font-bold uppercase px-1 py-0.5 rounded {dev.status === 'Open' ? 'text-red-400 bg-red-900/30' : dev.status === 'Resolved' || dev.status === 'Closed' ? 'text-primary bg-primary/15' : 'text-amber-400 bg-amber-900/30'}">{dev.status}</span>
+										<span class="text-[7px] font-bold uppercase px-1 py-0.5 rounded {severityColor(dev.severity)}"
+											>{dev.severity}</span
+										>
+										<span
+											class="text-[7px] font-bold uppercase px-1 py-0.5 rounded {dev.status === 'Open'
+												? 'text-red-400 bg-red-900/30'
+												: dev.status === 'Resolved' || dev.status === 'Closed'
+													? 'text-primary bg-primary/15'
+													: 'text-amber-400 bg-amber-900/30'}">{dev.status}</span
+										>
 										<span class="text-[8px] text-text-muted ml-auto">Stage {dev.stage_number}</span>
 									</div>
 									<p class="text-[9px] text-text-secondary mb-1">{dev.description}</p>
 									{#if dev.parameter}
-										<p class="text-[8px] text-text-muted">{dev.parameter}: expected {dev.expected_value}, got {dev.actual_value}</p>
+										<p class="text-[8px] text-text-muted">
+											{dev.parameter}: expected {dev.expected_value}, got {dev.actual_value}
+										</p>
 									{/if}
 									{#if dev.corrective_action}
-										<p class="text-[8px] text-text-muted mt-1"><span class="text-text-muted/40">Fix:</span> {dev.corrective_action}</p>
+										<p class="text-[8px] text-text-muted mt-1">
+											<span class="text-text-muted/40">Fix:</span>
+											{dev.corrective_action}
+										</p>
 									{/if}
 								</div>
 							{/each}

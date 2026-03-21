@@ -1,8 +1,13 @@
 import { getBatchById, getBatchStages, startStage, finalizeStage } from '$lib/data/repositories/batchRepo';
 import {
-	getStage1Record, getStage2Record, getStage3Record, getStage4Record,
-	upsertStage1Record, upsertStage2Record,
-	upsertStage3Record, upsertStage4Record
+	getStage1Record,
+	getStage2Record,
+	getStage3Record,
+	getStage4Record,
+	upsertStage1Record,
+	upsertStage2Record,
+	upsertStage3Record,
+	upsertStage4Record
 } from '$lib/data/repositories/stageRepo';
 import { getAllUnitRates, getBatchCosts } from '$lib/data/repositories/costingRepo';
 import { calculateTotalBatchCost } from '$lib/calculations/costing';
@@ -43,9 +48,13 @@ export const load: PageServerLoad = ({ params }) => {
 };
 
 const TEXT_FIELDS = new Set([
-	'operator_name', 'notes',
-	'grinder_id', 'grind_start', 'grind_end',
-	'acetic_conc', 'dry_method'
+	'operator_name',
+	'notes',
+	'grinder_id',
+	'grind_start',
+	'grind_end',
+	'acetic_conc',
+	'dry_method'
 ]);
 
 function formDataToRecord(formData: FormData): Record<string, unknown> {
@@ -65,21 +74,34 @@ function formDataToRecord(formData: FormData): Record<string, unknown> {
 
 function getValidateFns(stageNumber: number) {
 	switch (stageNumber) {
-		case 1: return { save: validateStage1Save, finalize: validateStage1Finalize };
-		case 2: return { save: validateStage2Save, finalize: validateStage2Finalize };
-		case 3: return { save: validateStage3Save, finalize: validateStage3Finalize };
-		case 4: return { save: validateStage4Save, finalize: validateStage4Finalize };
-		default: throw new Error('Invalid stage');
+		case 1:
+			return { save: validateStage1Save, finalize: validateStage1Finalize };
+		case 2:
+			return { save: validateStage2Save, finalize: validateStage2Finalize };
+		case 3:
+			return { save: validateStage3Save, finalize: validateStage3Finalize };
+		case 4:
+			return { save: validateStage4Save, finalize: validateStage4Finalize };
+		default:
+			throw new Error('Invalid stage');
 	}
 }
 
 function upsertForStage(stageNumber: number, batchId: number, data: Record<string, unknown>) {
 	const table = stageToRecordTable(stageNumber);
 	switch (table) {
-		case 1: upsertStage1Record(batchId, data); break;
-		case 2: upsertStage2Record(batchId, data); break;
-		case 3: upsertStage3Record(batchId, data); break;
-		case 4: upsertStage4Record(batchId, data); break;
+		case 1:
+			upsertStage1Record(batchId, data);
+			break;
+		case 2:
+			upsertStage2Record(batchId, data);
+			break;
+		case 3:
+			upsertStage3Record(batchId, data);
+			break;
+		case 4:
+			upsertStage4Record(batchId, data);
+			break;
 	}
 }
 
@@ -98,7 +120,7 @@ export const actions: Actions = {
 
 		// Auto-start stage if pending
 		const stages = getBatchStages(batchId);
-		const currentStage = stages.find(s => s.stage_number === stageNumber);
+		const currentStage = stages.find((s) => s.stage_number === stageNumber);
 		if (currentStage?.status === 'Pending') {
 			startStage(batchId, stageNumber);
 		}
@@ -132,7 +154,7 @@ export const actions: Actions = {
 
 		// Auto-start stage if pending
 		const stages = getBatchStages(batchId);
-		const currentStage = stages.find(s => s.stage_number === stageNumber);
+		const currentStage = stages.find((s) => s.stage_number === stageNumber);
 		if (currentStage?.status === 'Pending') {
 			startStage(batchId, stageNumber);
 		}

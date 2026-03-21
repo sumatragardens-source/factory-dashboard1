@@ -1,10 +1,4 @@
-export const BATCH_STATES = [
-	'Draft',
-	'In Progress',
-	'Pending Review',
-	'Completed',
-	'Rejected'
-] as const;
+export const BATCH_STATES = ['Draft', 'In Progress', 'Pending Review', 'Completed', 'Rejected'] as const;
 
 export type BatchState = (typeof BATCH_STATES)[number];
 

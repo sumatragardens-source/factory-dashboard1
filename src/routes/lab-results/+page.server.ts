@@ -7,12 +7,16 @@ export const load: PageServerLoad = () => {
 		const db = getDb();
 
 		// Enrich lab results with batch number
-		const labResults = db.prepare(`
+		const labResults = db
+			.prepare(
+				`
 			SELECT lr.*, b.batch_number, b.supplier
 			FROM lab_results lr
 			JOIN batches b ON b.id = lr.batch_id
 			ORDER BY lr.created_at DESC
-		`).all() as (LabResult & { batch_number: string; supplier: string })[];
+		`
+			)
+			.all() as (LabResult & { batch_number: string; supplier: string })[];
 
 		// Selected sample (first one by default)
 		const selected = labResults.length > 0 ? labResults[0] : null;

@@ -49,7 +49,7 @@ export function rollingAvg(values: number[], window: number): number[] {
 /** Map a cost-per-kg value to an RGBA color using a green→amber→red gradient. */
 export function costBarColorByRange(cpk: number, allCpks: number[], isCurrent: boolean): string {
 	const alpha = isCurrent ? 0.8 : 0.5;
-	const valid = allCpks.filter(v => v > 0);
+	const valid = allCpks.filter((v) => v > 0);
 	if (valid.length < 2 || cpk <= 0) return `rgba(190,242,100,${alpha})`;
 	const mn = Math.min(...valid);
 	const mx = Math.max(...valid);

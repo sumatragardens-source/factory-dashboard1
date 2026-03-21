@@ -26,10 +26,18 @@ export const load: PageServerLoad = ({ params, url }) => {
 	const table = stageToRecordTable(stageNumber);
 	let performance: Stage1Performance | Stage2Performance | Stage3Performance | Stage4Performance;
 	switch (table) {
-		case 1: performance = getStage1Performance(safeFilter); break;
-		case 2: performance = getStage2Performance(safeFilter); break;
-		case 3: performance = getStage3Performance(safeFilter); break;
-		case 4: performance = getStage4Performance(safeFilter); break;
+		case 1:
+			performance = getStage1Performance(safeFilter);
+			break;
+		case 2:
+			performance = getStage2Performance(safeFilter);
+			break;
+		case 3:
+			performance = getStage3Performance(safeFilter);
+			break;
+		case 4:
+			performance = getStage4Performance(safeFilter);
+			break;
 	}
 
 	return { stageNumber, filter: safeFilter, performance };

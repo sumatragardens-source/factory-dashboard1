@@ -8,7 +8,5 @@ export function getAllLabResults(): LabResult[] {
 
 export function getLabResultsByBatch(batchId: number): LabResult[] {
 	const db = getDb();
-	return db
-		.prepare('SELECT * FROM lab_results WHERE batch_id = ? ORDER BY test_date DESC')
-		.all(batchId) as LabResult[];
+	return db.prepare('SELECT * FROM lab_results WHERE batch_id = ? ORDER BY test_date DESC').all(batchId) as LabResult[];
 }

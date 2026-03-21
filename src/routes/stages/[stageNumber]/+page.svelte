@@ -144,7 +144,9 @@
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.powder_output_kg ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.powder_yield_pct ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.mass_balance_err_pct ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-muted">{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td>
+								<td class="text-right px-4 py-3 text-text-muted"
+									>{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td
+								>
 							</tr>
 						{/each}
 					</tbody>
@@ -169,7 +171,9 @@
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.crude_extract_wt_kg ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.etoh_recovery_pct ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.etoh_vol_L ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-muted">{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td>
+								<td class="text-right px-4 py-3 text-text-muted"
+									>{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td
+								>
 							</tr>
 						{/each}
 					</tbody>
@@ -196,7 +200,9 @@
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.aqueous_waste_L ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.dlimo_vol_L ?? '-'}</td>
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.dlimo_recovered_L ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-muted">{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td>
+								<td class="text-right px-4 py-3 text-text-muted"
+									>{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td
+								>
 							</tr>
 						{/each}
 					</tbody>
@@ -217,9 +223,13 @@
 								<td class="px-4 py-3 text-text-primary">
 									<a href="/batches/{batch.batch_id}" class="text-primary hover:underline">{batch.batch_number}</a>
 								</td>
-								<td class="text-right px-4 py-3 text-text-secondary">{batch.final_product_g != null ? (batch.final_product_g / 1000).toFixed(2) : '-'}</td>
+								<td class="text-right px-4 py-3 text-text-secondary"
+									>{batch.final_product_g != null ? (batch.final_product_g / 1000).toFixed(2) : '-'}</td
+								>
 								<td class="text-right px-4 py-3 text-text-secondary">{batch.overall_yield_pct ?? '-'}</td>
-								<td class="text-right px-4 py-3 text-text-muted">{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td>
+								<td class="text-right px-4 py-3 text-text-muted"
+									>{batch.finalized_at ? new Date(batch.finalized_at).toLocaleDateString() : '-'}</td
+								>
 							</tr>
 						{/each}
 					</tbody>
@@ -228,9 +238,7 @@
 		</div>
 
 		{#if data.performance.batches.length === 0}
-			<div class="px-4 py-8 text-center text-text-muted">
-				No finalized batches found for this time period.
-			</div>
+			<div class="px-4 py-8 text-center text-text-muted">No finalized batches found for this time period.</div>
 		{/if}
 	</div>
 </div>

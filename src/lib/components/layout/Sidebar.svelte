@@ -24,7 +24,9 @@
 	</div>
 
 	<!-- Flyout nav panel - appears on sidebar hover -->
-	<div class="absolute left-full top-0 w-56 h-full bg-bg-card border-r border-border-card flex-col opacity-0 pointer-events-none group-hover/sidebar:opacity-100 group-hover/sidebar:pointer-events-auto transition-opacity duration-200 shadow-xl shadow-black/30 z-40 hidden group-hover/sidebar:flex">
+	<div
+		class="absolute left-full top-0 w-56 h-full bg-bg-card border-r border-border-card flex-col opacity-0 pointer-events-none group-hover/sidebar:opacity-100 group-hover/sidebar:pointer-events-auto transition-opacity duration-200 shadow-xl shadow-black/30 z-40 hidden group-hover/sidebar:flex"
+	>
 		<!-- Logo + name -->
 		<div class="p-5 border-b border-border-card">
 			<h1 class="text-sm font-black tracking-tighter text-text-primary uppercase">Sumatra Gardens</h1>
@@ -33,13 +35,12 @@
 
 		<nav class="flex-1 p-3 space-y-0.5 overflow-y-auto no-scrollbar">
 			{#each NAV_ITEMS as item}
-				{@const isActive = page.url.pathname === item.href || (item.href !== '/operations' && page.url.pathname.startsWith(item.href))}
+				{@const isActive =
+					page.url.pathname === item.href || (item.href !== '/operations' && page.url.pathname.startsWith(item.href))}
 				<a
 					href={item.href}
 					class="flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors
-						{isActive
-							? 'bg-primary/20 text-text-primary font-semibold'
-							: 'text-text-muted hover:bg-bg-card-hover'}"
+						{isActive ? 'bg-primary/20 text-text-primary font-semibold' : 'text-text-muted hover:bg-bg-card-hover'}"
 				>
 					<span class="material-symbols-outlined text-primary text-[18px]">{iconMap[item.icon] ?? 'circle'}</span>
 					<span>{item.label}</span>

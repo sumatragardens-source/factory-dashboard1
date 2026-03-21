@@ -35,7 +35,7 @@ export function parseCSV(text: string): ParsedCSV {
 				field = '';
 			} else if (ch === '\n' || (ch === '\r' && text[i + 1] === '\n')) {
 				current.push(field.trim());
-				if (current.some(f => f !== '')) lines.push(current);
+				if (current.some((f) => f !== '')) lines.push(current);
 				current = [];
 				field = '';
 				if (ch === '\r') i++;
@@ -46,7 +46,7 @@ export function parseCSV(text: string): ParsedCSV {
 	}
 	// Last field
 	current.push(field.trim());
-	if (current.some(f => f !== '')) lines.push(current);
+	if (current.some((f) => f !== '')) lines.push(current);
 
 	if (lines.length === 0) return { headers: [], rows: [] };
 
@@ -60,9 +60,9 @@ export function validateColumns(
 	headers: string[],
 	expected: string[]
 ): { valid: boolean; missing: string[]; extra: string[] } {
-	const headerSet = new Set(headers.map(h => h.toLowerCase()));
-	const expectedSet = new Set(expected.map(e => e.toLowerCase()));
-	const missing = expected.filter(e => !headerSet.has(e.toLowerCase()));
-	const extra = headers.filter(h => !expectedSet.has(h.toLowerCase()));
+	const headerSet = new Set(headers.map((h) => h.toLowerCase()));
+	const expectedSet = new Set(expected.map((e) => e.toLowerCase()));
+	const missing = expected.filter((e) => !headerSet.has(e.toLowerCase()));
+	const extra = headers.filter((h) => !expectedSet.has(h.toLowerCase()));
 	return { valid: missing.length === 0, missing, extra };
 }

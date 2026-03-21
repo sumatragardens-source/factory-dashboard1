@@ -6,7 +6,7 @@ export const ALERT_THRESHOLDS = {
 	GRIND_THROUGHPUT_DROP_PCT: 30,
 	SOLVENT_INVENTORY_BATCHES: 2,
 	BATCH_DURATION_FACTOR: 2.0,
-	PH_OVERSHOOT_DELTA: 0.5,
+	PH_OVERSHOOT_DELTA: 0.5
 };
 
 export interface SpecAlert {
@@ -28,7 +28,7 @@ export function checkMassBalanceError(errorPct: number, stageNumber: number): Sp
 			threshold: ALERT_THRESHOLDS.MASS_BALANCE_ERROR_PCT,
 			actual_value: errorPct,
 			message: `Stage ${stageNumber} mass balance error ${errorPct}% exceeds ${ALERT_THRESHOLDS.MASS_BALANCE_ERROR_PCT}% threshold`,
-			stage_number: stageNumber,
+			stage_number: stageNumber
 		};
 	}
 	return null;
@@ -43,7 +43,7 @@ export function checkLowEthanolRecovery(recoveryPct: number): SpecAlert | null {
 			threshold: ALERT_THRESHOLDS.LOW_ETHANOL_RECOVERY_PCT,
 			actual_value: recoveryPct,
 			message: `Ethanol recovery ${recoveryPct}% below ${ALERT_THRESHOLDS.LOW_ETHANOL_RECOVERY_PCT}% minimum`,
-			stage_number: 2,
+			stage_number: 2
 		};
 	}
 	return null;
@@ -58,7 +58,7 @@ export function checkYieldFloor(yieldPct: number): SpecAlert | null {
 			threshold: ALERT_THRESHOLDS.YIELD_FLOOR_PCT,
 			actual_value: yieldPct,
 			message: `Overall yield ${yieldPct}% below ${ALERT_THRESHOLDS.YIELD_FLOOR_PCT}% floor`,
-			stage_number: 4,
+			stage_number: 4
 		};
 	}
 	return null;
@@ -75,7 +75,7 @@ export function checkCostSpike(currentCostPerKg: number, avgCostPerKg: number): 
 			threshold: avgCostPerKg * ALERT_THRESHOLDS.COST_SPIKE_FACTOR,
 			actual_value: currentCostPerKg,
 			message: `Cost/kg ${currentCostPerKg.toFixed(0)} is ${(ratio * 100).toFixed(0)}% of 10-batch avg (${avgCostPerKg.toFixed(0)})`,
-			stage_number: null,
+			stage_number: null
 		};
 	}
 	return null;
@@ -92,7 +92,7 @@ export function checkGrindThroughputDrop(throughputKgHr: number, baselineKgHr: n
 			threshold: baselineKgHr * (1 - ALERT_THRESHOLDS.GRIND_THROUGHPUT_DROP_PCT / 100),
 			actual_value: throughputKgHr,
 			message: `Grind throughput ${throughputKgHr.toFixed(1)} kg/hr is ${dropPct.toFixed(0)}% below baseline ${baselineKgHr.toFixed(1)}`,
-			stage_number: 1,
+			stage_number: 1
 		};
 	}
 	return null;
@@ -109,7 +109,7 @@ export function checkSolventInventory(remainingL: number, avgUsagePerBatchL: num
 			threshold: ALERT_THRESHOLDS.SOLVENT_INVENTORY_BATCHES,
 			actual_value: Number(batchesRemaining.toFixed(1)),
 			message: `Ethanol inventory covers only ${batchesRemaining.toFixed(1)} batches (minimum ${ALERT_THRESHOLDS.SOLVENT_INVENTORY_BATCHES})`,
-			stage_number: null,
+			stage_number: null
 		};
 	}
 	return null;
@@ -126,7 +126,7 @@ export function checkBatchDuration(durationHrs: number, avgDurationHrs: number):
 			threshold: avgDurationHrs * ALERT_THRESHOLDS.BATCH_DURATION_FACTOR,
 			actual_value: durationHrs,
 			message: `Batch took ${durationHrs.toFixed(0)}h — ${(ratio * 100).toFixed(0)}% of avg ${avgDurationHrs.toFixed(0)}h`,
-			stage_number: null,
+			stage_number: null
 		};
 	}
 	return null;
@@ -142,13 +142,18 @@ export function checkPhOvershoot(targetPh: number, actualPh: number, stageNumber
 			threshold: ALERT_THRESHOLDS.PH_OVERSHOOT_DELTA,
 			actual_value: delta,
 			message: `pH off target by ${delta.toFixed(2)} (actual ${actualPh}, target ${targetPh}) at stage ${stageNumber}`,
-			stage_number: stageNumber,
+			stage_number: stageNumber
 		};
 	}
 	return null;
 }
 
-export function checkPhOutOfRange(actualPh: number, rangeMin: number, rangeMax: number, label: string): SpecAlert | null {
+export function checkPhOutOfRange(
+	actualPh: number,
+	rangeMin: number,
+	rangeMax: number,
+	label: string
+): SpecAlert | null {
 	if (actualPh < rangeMin || actualPh > rangeMax) {
 		return {
 			alert_type: 'pH Out of Range',
@@ -157,7 +162,7 @@ export function checkPhOutOfRange(actualPh: number, rangeMin: number, rangeMax: 
 			threshold: actualPh < rangeMin ? rangeMin : rangeMax,
 			actual_value: actualPh,
 			message: `${label} pH ${actualPh.toFixed(2)} outside expected range ${rangeMin}–${rangeMax}`,
-			stage_number: 3,
+			stage_number: 3
 		};
 	}
 	return null;

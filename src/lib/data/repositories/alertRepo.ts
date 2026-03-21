@@ -8,35 +8,60 @@ import { calculateTotalBatchCost, calculateCostPerKg } from '$lib/calculations/c
 
 export function insertAlert(batchId: number, alert: SpecAlert): void {
 	const db = getDb();
-	db.prepare(`
+	db.prepare(
+		`
 		INSERT INTO alerts (batch_id, stage_number, alert_type, severity, metric, threshold, actual_value, message)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`).run(batchId, alert.stage_number, alert.alert_type, alert.severity, alert.metric, alert.threshold, alert.actual_value, alert.message);
+	`
+	).run(
+		batchId,
+		alert.stage_number,
+		alert.alert_type,
+		alert.severity,
+		alert.metric,
+		alert.threshold,
+		alert.actual_value,
+		alert.message
+	);
 }
 
 export function getActiveAlerts(): Alert[] {
 	const db = getDb();
-	return db.prepare('SELECT * FROM alerts WHERE acknowledged = 0 ORDER BY CASE severity WHEN \'High\' THEN 0 WHEN \'Medium\' THEN 1 WHEN \'Low\' THEN 2 END, created_at DESC').all() as Alert[];
+	return db
+		.prepare(
+			"SELECT * FROM alerts WHERE acknowledged = 0 ORDER BY CASE severity WHEN 'High' THEN 0 WHEN 'Medium' THEN 1 WHEN 'Low' THEN 2 END, created_at DESC"
+		)
+		.all() as Alert[];
 }
 
 export function getAlertsByBatch(batchId: number): Alert[] {
 	const db = getDb();
-	return db.prepare('SELECT * FROM alerts WHERE batch_id = ? ORDER BY CASE severity WHEN \'High\' THEN 0 WHEN \'Medium\' THEN 1 WHEN \'Low\' THEN 2 END, created_at DESC').all(batchId) as Alert[];
+	return db
+		.prepare(
+			"SELECT * FROM alerts WHERE batch_id = ? ORDER BY CASE severity WHEN 'High' THEN 0 WHEN 'Medium' THEN 1 WHEN 'Low' THEN 2 END, created_at DESC"
+		)
+		.all(batchId) as Alert[];
 }
 
 export function acknowledgeAlert(alertId: number, acknowledgedBy: string): void {
 	const db = getDb();
-	db.prepare(`
+	db.prepare(
+		`
 		UPDATE alerts SET acknowledged = 1, acknowledged_by = ?, acknowledged_at = datetime('now')
 		WHERE id = ?
-	`).run(acknowledgedBy, alertId);
+	`
+	).run(acknowledgedBy, alertId);
 }
 
 export function getAlertCounts(): { high: number; medium: number; low: number; total: number } {
 	const db = getDb();
-	const rows = db.prepare(`
+	const rows = db
+		.prepare(
+			`
 		SELECT severity, COUNT(*) as cnt FROM alerts WHERE acknowledged = 0 GROUP BY severity
-	`).all() as { severity: string; cnt: number }[];
+	`
+		)
+		.all() as { severity: string; cnt: number }[];
 	const counts = { high: 0, medium: 0, low: 0, total: 0 };
 	for (const r of rows) {
 		if (r.severity === 'High') counts.high = r.cnt;
@@ -50,13 +75,23 @@ export function getAlertCounts(): { high: number; medium: number; low: number; t
 export function evaluateAndPersistAlerts(batchId: number): Alert[] {
 	const db = getDb();
 
-	const batch = db.prepare('SELECT * FROM batches WHERE id = ?').get(batchId) as { id: number; leaf_input_kg: number; started_at: string | null; completed_at: string | null } | undefined;
+	const batch = db.prepare('SELECT * FROM batches WHERE id = ?').get(batchId) as
+		| { id: number; leaf_input_kg: number; started_at: string | null; completed_at: string | null }
+		| undefined;
 	if (!batch) return [];
 
-	const s1 = db.prepare('SELECT * FROM stage1_records WHERE batch_id = ?').get(batchId) as Record<string, number | string | null> | undefined;
-	const s2 = db.prepare('SELECT * FROM stage2_records WHERE batch_id = ?').get(batchId) as Record<string, number | string | null> | undefined;
-	const s3 = db.prepare('SELECT * FROM stage3_records WHERE batch_id = ?').get(batchId) as Record<string, number | string | null> | undefined;
-	const s4 = db.prepare('SELECT * FROM stage4_records WHERE batch_id = ?').get(batchId) as Record<string, number | string | null> | undefined;
+	const s1 = db.prepare('SELECT * FROM stage1_records WHERE batch_id = ?').get(batchId) as
+		| Record<string, number | string | null>
+		| undefined;
+	const s2 = db.prepare('SELECT * FROM stage2_records WHERE batch_id = ?').get(batchId) as
+		| Record<string, number | string | null>
+		| undefined;
+	const s3 = db.prepare('SELECT * FROM stage3_records WHERE batch_id = ?').get(batchId) as
+		| Record<string, number | string | null>
+		| undefined;
+	const s4 = db.prepare('SELECT * FROM stage4_records WHERE batch_id = ?').get(batchId) as
+		| Record<string, number | string | null>
+		| undefined;
 
 	const alertData: BatchAlertData = {};
 
@@ -72,9 +107,14 @@ export function evaluateAndPersistAlerts(batchId: number): Alert[] {
 			const throughput = calculateGrindThroughput(powderWeight, runDuration);
 			alertData.grindThroughput = throughput;
 			// Compute baseline from all stage1 records
-			const allS1 = db.prepare('SELECT powder_output_kg, runtime_min FROM stage1_records WHERE runtime_min > 0 AND powder_output_kg > 0').all() as { powder_output_kg: number; runtime_min: number }[];
+			const allS1 = db
+				.prepare(
+					'SELECT powder_output_kg, runtime_min FROM stage1_records WHERE runtime_min > 0 AND powder_output_kg > 0'
+				)
+				.all() as { powder_output_kg: number; runtime_min: number }[];
 			if (allS1.length > 1) {
-				const avg = allS1.reduce((s, r) => s + calculateGrindThroughput(r.powder_output_kg, r.runtime_min), 0) / allS1.length;
+				const avg =
+					allS1.reduce((s, r) => s + calculateGrindThroughput(r.powder_output_kg, r.runtime_min), 0) / allS1.length;
 				alertData.baselineThroughput = avg;
 			}
 		}
@@ -105,7 +145,11 @@ export function evaluateAndPersistAlerts(batchId: number): Alert[] {
 			const ethanolMassIn = calculateEthanolMass(stockUsed);
 			const ethanolRecoveredMass = calculateEthanolMass(recovered);
 			alertData.stage2MassBalanceError = calculateExtractionBalanceError(
-				powderLoaded, ethanolMassIn, extractWeight, spentCake, ethanolRecoveredMass
+				powderLoaded,
+				ethanolMassIn,
+				extractWeight,
+				spentCake,
+				ethanolRecoveredMass
 			);
 		}
 	}
@@ -117,20 +161,26 @@ export function evaluateAndPersistAlerts(batchId: number): Alert[] {
 	}
 
 	// Cost checks
-	const costs = db.prepare('SELECT SUM(total_cost) as total FROM batch_costs WHERE batch_id = ?').get(batchId) as { total: number | null } | undefined;
+	const costs = db.prepare('SELECT SUM(total_cost) as total FROM batch_costs WHERE batch_id = ?').get(batchId) as
+		| { total: number | null }
+		| undefined;
 	const finalProductG = s4?.final_product_g as number | undefined;
 	const finalProductKg = finalProductG ? finalProductG / 1000 : undefined;
 	if (costs?.total && finalProductKg && finalProductKg > 0) {
 		const costPerKg = calculateCostPerKg(costs.total, finalProductKg);
 		alertData.currentCostPerKg = costPerKg;
 		// Get avg across last 10 completed batches
-		const avgRow = db.prepare(`
+		const avgRow = db
+			.prepare(
+				`
 			SELECT AVG(bc.total / (s4r.final_product_g / 1000.0)) as avg_cpk
 			FROM (SELECT batch_id, SUM(total_cost) as total FROM batch_costs GROUP BY batch_id) bc
 			JOIN stage4_records s4r ON s4r.batch_id = bc.batch_id AND s4r.final_product_g > 0
 			JOIN batches b ON b.id = bc.batch_id AND b.status = 'Completed'
 			ORDER BY b.completed_at DESC LIMIT 10
-		`).get() as { avg_cpk: number | null } | undefined;
+		`
+			)
+			.get() as { avg_cpk: number | null } | undefined;
 		if (avgRow?.avg_cpk) {
 			alertData.avgCostPerKg = avgRow.avg_cpk;
 		}
@@ -140,17 +190,23 @@ export function evaluateAndPersistAlerts(batchId: number): Alert[] {
 	if (batch.started_at && batch.completed_at) {
 		const duration = calculateBatchDuration(batch.started_at, batch.completed_at);
 		alertData.batchDurationHrs = duration;
-		const avgDur = db.prepare(`
+		const avgDur = db
+			.prepare(
+				`
 			SELECT AVG((julianday(completed_at) - julianday(started_at)) * 24) as avg_hrs
 			FROM batches WHERE status = 'Completed' AND started_at IS NOT NULL AND completed_at IS NOT NULL
-		`).get() as { avg_hrs: number | null } | undefined;
+		`
+			)
+			.get() as { avg_hrs: number | null } | undefined;
 		if (avgDur?.avg_hrs) {
 			alertData.avgBatchDurationHrs = avgDur.avg_hrs;
 		}
 	}
 
 	// Ethanol inventory
-	const ethMat = db.prepare("SELECT on_hand_qty FROM materials WHERE code = 'MAT-ETOH'").get() as { on_hand_qty: number } | undefined;
+	const ethMat = db.prepare("SELECT on_hand_qty FROM materials WHERE code = 'MAT-ETOH'").get() as
+		| { on_hand_qty: number }
+		| undefined;
 	if (ethMat) {
 		alertData.ethanolOnHandL = ethMat.on_hand_qty;
 		alertData.avgEthanolPerBatch = 350; // standard issue per batch
@@ -160,10 +216,10 @@ export function evaluateAndPersistAlerts(batchId: number): Alert[] {
 	const specAlerts = evaluateBatchAlerts(alertData);
 
 	// Deduplicate: don't re-insert alerts that already exist unacknowledged for this batch
-	const existing = db.prepare(
-		'SELECT alert_type, metric FROM alerts WHERE batch_id = ? AND acknowledged = 0'
-	).all(batchId) as { alert_type: string; metric: string }[];
-	const existingSet = new Set(existing.map(e => `${e.alert_type}:${e.metric}`));
+	const existing = db
+		.prepare('SELECT alert_type, metric FROM alerts WHERE batch_id = ? AND acknowledged = 0')
+		.all(batchId) as { alert_type: string; metric: string }[];
+	const existingSet = new Set(existing.map((e) => `${e.alert_type}:${e.metric}`));
 
 	for (const alert of specAlerts) {
 		const key = `${alert.alert_type}:${alert.metric}`;

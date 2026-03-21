@@ -11,9 +11,7 @@ export function initDb(): void {
 
 	const db = getDb();
 
-	const tableExists = db
-		.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='batches'")
-		.get();
+	const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='batches'").get();
 
 	let needsReseed = !tableExists;
 
@@ -24,9 +22,7 @@ export function initDb(): void {
 		if (!versionTable) {
 			needsReseed = true;
 		} else {
-			const row = db.prepare('SELECT version FROM schema_version').get() as
-				| { version: number }
-				| undefined;
+			const row = db.prepare('SELECT version FROM schema_version').get() as { version: number } | undefined;
 			if (!row || row.version !== SCHEMA_VERSION) {
 				needsReseed = true;
 			}
@@ -36,9 +32,7 @@ export function initDb(): void {
 	if (needsReseed) {
 		// Drop VIEWs first (they depend on tables)
 		db.pragma('foreign_keys = OFF');
-		const views = db
-			.prepare("SELECT name FROM sqlite_master WHERE type='view'")
-			.all() as { name: string }[];
+		const views = db.prepare("SELECT name FROM sqlite_master WHERE type='view'").all() as { name: string }[];
 		for (const { name } of views) {
 			db.exec(`DROP VIEW IF EXISTS "${name}"`);
 		}

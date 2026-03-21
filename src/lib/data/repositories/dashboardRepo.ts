@@ -1,5 +1,24 @@
 import { getDb } from '../db';
-import type { Batch, BatchStage, Deviation, Approval, Machine, LabResult, ProductionRun, ProductionRunSummary, BatchCostSummary, BatchEthanolSummary, BatchYieldSummary, RunHistorySummary, AnomalyFlag, QualityCorrelationPoint, Stage1Record, Stage2Record, Stage3Record, Stage4Record } from '$lib/domain/types';
+import type {
+	Batch,
+	BatchStage,
+	Deviation,
+	Approval,
+	Machine,
+	LabResult,
+	ProductionRun,
+	ProductionRunSummary,
+	BatchCostSummary,
+	BatchEthanolSummary,
+	BatchYieldSummary,
+	RunHistorySummary,
+	AnomalyFlag,
+	QualityCorrelationPoint,
+	Stage1Record,
+	Stage2Record,
+	Stage3Record,
+	Stage4Record
+} from '$lib/domain/types';
 import { getBatchCosts } from './costingRepo';
 import { calculateTotalBatchCost, calculateCostPerKg } from '$lib/calculations/costing';
 
@@ -9,22 +28,23 @@ const ACTIVE_RUN_ID_SQL = `(SELECT pr.id FROM production_runs pr ORDER BY (pr.st
 export function getActiveBatches(): Batch[] {
 	const db = getDb();
 	return db
-		.prepare("SELECT * FROM batches WHERE status IN ('In Progress','Pending Review') ORDER BY current_stage, created_at")
+		.prepare(
+			"SELECT * FROM batches WHERE status IN ('In Progress','Pending Review') ORDER BY current_stage, created_at"
+		)
 		.all() as Batch[];
 }
 
 export function getCompletedBatchCount(): number {
 	const db = getDb();
-	const row = db
-		.prepare("SELECT COUNT(*) as count FROM batches WHERE status = 'Completed'")
-		.get() as { count: number };
+	const row = db.prepare("SELECT COUNT(*) as count FROM batches WHERE status = 'Completed'").get() as { count: number };
 	return row.count;
 }
 
 export function getStalledBatches(daysThreshold: number = 3): Batch[] {
 	const db = getDb();
 	return db
-		.prepare(`
+		.prepare(
+			`
 			SELECT b.* FROM batches b
 			JOIN batch_stages bs ON bs.batch_id = b.id AND bs.stage_number = b.current_stage
 			WHERE b.status = 'In Progress'
@@ -32,41 +52,38 @@ export function getStalledBatches(daysThreshold: number = 3): Batch[] {
 			AND bs.started_at IS NOT NULL
 			AND julianday('now') - julianday(bs.started_at) > ?
 			ORDER BY bs.started_at ASC
-		`)
+		`
+		)
 		.all(daysThreshold) as Batch[];
 }
 
 export function getRecentBatches(limit: number = 5): Batch[] {
 	const db = getDb();
-	return db
-		.prepare('SELECT * FROM batches ORDER BY updated_at DESC LIMIT ?')
-		.all(limit) as Batch[];
+	return db.prepare('SELECT * FROM batches ORDER BY updated_at DESC LIMIT ?').all(limit) as Batch[];
 }
 
 export function getRecentDeviations(limit: number = 5): Deviation[] {
 	const db = getDb();
-	return db
-		.prepare('SELECT * FROM deviations ORDER BY created_at DESC LIMIT ?')
-		.all(limit) as Deviation[];
+	return db.prepare('SELECT * FROM deviations ORDER BY created_at DESC LIMIT ?').all(limit) as Deviation[];
 }
 
 export function getPendingApprovals(): Approval[] {
 	const db = getDb();
-	return db
-		.prepare("SELECT * FROM approvals WHERE status = 'Pending' ORDER BY requested_at DESC")
-		.all() as Approval[];
+	return db.prepare("SELECT * FROM approvals WHERE status = 'Pending' ORDER BY requested_at DESC").all() as Approval[];
 }
 
 export function getBatchesByStage(): { stage: number; count: number }[] {
 	const db = getDb();
 	return db
-		.prepare(`
+		.prepare(
+			`
 			SELECT current_stage as stage, COUNT(*) as count
 			FROM batches
 			WHERE status IN ('In Progress','Pending Review')
 			GROUP BY current_stage
 			ORDER BY current_stage
-		`)
+		`
+		)
 		.all() as { stage: number; count: number }[];
 }
 
@@ -85,9 +102,9 @@ export function getAverageEthanolRecovery(): number {
 
 export function getOpenDeviationCount(): number {
 	const db = getDb();
-	const row = db
-		.prepare("SELECT COUNT(*) as count FROM deviations WHERE status IN ('Open','Under Review')")
-		.get() as { count: number };
+	const row = db.prepare("SELECT COUNT(*) as count FROM deviations WHERE status IN ('Open','Under Review')").get() as {
+		count: number;
+	};
 	return row.count;
 }
 
@@ -101,10 +118,14 @@ export function getSolventTotals(): {
 } {
 	const db = getDb();
 	const ethanol = db
-		.prepare(`SELECT COALESCE(SUM(s2.etoh_vol_L), 0) as issued, COALESCE(SUM(s2.etoh_recovered_L), 0) as recovered, COALESCE(SUM(s2.etoh_lost_L), 0) as lost FROM stage2_records s2 JOIN batches b ON b.id = s2.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`)
+		.prepare(
+			`SELECT COALESCE(SUM(s2.etoh_vol_L), 0) as issued, COALESCE(SUM(s2.etoh_recovered_L), 0) as recovered, COALESCE(SUM(s2.etoh_lost_L), 0) as lost FROM stage2_records s2 JOIN batches b ON b.id = s2.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`
+		)
 		.get() as { issued: number; recovered: number; lost: number };
 	const limonene = db
-		.prepare(`SELECT COALESCE(SUM(s3.dlimo_vol_L), 0) as issued, COALESCE(SUM(s3.dlimo_recovered_L), 0) as recovered, COALESCE(SUM(s3.dlimo_lost_L), 0) as lost FROM stage3_records s3 JOIN batches b ON b.id = s3.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`)
+		.prepare(
+			`SELECT COALESCE(SUM(s3.dlimo_vol_L), 0) as issued, COALESCE(SUM(s3.dlimo_recovered_L), 0) as recovered, COALESCE(SUM(s3.dlimo_lost_L), 0) as lost FROM stage3_records s3 JOIN batches b ON b.id = s3.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`
+		)
 		.get() as { issued: number; recovered: number; lost: number };
 	return {
 		ethanol_issued: ethanol.issued,
@@ -126,9 +147,10 @@ export function getLatestCompletedBatchNumber(): string | null {
 
 export function getBatchCountByStatus(): Record<string, number> {
 	const db = getDb();
-	const rows = db
-		.prepare('SELECT status, COUNT(*) as count FROM batches GROUP BY status')
-		.all() as { status: string; count: number }[];
+	const rows = db.prepare('SELECT status, COUNT(*) as count FROM batches GROUP BY status').all() as {
+		status: string;
+		count: number;
+	}[];
 	const result: Record<string, number> = {};
 	for (const r of rows) result[r.status] = r.count;
 	return result;
@@ -137,7 +159,9 @@ export function getBatchCountByStatus(): Record<string, number> {
 export function getTotalLeafInputProcessed(): { total: number; batchCount: number } {
 	const db = getDb();
 	const row = db
-		.prepare("SELECT COALESCE(SUM(leaf_input_kg), 0) as total, COUNT(*) as batch_count FROM batches WHERE status != 'Draft'")
+		.prepare(
+			"SELECT COALESCE(SUM(leaf_input_kg), 0) as total, COUNT(*) as batch_count FROM batches WHERE status != 'Draft'"
+		)
 		.get() as { total: number; batch_count: number };
 	return { total: Number(row.total.toFixed(1)), batchCount: row.batch_count };
 }
@@ -145,7 +169,9 @@ export function getTotalLeafInputProcessed(): { total: number; batchCount: numbe
 export function getTotalFinalProductWeight(): number {
 	const db = getDb();
 	const row = db
-		.prepare('SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total FROM stage4_records s4 WHERE s4.final_product_g IS NOT NULL')
+		.prepare(
+			'SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total FROM stage4_records s4 WHERE s4.final_product_g IS NOT NULL'
+		)
 		.get() as { total: number };
 	return Number(row.total.toFixed(2));
 }
@@ -162,7 +188,9 @@ export function getStagePipelineSummary(): StagePipelineData[] {
 	const db = getDb();
 
 	const activeRows = db
-		.prepare("SELECT current_stage, COUNT(*) as cnt, COALESCE(SUM(leaf_input_kg), 0) as qty FROM batches WHERE status IN ('In Progress','Pending Review') GROUP BY current_stage")
+		.prepare(
+			"SELECT current_stage, COUNT(*) as cnt, COALESCE(SUM(leaf_input_kg), 0) as qty FROM batches WHERE status IN ('In Progress','Pending Review') GROUP BY current_stage"
+		)
 		.all() as { current_stage: number; cnt: number; qty: number }[];
 
 	const finalizedRows = db
@@ -170,15 +198,42 @@ export function getStagePipelineSummary(): StagePipelineData[] {
 		.all() as { stage_number: number; cnt: number }[];
 
 	// Output data is from the 4 underlying record tables
-	const s1Output = (db.prepare("SELECT COALESCE(SUM(s1.powder_output_kg), 0) as total FROM stage1_records s1 JOIN batch_stages bs ON bs.batch_id = s1.batch_id AND bs.stage_number = 1 WHERE bs.status = 'Finalized'").get() as { total: number }).total;
-	const s2Output = (db.prepare("SELECT COALESCE(SUM(s2.crude_extract_wt_kg), 0) as total FROM stage2_records s2 JOIN batch_stages bs ON bs.batch_id = s2.batch_id AND bs.stage_number = 2 WHERE bs.status = 'Finalized'").get() as { total: number }).total;
-	const s3Output = (db.prepare("SELECT COALESCE(SUM(s3.acidic_aq_vol_L), 0) as total FROM stage3_records s3 JOIN batch_stages bs ON bs.batch_id = s3.batch_id AND bs.stage_number = 3 WHERE bs.status = 'Finalized'").get() as { total: number }).total;
-	const s4Output = (db.prepare("SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total FROM stage4_records s4 JOIN batch_stages bs ON bs.batch_id = s4.batch_id AND bs.stage_number = 4 WHERE bs.status = 'Finalized'").get() as { total: number }).total;
+	const s1Output = (
+		db
+			.prepare(
+				"SELECT COALESCE(SUM(s1.powder_output_kg), 0) as total FROM stage1_records s1 JOIN batch_stages bs ON bs.batch_id = s1.batch_id AND bs.stage_number = 1 WHERE bs.status = 'Finalized'"
+			)
+			.get() as { total: number }
+	).total;
+	const s2Output = (
+		db
+			.prepare(
+				"SELECT COALESCE(SUM(s2.crude_extract_wt_kg), 0) as total FROM stage2_records s2 JOIN batch_stages bs ON bs.batch_id = s2.batch_id AND bs.stage_number = 2 WHERE bs.status = 'Finalized'"
+			)
+			.get() as { total: number }
+	).total;
+	const s3Output = (
+		db
+			.prepare(
+				"SELECT COALESCE(SUM(s3.acidic_aq_vol_L), 0) as total FROM stage3_records s3 JOIN batch_stages bs ON bs.batch_id = s3.batch_id AND bs.stage_number = 3 WHERE bs.status = 'Finalized'"
+			)
+			.get() as { total: number }
+	).total;
+	const s4Output = (
+		db
+			.prepare(
+				"SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total FROM stage4_records s4 JOIN batch_stages bs ON bs.batch_id = s4.batch_id AND bs.stage_number = 4 WHERE bs.status = 'Finalized'"
+			)
+			.get() as { total: number }
+	).total;
 
 	// Map workflow stage → output kg from the relevant record table
 	// Stage 1=powder, 2=extract, 3=precipitate, 4=final product
 	const outputByStage: Record<number, number> = {
-		1: s1Output, 2: s2Output, 3: s3Output, 4: s4Output
+		1: s1Output,
+		2: s2Output,
+		3: s3Output,
+		4: s4Output
 	};
 
 	return [1, 2, 3, 4].map((n) => {
@@ -226,7 +281,8 @@ export function getActiveBatchProgress(): ActiveBatchWithProgress[] {
 	const db = getDb();
 
 	const rows = db
-		.prepare(`
+		.prepare(
+			`
 			SELECT b.id, b.batch_number, b.status, b.current_stage, b.leaf_input_kg, b.operator_name, b.supplier_lot, b.lot_position, b.created_at, b.started_at, b.completed_at,
 				s1.powder_output_kg,
 				s2.crude_extract_wt_kg, s2.etoh_vol_L, s2.filtrate_vol_L, s2.etoh_recovered_L, s2.etoh_lost_L, s2.etoh_recovery_pct,
@@ -243,7 +299,8 @@ export function getActiveBatchProgress(): ActiveBatchWithProgress[] {
 			    ORDER BY (pr.status = 'In Progress') DESC, pr.started_at DESC LIMIT 1
 			  )
 			ORDER BY b.batch_number ASC
-		`)
+		`
+		)
 		.all() as Omit<ActiveBatchWithProgress, 'stages'>[];
 
 	if (rows.length === 0) return [];
@@ -269,12 +326,14 @@ export function getActiveBatchProgress(): ActiveBatchWithProgress[] {
 export function getPendingLabResults(): (LabResult & { batch_number: string })[] {
 	const db = getDb();
 	return db
-		.prepare(`
+		.prepare(
+			`
 			SELECT lr.*, b.batch_number FROM lab_results lr
 			JOIN batches b ON b.id = lr.batch_id
 			WHERE lr.status IN ('Pending', 'In Progress')
 			ORDER BY lr.created_at DESC
-		`)
+		`
+		)
 		.all() as (LabResult & { batch_number: string })[];
 }
 
@@ -286,7 +345,9 @@ export function getLatestCompletedBatchCostPerKg(): {
 } | null {
 	const db = getDb();
 	const batch = db
-		.prepare(`SELECT id, batch_number FROM batches WHERE status = 'Completed' AND production_run_id = ${ACTIVE_RUN_ID_SQL} ORDER BY completed_at DESC LIMIT 1`)
+		.prepare(
+			`SELECT id, batch_number FROM batches WHERE status = 'Completed' AND production_run_id = ${ACTIVE_RUN_ID_SQL} ORDER BY completed_at DESC LIMIT 1`
+		)
 		.get() as { id: number; batch_number: string } | undefined;
 	if (!batch) return null;
 
@@ -309,12 +370,14 @@ export function getLatestCompletedBatchCostPerKg(): {
 export function getAverageCycleTimePerStage(): Record<number, number> {
 	const db = getDb();
 	const rows = db
-		.prepare(`
+		.prepare(
+			`
 			SELECT stage_number, AVG((julianday(finalized_at) - julianday(started_at)) * 24) as avg_hours
 			FROM batch_stages
 			WHERE status = 'Finalized' AND started_at IS NOT NULL AND finalized_at IS NOT NULL
 			GROUP BY stage_number
-		`)
+		`
+		)
 		.all() as { stage_number: number; avg_hours: number }[];
 	const result: Record<number, number> = {};
 	for (const r of rows) result[r.stage_number] = Number(r.avg_hours.toFixed(1));
@@ -324,7 +387,8 @@ export function getAverageCycleTimePerStage(): Record<number, number> {
 export function getLatestHplcResult(): LabResult | null {
 	const db = getDb();
 	const row = db
-		.prepare(`
+		.prepare(
+			`
 			SELECT lr.* FROM lab_results lr
 			JOIN batches b ON b.id = lr.batch_id
 			WHERE lr.test_type = 'HPLC'
@@ -333,7 +397,8 @@ export function getLatestHplcResult(): LabResult | null {
 				CASE lr.status WHEN 'Completed' THEN 0 WHEN 'In Progress' THEN 1 WHEN 'Pending' THEN 2 ELSE 3 END,
 				lr.created_at DESC
 			LIMIT 1
-		`)
+		`
+		)
 		.get() as LabResult | undefined;
 	return row ?? null;
 }
@@ -351,21 +416,29 @@ export interface IntakeProgress {
 export function getIntakeProgress(): IntakeProgress {
 	const db = getDb();
 	const intake = db
-		.prepare(`SELECT COALESCE(SUM(leaf_input_kg), 0) as total, COUNT(*) as cnt FROM batches WHERE status != 'Draft' AND production_run_id = ${ACTIVE_RUN_ID_SQL}`)
+		.prepare(
+			`SELECT COALESCE(SUM(leaf_input_kg), 0) as total, COUNT(*) as cnt FROM batches WHERE status != 'Draft' AND production_run_id = ${ACTIVE_RUN_ID_SQL}`
+		)
 		.get() as { total: number; cnt: number };
 	const processed = db
-		.prepare(`
+		.prepare(
+			`
 			SELECT COALESCE(SUM(b.leaf_input_kg), 0) as total
 			FROM batches b
 			JOIN batch_stages bs ON bs.batch_id = b.id AND bs.stage_number = 1
 			WHERE b.status != 'Draft' AND bs.status = 'Finalized' AND b.production_run_id = ${ACTIVE_RUN_ID_SQL}
-		`)
+		`
+		)
 		.get() as { total: number };
 	const completed = db
-		.prepare(`SELECT COUNT(*) as cnt FROM batches WHERE status = 'Completed' AND production_run_id = ${ACTIVE_RUN_ID_SQL}`)
+		.prepare(
+			`SELECT COUNT(*) as cnt FROM batches WHERE status = 'Completed' AND production_run_id = ${ACTIVE_RUN_ID_SQL}`
+		)
 		.get() as { cnt: number };
 	const active = db
-		.prepare(`SELECT COUNT(*) as cnt FROM batches WHERE status IN ('In Progress', 'Pending Review') AND production_run_id = ${ACTIVE_RUN_ID_SQL}`)
+		.prepare(
+			`SELECT COUNT(*) as cnt FROM batches WHERE status IN ('In Progress', 'Pending Review') AND production_run_id = ${ACTIVE_RUN_ID_SQL}`
+		)
 		.get() as { cnt: number };
 
 	const totalIntakeKg = Number(intake.total);
@@ -391,7 +464,9 @@ export interface TotalFinalYield {
 export function getTotalFinalYield(): TotalFinalYield {
 	const db = getDb();
 	const row = db
-		.prepare(`SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total, COUNT(*) as cnt FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE s4.final_product_g IS NOT NULL AND b.production_run_id = ${ACTIVE_RUN_ID_SQL}`)
+		.prepare(
+			`SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total, COUNT(*) as cnt FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE s4.final_product_g IS NOT NULL AND b.production_run_id = ${ACTIVE_RUN_ID_SQL}`
+		)
 		.get() as { total: number; cnt: number };
 	const targetKg = 50;
 	const producedKg = Number(Number(row.total).toFixed(2));
@@ -419,25 +494,56 @@ export function getEnhancedPipelineSummary(totalIntakeKg: number): EnhancedPipel
 	const db = getDb();
 
 	const activeRows = db
-		.prepare("SELECT current_stage, COUNT(*) as cnt, COALESCE(SUM(leaf_input_kg), 0) as qty FROM batches WHERE status IN ('In Progress','Pending Review') GROUP BY current_stage")
+		.prepare(
+			"SELECT current_stage, COUNT(*) as cnt, COALESCE(SUM(leaf_input_kg), 0) as qty FROM batches WHERE status IN ('In Progress','Pending Review') GROUP BY current_stage"
+		)
 		.all() as { current_stage: number; cnt: number; qty: number }[];
 
 	const finalizedRows = db
 		.prepare("SELECT stage_number, COUNT(*) as cnt FROM batch_stages WHERE status = 'Finalized' GROUP BY stage_number")
 		.all() as { stage_number: number; cnt: number }[];
 
-	const s1Output = (db.prepare("SELECT COALESCE(SUM(s1.powder_output_kg), 0) as total FROM stage1_records s1 JOIN batch_stages bs ON bs.batch_id = s1.batch_id AND bs.stage_number = 1 WHERE bs.status = 'Finalized'").get() as { total: number }).total;
-	const s2Output = (db.prepare("SELECT COALESCE(SUM(s2.crude_extract_wt_kg), 0) as total FROM stage2_records s2 JOIN batch_stages bs ON bs.batch_id = s2.batch_id AND bs.stage_number = 2 WHERE bs.status = 'Finalized'").get() as { total: number }).total;
-	const s3Output = (db.prepare("SELECT COALESCE(SUM(s3.acidic_aq_vol_L), 0) as total FROM stage3_records s3 JOIN batch_stages bs ON bs.batch_id = s3.batch_id AND bs.stage_number = 3 WHERE bs.status = 'Finalized'").get() as { total: number }).total;
-	const s4Output = (db.prepare("SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total FROM stage4_records s4 JOIN batch_stages bs ON bs.batch_id = s4.batch_id AND bs.stage_number = 4 WHERE bs.status = 'Finalized'").get() as { total: number }).total;
+	const s1Output = (
+		db
+			.prepare(
+				"SELECT COALESCE(SUM(s1.powder_output_kg), 0) as total FROM stage1_records s1 JOIN batch_stages bs ON bs.batch_id = s1.batch_id AND bs.stage_number = 1 WHERE bs.status = 'Finalized'"
+			)
+			.get() as { total: number }
+	).total;
+	const s2Output = (
+		db
+			.prepare(
+				"SELECT COALESCE(SUM(s2.crude_extract_wt_kg), 0) as total FROM stage2_records s2 JOIN batch_stages bs ON bs.batch_id = s2.batch_id AND bs.stage_number = 2 WHERE bs.status = 'Finalized'"
+			)
+			.get() as { total: number }
+	).total;
+	const s3Output = (
+		db
+			.prepare(
+				"SELECT COALESCE(SUM(s3.acidic_aq_vol_L), 0) as total FROM stage3_records s3 JOIN batch_stages bs ON bs.batch_id = s3.batch_id AND bs.stage_number = 3 WHERE bs.status = 'Finalized'"
+			)
+			.get() as { total: number }
+	).total;
+	const s4Output = (
+		db
+			.prepare(
+				"SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total FROM stage4_records s4 JOIN batch_stages bs ON bs.batch_id = s4.batch_id AND bs.stage_number = 4 WHERE bs.status = 'Finalized'"
+			)
+			.get() as { total: number }
+	).total;
 
 	const outputMap: Record<number, number> = {
-		1: s1Output, 2: s2Output, 3: s3Output, 4: s4Output
+		1: s1Output,
+		2: s2Output,
+		3: s3Output,
+		4: s4Output
 	};
 
 	// Stage 2 extras
 	const s2Extras = db
-		.prepare("SELECT COALESCE(SUM(etoh_recovered_L), 0) as ethanol_recovered, COALESCE(SUM(water_filtrate_L), 0) as water_extract FROM stage2_records")
+		.prepare(
+			'SELECT COALESCE(SUM(etoh_recovered_L), 0) as ethanol_recovered, COALESCE(SUM(water_filtrate_L), 0) as water_extract FROM stage2_records'
+		)
 		.get() as { ethanol_recovered: number; water_extract: number };
 
 	return [1, 2, 3, 4].map((n) => {
@@ -491,15 +597,23 @@ export interface CostBreakdown {
 
 export function getCostBreakdown(): CostBreakdown {
 	const db = getDb();
-	const rows = db.prepare(`
+	const rows = db
+		.prepare(
+			`
 		SELECT bc.cost_category, bc.item_name, COALESCE(SUM(bc.total_cost), 0) as total
 		FROM batch_costs bc
 		JOIN batches b ON b.id = bc.batch_id
 		WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}
 		GROUP BY bc.cost_category, bc.item_name
-	`).all() as { cost_category: string; item_name: string; total: number }[];
+	`
+		)
+		.all() as { cost_category: string; item_name: string; total: number }[];
 
-	let rawMaterial = 0, solvents = 0, reagents = 0, labor = 0, utilities = 0;
+	let rawMaterial = 0,
+		solvents = 0,
+		reagents = 0,
+		labor = 0,
+		utilities = 0;
 	for (const r of rows) {
 		if (r.cost_category === 'Labor') labor += r.total;
 		else if (r.cost_category === 'Utility') utilities += r.total;
@@ -519,24 +633,37 @@ const ALL_PERIODS: TimePeriod[] = ['daily', '7d', '30d', '3m', 'yearly'];
 
 function dateFilter(period: TimePeriod): string {
 	switch (period) {
-		case 'daily': return "date('now')";
-		case '7d': return "date('now', '-7 days')";
-		case '30d': return "date('now', '-30 days')";
-		case '3m': return "date('now', '-3 months')";
-		case 'yearly': return "date('now', '-1 year')";
+		case 'daily':
+			return "date('now')";
+		case '7d':
+			return "date('now', '-7 days')";
+		case '30d':
+			return "date('now', '-30 days')";
+		case '3m':
+			return "date('now', '-3 months')";
+		case 'yearly':
+			return "date('now', '-1 year')";
 	}
 }
 
 export function getCostBreakdownByPeriod(period: TimePeriod): CostBreakdown {
 	const db = getDb();
-	const rows = db.prepare(`
+	const rows = db
+		.prepare(
+			`
 		SELECT bc.cost_category, bc.item_name, COALESCE(SUM(bc.total_cost), 0) as total
 		FROM batch_costs bc
 		WHERE bc.created_at >= ${dateFilter(period)}
 		GROUP BY bc.cost_category, bc.item_name
-	`).all() as { cost_category: string; item_name: string; total: number }[];
+	`
+		)
+		.all() as { cost_category: string; item_name: string; total: number }[];
 
-	let rawMaterial = 0, solvents = 0, reagents = 0, labor = 0, utilities = 0;
+	let rawMaterial = 0,
+		solvents = 0,
+		reagents = 0,
+		labor = 0,
+		utilities = 0;
 	for (const r of rows) {
 		if (r.cost_category === 'Labor') labor += r.total;
 		else if (r.cost_category === 'Utility') utilities += r.total;
@@ -552,7 +679,10 @@ export function getCostBreakdownByPeriod(period: TimePeriod): CostBreakdown {
 }
 
 export function getAllCostBreakdownsByPeriod(): Record<TimePeriod, CostBreakdown> {
-	return Object.fromEntries(ALL_PERIODS.map(p => [p, getCostBreakdownByPeriod(p)])) as Record<TimePeriod, CostBreakdown>;
+	return Object.fromEntries(ALL_PERIODS.map((p) => [p, getCostBreakdownByPeriod(p)])) as Record<
+		TimePeriod,
+		CostBreakdown
+	>;
 }
 
 export interface SolventTotals {
@@ -568,10 +698,14 @@ export function getSolventTotalsByPeriod(period: TimePeriod): SolventTotals {
 	const db = getDb();
 	const cutoff = dateFilter(period);
 	const ethanol = db
-		.prepare(`SELECT COALESCE(SUM(s2.etoh_vol_L), 0) as issued, COALESCE(SUM(s2.etoh_recovered_L), 0) as recovered, COALESCE(SUM(s2.etoh_lost_L), 0) as lost FROM stage2_records s2 JOIN batches b ON b.id = s2.batch_id WHERE b.created_at >= ${cutoff}`)
+		.prepare(
+			`SELECT COALESCE(SUM(s2.etoh_vol_L), 0) as issued, COALESCE(SUM(s2.etoh_recovered_L), 0) as recovered, COALESCE(SUM(s2.etoh_lost_L), 0) as lost FROM stage2_records s2 JOIN batches b ON b.id = s2.batch_id WHERE b.created_at >= ${cutoff}`
+		)
 		.get() as { issued: number; recovered: number; lost: number };
 	const limonene = db
-		.prepare(`SELECT COALESCE(SUM(s3.dlimo_vol_L), 0) as issued, COALESCE(SUM(s3.dlimo_recovered_L), 0) as recovered, COALESCE(SUM(s3.dlimo_lost_L), 0) as lost FROM stage3_records s3 JOIN batches b ON b.id = s3.batch_id WHERE b.created_at >= ${cutoff}`)
+		.prepare(
+			`SELECT COALESCE(SUM(s3.dlimo_vol_L), 0) as issued, COALESCE(SUM(s3.dlimo_recovered_L), 0) as recovered, COALESCE(SUM(s3.dlimo_lost_L), 0) as lost FROM stage3_records s3 JOIN batches b ON b.id = s3.batch_id WHERE b.created_at >= ${cutoff}`
+		)
 		.get() as { issued: number; recovered: number; lost: number };
 	return {
 		ethanol_issued: ethanol.issued,
@@ -584,7 +718,10 @@ export function getSolventTotalsByPeriod(period: TimePeriod): SolventTotals {
 }
 
 export function getAllSolventTotalsByPeriod(): Record<TimePeriod, SolventTotals> {
-	return Object.fromEntries(ALL_PERIODS.map(p => [p, getSolventTotalsByPeriod(p)])) as Record<TimePeriod, SolventTotals>;
+	return Object.fromEntries(ALL_PERIODS.map((p) => [p, getSolventTotalsByPeriod(p)])) as Record<
+		TimePeriod,
+		SolventTotals
+	>;
 }
 
 export interface YieldByPeriod {
@@ -597,10 +734,14 @@ export function getYieldByPeriod(period: TimePeriod): YieldByPeriod {
 	const db = getDb();
 	const cutoff = dateFilter(period);
 	const product = db
-		.prepare(`SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE s4.final_product_g IS NOT NULL AND b.created_at >= ${cutoff}`)
+		.prepare(
+			`SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE s4.final_product_g IS NOT NULL AND b.created_at >= ${cutoff}`
+		)
 		.get() as { total: number };
 	const input = db
-		.prepare(`SELECT COALESCE(SUM(b.leaf_input_kg), 0) as total FROM batches b WHERE b.status != 'Draft' AND b.created_at >= ${cutoff}`)
+		.prepare(
+			`SELECT COALESCE(SUM(b.leaf_input_kg), 0) as total FROM batches b WHERE b.status != 'Draft' AND b.created_at >= ${cutoff}`
+		)
 		.get() as { total: number };
 	const producedKg = Number(Number(product.total).toFixed(2));
 	const inputKg = Number(Number(input.total).toFixed(2));
@@ -612,12 +753,16 @@ export function getYieldByPeriod(period: TimePeriod): YieldByPeriod {
 }
 
 export function getAllYieldByPeriod(): Record<TimePeriod, YieldByPeriod> {
-	return Object.fromEntries(ALL_PERIODS.map(p => [p, getYieldByPeriod(p)])) as Record<TimePeriod, YieldByPeriod>;
+	return Object.fromEntries(ALL_PERIODS.map((p) => [p, getYieldByPeriod(p)])) as Record<TimePeriod, YieldByPeriod>;
 }
 
-export function getEthanolRecoveryTrend(limit = 7): { batch_number: string; recoveryPct: number; date: string; filtrationReturnL: number; extractWeightKg: number }[] {
+export function getEthanolRecoveryTrend(
+	limit = 7
+): { batch_number: string; recoveryPct: number; date: string; filtrationReturnL: number; extractWeightKg: number }[] {
 	const db = getDb();
-	const rows = db.prepare(`
+	const rows = db
+		.prepare(
+			`
 		SELECT b.batch_number, s2.etoh_recovery_pct, date(b.created_at) as date,
 			s2.filtrate_vol_L as filtration_return_l,
 			s2.crude_extract_wt_kg
@@ -625,8 +770,16 @@ export function getEthanolRecoveryTrend(limit = 7): { batch_number: string; reco
 		JOIN batches b ON b.id = s2.batch_id
 		WHERE s2.etoh_recovery_pct IS NOT NULL AND b.production_run_id = ${ACTIVE_RUN_ID_SQL}
 		ORDER BY b.created_at DESC LIMIT ?
-	`).all(limit) as { batch_number: string; etoh_recovery_pct: number; date: string; filtration_return_l: number; crude_extract_wt_kg: number }[];
-	return rows.reverse().map(r => ({
+	`
+		)
+		.all(limit) as {
+		batch_number: string;
+		etoh_recovery_pct: number;
+		date: string;
+		filtration_return_l: number;
+		crude_extract_wt_kg: number;
+	}[];
+	return rows.reverse().map((r) => ({
 		batch_number: r.batch_number,
 		recoveryPct: Number(r.etoh_recovery_pct.toFixed(1)),
 		date: r.date,
@@ -637,7 +790,9 @@ export function getEthanolRecoveryTrend(limit = 7): { batch_number: string; reco
 
 export function getDailyCostTrend(days = 7): { day: string; total: number }[] {
 	const db = getDb();
-	return db.prepare(`
+	return db
+		.prepare(
+			`
 		WITH RECURSIVE dates(d) AS (
 			VALUES(date('now', '-${days - 1} days'))
 			UNION ALL
@@ -648,12 +803,18 @@ export function getDailyCostTrend(days = 7): { day: string; total: number }[] {
 		LEFT JOIN batch_costs bc ON date(bc.created_at) = dates.d AND bc.batch_id IN (SELECT id FROM batches WHERE production_run_id = ${ACTIVE_RUN_ID_SQL})
 		GROUP BY dates.d
 		ORDER BY dates.d
-	`).all() as { day: string; total: number }[];
+	`
+		)
+		.all() as { day: string; total: number }[];
 }
 
-export function getBatchYieldTrend(limit = 7): { batch_number: string; yieldPct: number; producedKg: number; date: string }[] {
+export function getBatchYieldTrend(
+	limit = 7
+): { batch_number: string; yieldPct: number; producedKg: number; date: string }[] {
 	const db = getDb();
-	const rows = db.prepare(`
+	const rows = db
+		.prepare(
+			`
 		SELECT b.batch_number,
 			CASE WHEN b.leaf_input_kg > 0
 				THEN (s4.final_product_g / 1000.0 / b.leaf_input_kg * 100)
@@ -664,8 +825,10 @@ export function getBatchYieldTrend(limit = 7): { batch_number: string; yieldPct:
 		JOIN batches b ON b.id = s4.batch_id
 		WHERE s4.final_product_g IS NOT NULL AND b.production_run_id = ${ACTIVE_RUN_ID_SQL}
 		ORDER BY b.created_at DESC LIMIT ?
-	`).all(limit) as { batch_number: string; yield_pct: number; produced_kg: number; date: string }[];
-	return rows.reverse().map(r => ({
+	`
+		)
+		.all(limit) as { batch_number: string; yield_pct: number; produced_kg: number; date: string }[];
+	return rows.reverse().map((r) => ({
 		batch_number: r.batch_number,
 		yieldPct: Number(r.yield_pct.toFixed(2)),
 		producedKg: Number(r.produced_kg.toFixed(2)),
@@ -675,13 +838,17 @@ export function getBatchYieldTrend(limit = 7): { batch_number: string; yieldPct:
 
 export function getDailyOpCost(): number {
 	const db = getDb();
-	const row = db.prepare(`
+	const row = db
+		.prepare(
+			`
 		SELECT COALESCE(SUM(total_cost), 0) as total,
 			COALESCE(julianday('now') - julianday(MIN(b.created_at)) + 1, 1) as days
 		FROM batch_costs bc
 		JOIN batches b ON b.id = bc.batch_id
 		WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}
-	`).get() as { total: number; days: number };
+	`
+		)
+		.get() as { total: number; days: number };
 	return row.days > 0 ? row.total / row.days : 0;
 }
 
@@ -689,8 +856,16 @@ export function getAvgCostPerKg(): number {
 	const db = getDb();
 	// Only count costs from batches that have a final product weight (completed through stage 4)
 	const completedBatchIds = `SELECT s4.batch_id FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE s4.final_product_g IS NOT NULL AND b.production_run_id = ${ACTIVE_RUN_ID_SQL}`;
-	const costs = db.prepare(`SELECT COALESCE(SUM(bc.total_cost), 0) as total FROM batch_costs bc WHERE bc.batch_id IN (${completedBatchIds})`).get() as { total: number };
-	const product = db.prepare(`SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE s4.final_product_g IS NOT NULL AND b.production_run_id = ${ACTIVE_RUN_ID_SQL}`).get() as { total: number };
+	const costs = db
+		.prepare(
+			`SELECT COALESCE(SUM(bc.total_cost), 0) as total FROM batch_costs bc WHERE bc.batch_id IN (${completedBatchIds})`
+		)
+		.get() as { total: number };
+	const product = db
+		.prepare(
+			`SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE s4.final_product_g IS NOT NULL AND b.production_run_id = ${ACTIVE_RUN_ID_SQL}`
+		)
+		.get() as { total: number };
 	return product.total > 0 ? costs.total / product.total : 0;
 }
 
@@ -698,14 +873,22 @@ export function getOperationsPipelineMetrics(): OperationsPipelineMetrics {
 	const db = getDb();
 
 	const finalizedRows = db
-		.prepare(`SELECT bs.stage_number, COUNT(*) as cnt FROM batch_stages bs JOIN batches b ON b.id = bs.batch_id WHERE bs.status = 'Finalized' AND b.production_run_id = ${ACTIVE_RUN_ID_SQL} GROUP BY bs.stage_number`)
+		.prepare(
+			`SELECT bs.stage_number, COUNT(*) as cnt FROM batch_stages bs JOIN batches b ON b.id = bs.batch_id WHERE bs.status = 'Finalized' AND b.production_run_id = ${ACTIVE_RUN_ID_SQL} GROUP BY bs.stage_number`
+		)
 		.all() as { stage_number: number; cnt: number }[];
 	const stageCounts: Record<number, number> = {};
 	for (const r of finalizedRows) stageCounts[r.stage_number] = r.cnt;
 
-	const s1 = db.prepare(`SELECT COALESCE(SUM(s1.powder_output_kg), 0) as total FROM stage1_records s1 JOIN batches b ON b.id = s1.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`).get() as { total: number };
+	const s1 = db
+		.prepare(
+			`SELECT COALESCE(SUM(s1.powder_output_kg), 0) as total FROM stage1_records s1 JOIN batches b ON b.id = s1.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`
+		)
+		.get() as { total: number };
 
-	const s2 = db.prepare(`
+	const s2 = db
+		.prepare(
+			`
 		SELECT COUNT(*) as batch_count,
 			COALESCE(SUM(s2.etoh_vol_L), 0) as ethanol_used,
 			COALESCE(SUM(s2.filtrate_vol_L), 0) as filtration_output,
@@ -715,13 +898,36 @@ export function getOperationsPipelineMetrics(): OperationsPipelineMetrics {
 		FROM stage2_records s2
 		JOIN batches b ON b.id = s2.batch_id
 		WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}
-	`).get() as { batch_count: number; ethanol_used: number; filtration_output: number; recovered: number; lost: number; extract_total: number };
+	`
+		)
+		.get() as {
+		batch_count: number;
+		ethanol_used: number;
+		filtration_output: number;
+		recovered: number;
+		lost: number;
+		extract_total: number;
+	};
 
-	const s3 = db.prepare(`SELECT COALESCE(SUM(s3.dlimo_recovered_L), 0) as lim_recovered, COALESCE(SUM(s3.dlimo_lost_L), 0) as lim_lost FROM stage3_records s3 JOIN batches b ON b.id = s3.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`).get() as { lim_recovered: number; lim_lost: number };
+	const s3 = db
+		.prepare(
+			`SELECT COALESCE(SUM(s3.dlimo_recovered_L), 0) as lim_recovered, COALESCE(SUM(s3.dlimo_lost_L), 0) as lim_lost FROM stage3_records s3 JOIN batches b ON b.id = s3.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`
+		)
+		.get() as { lim_recovered: number; lim_lost: number };
 
-	const s4 = db.prepare(`SELECT COALESCE(SUM(s4.wet_precipitate_g / 1000.0), 0) as precipitate_total, COALESCE(SUM(s4.final_product_g / 1000.0), 0) as final_total FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`).get() as { precipitate_total: number; final_total: number };
+	const s4 = db
+		.prepare(
+			`SELECT COALESCE(SUM(s4.wet_precipitate_g / 1000.0), 0) as precipitate_total, COALESCE(SUM(s4.final_product_g / 1000.0), 0) as final_total FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id WHERE b.production_run_id = ${ACTIVE_RUN_ID_SQL}`
+		)
+		.get() as { precipitate_total: number; final_total: number };
 
-	const completedCount = (db.prepare(`SELECT COUNT(*) as cnt FROM batches WHERE status = 'Completed' AND production_run_id = ${ACTIVE_RUN_ID_SQL}`).get() as { cnt: number }).cnt;
+	const completedCount = (
+		db
+			.prepare(
+				`SELECT COUNT(*) as cnt FROM batches WHERE status = 'Completed' AND production_run_id = ${ACTIVE_RUN_ID_SQL}`
+			)
+			.get() as { cnt: number }
+	).cnt;
 
 	return {
 		stageCounts,
@@ -757,34 +963,50 @@ export function getProductionRunSummary(runId: number): ProductionRunSummary | n
 	const run = db.prepare('SELECT * FROM production_runs WHERE id = ?').get(runId) as ProductionRun | undefined;
 	if (!run) return null;
 
-	const batchStats = db.prepare(`
+	const batchStats = db
+		.prepare(
+			`
 		SELECT COUNT(*) as total,
 			SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) as completed,
 			SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as in_progress,
 			COALESCE(SUM(leaf_input_kg), 0) as total_input
 		FROM batches WHERE production_run_id = ?
-	`).get(runId) as { total: number; completed: number; in_progress: number; total_input: number };
+	`
+		)
+		.get(runId) as { total: number; completed: number; in_progress: number; total_input: number };
 
-	const produced = db.prepare(`
+	const produced = db
+		.prepare(
+			`
 		SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total
 		FROM stage4_records s4
 		JOIN batches b ON b.id = s4.batch_id
 		WHERE b.production_run_id = ? AND s4.final_product_g IS NOT NULL
-	`).get(runId) as { total: number };
+	`
+		)
+		.get(runId) as { total: number };
 
-	const costs = db.prepare(`
+	const costs = db
+		.prepare(
+			`
 		SELECT COALESCE(SUM(bc.total_cost), 0) as total
 		FROM batch_costs bc
 		JOIN batches b ON b.id = bc.batch_id
 		WHERE b.production_run_id = ?
-	`).get(runId) as { total: number };
+	`
+		)
+		.get(runId) as { total: number };
 
-	const ethanol = db.prepare(`
+	const ethanol = db
+		.prepare(
+			`
 		SELECT COALESCE(AVG(s2.etoh_recovery_pct), 0) as avg_recovery
 		FROM stage2_records s2
 		JOIN batches b ON b.id = s2.batch_id
 		WHERE b.production_run_id = ? AND s2.etoh_recovery_pct IS NOT NULL
-	`).get(runId) as { avg_recovery: number };
+	`
+		)
+		.get(runId) as { avg_recovery: number };
 
 	const totalProducedKg = Number(produced.total);
 	const totalCost = Number(costs.total);
@@ -796,7 +1018,8 @@ export function getProductionRunSummary(runId: number): ProductionRunSummary | n
 		inProgressBatches: batchStats.in_progress,
 		totalInputKg: Number(batchStats.total_input),
 		totalProducedKg,
-		overallYieldPct: batchStats.total_input > 0 ? Number(((totalProducedKg / batchStats.total_input) * 100).toFixed(2)) : 0,
+		overallYieldPct:
+			batchStats.total_input > 0 ? Number(((totalProducedKg / batchStats.total_input) * 100).toFixed(2)) : 0,
 		totalCost,
 		costPerKg: totalProducedKg > 0 ? Number((totalCost / totalProducedKg).toFixed(2)) : 0,
 		avgEthanolRecovery: Number(Number(ethanol.avg_recovery).toFixed(1))
@@ -805,8 +1028,17 @@ export function getProductionRunSummary(runId: number): ProductionRunSummary | n
 
 export function getRunBatchCosts(runId: number): BatchCostSummary[] {
 	const db = getDb();
-	interface RunCostRow { batch_id: number; batch_number: string; status: string; supplier_lot: string | null; totalCost: number; final_product_kg: number | null }
-	const rows = db.prepare(`
+	interface RunCostRow {
+		batch_id: number;
+		batch_number: string;
+		status: string;
+		supplier_lot: string | null;
+		totalCost: number;
+		final_product_kg: number | null;
+	}
+	const rows = db
+		.prepare(
+			`
 		SELECT b.id as batch_id, b.batch_number, b.status, b.supplier_lot,
 			COALESCE(SUM(bc.total_cost), 0) as totalCost,
 			s4.final_product_g / 1000.0 as final_product_kg
@@ -816,8 +1048,10 @@ export function getRunBatchCosts(runId: number): BatchCostSummary[] {
 		WHERE b.production_run_id = ?
 		GROUP BY b.id, b.supplier_lot
 		ORDER BY b.batch_number
-	`).all(runId) as RunCostRow[];
-	return rows.map(r => ({
+	`
+		)
+		.all(runId) as RunCostRow[];
+	return rows.map((r) => ({
 		batch_id: r.batch_id,
 		batch_number: r.batch_number,
 		status: r.status,
@@ -837,29 +1071,45 @@ export interface RunCostAggregates {
 
 export function getRunCostAggregates(runId: number): RunCostAggregates {
 	const db = getDb();
-	const totalRow = db.prepare(`
+	const totalRow = db
+		.prepare(
+			`
 		SELECT COALESCE(SUM(bc.total_cost), 0) as total
 		FROM batch_costs bc JOIN batches b ON b.id = bc.batch_id
 		WHERE b.production_run_id = ?
-	`).get(runId) as { total: number };
+	`
+		)
+		.get(runId) as { total: number };
 
-	const batchesWithCosts = db.prepare(`
+	const batchesWithCosts = db
+		.prepare(
+			`
 		SELECT COUNT(DISTINCT bc.batch_id) as cnt
 		FROM batch_costs bc JOIN batches b ON b.id = bc.batch_id
 		WHERE b.production_run_id = ?
-	`).get(runId) as { cnt: number };
+	`
+		)
+		.get(runId) as { cnt: number };
 
-	const totalBatches = db.prepare(`
+	const totalBatches = db
+		.prepare(
+			`
 		SELECT COUNT(*) as cnt FROM batches WHERE production_run_id = ?
-	`).get(runId) as { cnt: number };
+	`
+		)
+		.get(runId) as { cnt: number };
 
-	const categories = db.prepare(`
+	const categories = db
+		.prepare(
+			`
 		SELECT bc.cost_category as category, COALESCE(SUM(bc.total_cost), 0) as total
 		FROM batch_costs bc JOIN batches b ON b.id = bc.batch_id
 		WHERE b.production_run_id = ?
 		GROUP BY bc.cost_category
 		ORDER BY total DESC
-	`).all(runId) as { category: string; total: number }[];
+	`
+		)
+		.all(runId) as { category: string; total: number }[];
 
 	const totalCost = Number(totalRow.total);
 	const avgCostPerBatch = batchesWithCosts.cnt > 0 ? totalCost / batchesWithCosts.cnt : 0;
@@ -887,8 +1137,20 @@ export interface BatchCostSegment {
 
 export function getBatchCostBreakdown(runId: number): BatchCostSegment[] {
 	const db = getDb();
-	interface CostBreakdownRow { batch_id: number; batch_number: string; supplier_lot: string | null; leaf: number; solvent: number; chemicals: number; labor: number; electricity: number; testing: number }
-	const rows = db.prepare(`
+	interface CostBreakdownRow {
+		batch_id: number;
+		batch_number: string;
+		supplier_lot: string | null;
+		leaf: number;
+		solvent: number;
+		chemicals: number;
+		labor: number;
+		electricity: number;
+		testing: number;
+	}
+	const rows = db
+		.prepare(
+			`
 		SELECT b.id as batch_id, b.batch_number, b.supplier_lot,
 			COALESCE(SUM(CASE WHEN bc.item_name = 'Raw leaf' THEN bc.total_cost END), 0) as leaf,
 			COALESCE(SUM(CASE WHEN bc.item_name IN ('Ethanol loss', 'D-Limonene loss') THEN bc.total_cost END), 0) as solvent,
@@ -901,8 +1163,10 @@ export function getBatchCostBreakdown(runId: number): BatchCostSegment[] {
 		WHERE b.production_run_id = ?
 		GROUP BY b.id
 		ORDER BY b.batch_number
-	`).all(runId) as CostBreakdownRow[];
-	return rows.map(r => ({
+	`
+		)
+		.all(runId) as CostBreakdownRow[];
+	return rows.map((r) => ({
 		batchId: r.batch_id,
 		batchNumber: r.batch_number,
 		supplierLot: r.supplier_lot ?? null,
@@ -917,7 +1181,9 @@ export function getBatchCostBreakdown(runId: number): BatchCostSegment[] {
 
 export function getRunEthanolBreakdown(runId: number): BatchEthanolSummary[] {
 	const db = getDb();
-	return db.prepare(`
+	return db
+		.prepare(
+			`
 		SELECT b.id as batch_id, b.batch_number, b.status, b.supplier_lot,
 			s2.etoh_vol_L as ethanol_issued_l,
 			s2.etoh_recovered_L as ethanol_recovered_l,
@@ -930,7 +1196,9 @@ export function getRunEthanolBreakdown(runId: number): BatchEthanolSummary[] {
 		LEFT JOIN stage2_records s2 ON s2.batch_id = b.id
 		WHERE b.production_run_id = ?
 		ORDER BY b.batch_number
-	`).all(runId) as BatchEthanolSummary[];
+	`
+		)
+		.all(runId) as BatchEthanolSummary[];
 }
 
 export interface RunEthanolAggregates {
@@ -944,28 +1212,40 @@ export interface RunEthanolAggregates {
 
 export function getRunEthanolAggregates(runId: number): RunEthanolAggregates {
 	const db = getDb();
-	const totals = db.prepare(`
+	const totals = db
+		.prepare(
+			`
 		SELECT COALESCE(SUM(s2.etoh_vol_L), 0) as issued,
 			COALESCE(SUM(s2.etoh_recovered_L), 0) as recovered,
 			COALESCE(AVG(s2.etoh_recovery_pct), 0) as avg_recovery,
 			COALESCE(SUM(s2.etoh_lost_L), 0) as total_loss
 		FROM stage2_records s2 JOIN batches b ON b.id = s2.batch_id
 		WHERE b.production_run_id = ? AND s2.etoh_recovery_pct IS NOT NULL
-	`).get(runId) as { issued: number; recovered: number; avg_recovery: number; total_loss: number };
+	`
+		)
+		.get(runId) as { issued: number; recovered: number; avg_recovery: number; total_loss: number };
 
-	const best = db.prepare(`
+	const best = db
+		.prepare(
+			`
 		SELECT b.batch_number, s2.etoh_recovery_pct
 		FROM stage2_records s2 JOIN batches b ON b.id = s2.batch_id
 		WHERE b.production_run_id = ? AND s2.etoh_recovery_pct IS NOT NULL
 		ORDER BY s2.etoh_recovery_pct DESC LIMIT 1
-	`).get(runId) as { batch_number: string; etoh_recovery_pct: number } | undefined;
+	`
+		)
+		.get(runId) as { batch_number: string; etoh_recovery_pct: number } | undefined;
 
-	const worst = db.prepare(`
+	const worst = db
+		.prepare(
+			`
 		SELECT b.batch_number, s2.etoh_recovery_pct
 		FROM stage2_records s2 JOIN batches b ON b.id = s2.batch_id
 		WHERE b.production_run_id = ? AND s2.etoh_recovery_pct IS NOT NULL
 		ORDER BY s2.etoh_recovery_pct ASC LIMIT 1
-	`).get(runId) as { batch_number: string; etoh_recovery_pct: number } | undefined;
+	`
+		)
+		.get(runId) as { batch_number: string; etoh_recovery_pct: number } | undefined;
 
 	return {
 		totalIssued: Number(totals.issued),
@@ -979,7 +1259,9 @@ export function getRunEthanolAggregates(runId: number): RunEthanolAggregates {
 
 export function getRunYieldBreakdown(runId: number): BatchYieldSummary[] {
 	const db = getDb();
-	return db.prepare(`
+	return db
+		.prepare(
+			`
 		SELECT b.id as batch_id, b.batch_number, b.status, b.supplier_lot, b.leaf_input_kg,
 			s4.final_product_g,
 			s4.overall_yield_pct,
@@ -992,7 +1274,9 @@ export function getRunYieldBreakdown(runId: number): BatchYieldSummary[] {
 		LEFT JOIN (SELECT batch_id, COUNT(*) as cnt FROM deviations GROUP BY batch_id) dev ON dev.batch_id = b.id
 		WHERE b.production_run_id = ?
 		ORDER BY b.batch_number
-	`).all(runId) as BatchYieldSummary[];
+	`
+		)
+		.all(runId) as BatchYieldSummary[];
 }
 
 export interface RunYieldAggregates {
@@ -1007,46 +1291,72 @@ export interface RunYieldAggregates {
 
 export function getRunYieldAggregates(runId: number): RunYieldAggregates {
 	const db = getDb();
-	const totals = db.prepare(`
+	const totals = db
+		.prepare(
+			`
 		SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as produced,
 			COALESCE(SUM(b.leaf_input_kg), 0) as input
 		FROM batches b
 		LEFT JOIN stage4_records s4 ON s4.batch_id = b.id
 		WHERE b.production_run_id = ?
-	`).get(runId) as { produced: number; input: number };
+	`
+		)
+		.get(runId) as { produced: number; input: number };
 
-	const best = db.prepare(`
+	const best = db
+		.prepare(
+			`
 		SELECT b.batch_number, s4.overall_yield_pct
 		FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id
 		WHERE b.production_run_id = ? AND s4.overall_yield_pct IS NOT NULL
 		ORDER BY s4.overall_yield_pct DESC LIMIT 1
-	`).get(runId) as { batch_number: string; overall_yield_pct: number } | undefined;
+	`
+		)
+		.get(runId) as { batch_number: string; overall_yield_pct: number } | undefined;
 
-	const worst = db.prepare(`
+	const worst = db
+		.prepare(
+			`
 		SELECT b.batch_number, s4.overall_yield_pct
 		FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id
 		WHERE b.production_run_id = ? AND s4.overall_yield_pct IS NOT NULL
 		ORDER BY s4.overall_yield_pct ASC LIMIT 1
-	`).get(runId) as { batch_number: string; overall_yield_pct: number } | undefined;
+	`
+		)
+		.get(runId) as { batch_number: string; overall_yield_pct: number } | undefined;
 
-	const purity = db.prepare(`
+	const purity = db
+		.prepare(
+			`
 		SELECT AVG(lr.hplc_purity_pct) as avg_purity
 		FROM lab_results lr JOIN batches b ON b.id = lr.batch_id
 		WHERE b.production_run_id = ? AND lr.test_type = 'HPLC' AND lr.status = 'Completed'
-	`).get(runId) as { avg_purity: number | null };
+	`
+		)
+		.get(runId) as { avg_purity: number | null };
 
-	const devCount = db.prepare(`
+	const devCount = db
+		.prepare(
+			`
 		SELECT COUNT(*) as cnt FROM deviations d JOIN batches b ON b.id = d.batch_id WHERE b.production_run_id = ?
-	`).get(runId) as { cnt: number };
+	`
+		)
+		.get(runId) as { cnt: number };
 
 	// Projected: avg produced per completed batch × total batches in run
-	const completedBatchAvg = db.prepare(`
+	const completedBatchAvg = db
+		.prepare(
+			`
 		SELECT AVG(s4.final_product_g / 1000.0) as avg_kg, COUNT(*) as cnt
 		FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id
 		WHERE b.production_run_id = ? AND s4.final_product_g IS NOT NULL
-	`).get(runId) as { avg_kg: number | null; cnt: number };
+	`
+		)
+		.get(runId) as { avg_kg: number | null; cnt: number };
 
-	const totalBatches = db.prepare(`SELECT COUNT(*) as cnt FROM batches WHERE production_run_id = ?`).get(runId) as { cnt: number };
+	const totalBatches = db.prepare(`SELECT COUNT(*) as cnt FROM batches WHERE production_run_id = ?`).get(runId) as {
+		cnt: number;
+	};
 	const projectedFinal = completedBatchAvg.avg_kg ? completedBatchAvg.avg_kg * totalBatches.cnt : 0;
 
 	return {
@@ -1082,49 +1392,79 @@ export function getBatchDetailForDrawer(batchId: number, runId: number): BatchDe
 	const batch = db.prepare('SELECT * FROM batches WHERE id = ?').get(batchId) as Batch | undefined;
 	if (!batch) return null;
 
-	const stages = db.prepare('SELECT * FROM batch_stages WHERE batch_id = ? ORDER BY stage_number').all(batchId) as BatchStage[];
-	const stage1 = db.prepare('SELECT * FROM stage1_records WHERE batch_id = ?').get(batchId) as Stage1Record | undefined ?? null;
-	const stage2 = db.prepare('SELECT * FROM stage2_records WHERE batch_id = ?').get(batchId) as Stage2Record | undefined ?? null;
-	const stage3 = db.prepare('SELECT * FROM stage3_records WHERE batch_id = ?').get(batchId) as Stage3Record | undefined ?? null;
-	const stage4 = db.prepare('SELECT * FROM stage4_records WHERE batch_id = ?').get(batchId) as Stage4Record | undefined ?? null;
+	const stages = db
+		.prepare('SELECT * FROM batch_stages WHERE batch_id = ? ORDER BY stage_number')
+		.all(batchId) as BatchStage[];
+	const stage1 =
+		(db.prepare('SELECT * FROM stage1_records WHERE batch_id = ?').get(batchId) as Stage1Record | undefined) ?? null;
+	const stage2 =
+		(db.prepare('SELECT * FROM stage2_records WHERE batch_id = ?').get(batchId) as Stage2Record | undefined) ?? null;
+	const stage3 =
+		(db.prepare('SELECT * FROM stage3_records WHERE batch_id = ?').get(batchId) as Stage3Record | undefined) ?? null;
+	const stage4 =
+		(db.prepare('SELECT * FROM stage4_records WHERE batch_id = ?').get(batchId) as Stage4Record | undefined) ?? null;
 
-	const costsByCategory = db.prepare(`
+	const costsByCategory = db
+		.prepare(
+			`
 		SELECT cost_category as category, COALESCE(SUM(total_cost), 0) as total
 		FROM batch_costs WHERE batch_id = ? GROUP BY cost_category ORDER BY total DESC
-	`).all(batchId) as { category: string; total: number }[];
+	`
+		)
+		.all(batchId) as { category: string; total: number }[];
 	const totalCost = costsByCategory.reduce((s, c) => s + c.total, 0);
 	const finalProductKg = stage4?.final_product_g ? stage4.final_product_g / 1000.0 : null;
 	const costPerKg = finalProductKg ? Number((totalCost / finalProductKg).toFixed(2)) : null;
 
-	const deviations = db.prepare('SELECT * FROM deviations WHERE batch_id = ? ORDER BY created_at DESC').all(batchId) as Deviation[];
-	const labResults = db.prepare('SELECT * FROM lab_results WHERE batch_id = ? ORDER BY created_at DESC').all(batchId) as LabResult[];
+	const deviations = db
+		.prepare('SELECT * FROM deviations WHERE batch_id = ? ORDER BY created_at DESC')
+		.all(batchId) as Deviation[];
+	const labResults = db
+		.prepare('SELECT * FROM lab_results WHERE batch_id = ? ORDER BY created_at DESC')
+		.all(batchId) as LabResult[];
 
 	// Run averages for comparison
-	const runAvgYield = db.prepare(`
+	const runAvgYield = db
+		.prepare(
+			`
 		SELECT AVG(s4.overall_yield_pct) as avg FROM stage4_records s4
 		JOIN batches b ON b.id = s4.batch_id WHERE b.production_run_id = ? AND s4.overall_yield_pct IS NOT NULL
-	`).get(runId) as { avg: number | null };
+	`
+		)
+		.get(runId) as { avg: number | null };
 
-	const runAvgCost = db.prepare(`
+	const runAvgCost = db
+		.prepare(
+			`
 		SELECT AVG(bc_totals.total) as avg FROM (
 			SELECT SUM(bc.total_cost) as total FROM batch_costs bc
 			JOIN batches b ON b.id = bc.batch_id WHERE b.production_run_id = ? GROUP BY bc.batch_id
 		) bc_totals
-	`).get(runId) as { avg: number | null };
+	`
+		)
+		.get(runId) as { avg: number | null };
 
-	const runAvgRecovery = db.prepare(`
+	const runAvgRecovery = db
+		.prepare(
+			`
 		SELECT AVG(s2.etoh_recovery_pct) as avg FROM stage2_records s2
 		JOIN batches b ON b.id = s2.batch_id WHERE b.production_run_id = ? AND s2.etoh_recovery_pct IS NOT NULL
-	`).get(runId) as { avg: number | null };
+	`
+		)
+		.get(runId) as { avg: number | null };
 
 	// Compute run avg cost per kg
 	const runCostPerKg = (() => {
-		const r = db.prepare(`
+		const r = db
+			.prepare(
+				`
 			SELECT COALESCE(SUM(bc.total_cost), 0) as cost, COALESCE(SUM(s4.final_product_g / 1000.0), 0) as kg
 			FROM batch_costs bc JOIN batches b ON b.id = bc.batch_id
 			LEFT JOIN stage4_records s4 ON s4.batch_id = b.id
 			WHERE b.production_run_id = ? AND s4.final_product_g IS NOT NULL
-		`).get(runId) as { cost: number; kg: number };
+		`
+			)
+			.get(runId) as { cost: number; kg: number };
 		return r.kg > 0 ? Number((r.cost / r.kg).toFixed(2)) : null;
 	})();
 
@@ -1154,44 +1494,68 @@ export function getRunHistorySummaries(): RunHistorySummary[] {
 	const db = getDb();
 	const runs = db.prepare('SELECT * FROM production_runs ORDER BY started_at DESC').all() as ProductionRun[];
 
-	return runs.map(run => {
-		const batchStats = db.prepare(`
+	return runs.map((run) => {
+		const batchStats = db
+			.prepare(
+				`
 			SELECT COUNT(*) as total,
 				SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) as completed,
 				COALESCE(SUM(leaf_input_kg), 0) as total_input
 			FROM batches WHERE production_run_id = ?
-		`).get(run.id) as { total: number; completed: number; total_input: number };
+		`
+			)
+			.get(run.id) as { total: number; completed: number; total_input: number };
 
-		const produced = db.prepare(`
+		const produced = db
+			.prepare(
+				`
 			SELECT COALESCE(SUM(s4.final_product_g / 1000.0), 0) as total
 			FROM stage4_records s4 JOIN batches b ON b.id = s4.batch_id
 			WHERE b.production_run_id = ? AND s4.final_product_g IS NOT NULL
-		`).get(run.id) as { total: number };
+		`
+			)
+			.get(run.id) as { total: number };
 
-		const costs = db.prepare(`
+		const costs = db
+			.prepare(
+				`
 			SELECT COALESCE(SUM(bc.total_cost), 0) as total
 			FROM batch_costs bc JOIN batches b ON b.id = bc.batch_id
 			WHERE b.production_run_id = ?
-		`).get(run.id) as { total: number };
+		`
+			)
+			.get(run.id) as { total: number };
 
-		const ethanol = db.prepare(`
+		const ethanol = db
+			.prepare(
+				`
 			SELECT COALESCE(AVG(s2.etoh_recovery_pct), 0) as avg_recovery,
 				COALESCE(SUM(s2.etoh_vol_L), 0) as total_issued,
 				COALESCE(SUM(s2.etoh_recovered_L), 0) as total_recovered,
 				COALESCE(SUM(s2.etoh_lost_L), 0) as total_lost
 			FROM stage2_records s2 JOIN batches b ON b.id = s2.batch_id
 			WHERE b.production_run_id = ? AND s2.etoh_recovery_pct IS NOT NULL
-		`).get(run.id) as { avg_recovery: number; total_issued: number; total_recovered: number; total_lost: number };
+		`
+			)
+			.get(run.id) as { avg_recovery: number; total_issued: number; total_recovered: number; total_lost: number };
 
-		const purity = db.prepare(`
+		const purity = db
+			.prepare(
+				`
 			SELECT AVG(lr.hplc_purity_pct) as avg_purity
 			FROM lab_results lr JOIN batches b ON b.id = lr.batch_id
 			WHERE b.production_run_id = ? AND lr.test_type = 'HPLC' AND lr.status = 'Completed'
-		`).get(run.id) as { avg_purity: number | null };
+		`
+			)
+			.get(run.id) as { avg_purity: number | null };
 
-		const devCount = db.prepare(`
+		const devCount = db
+			.prepare(
+				`
 			SELECT COUNT(*) as cnt FROM deviations d JOIN batches b ON b.id = d.batch_id WHERE b.production_run_id = ?
-		`).get(run.id) as { cnt: number };
+		`
+			)
+			.get(run.id) as { cnt: number };
 
 		const totalProducedKg = Number(produced.total);
 		const totalCost = Number(costs.total);
@@ -1208,10 +1572,16 @@ export function getRunHistorySummaries(): RunHistorySummary[] {
 			completedBatches,
 			totalInputKg: Number(batchStats.total_input),
 			totalProducedKg,
-			overallYieldPct: batchStats.total_input > 0 ? Number(((totalProducedKg / batchStats.total_input) * 100).toFixed(2)) : 0,
+			overallYieldPct:
+				batchStats.total_input > 0 ? Number(((totalProducedKg / batchStats.total_input) * 100).toFixed(2)) : 0,
 			totalCost,
 			costPerKg: totalProducedKg > 0 ? Number((totalCost / totalProducedKg).toFixed(2)) : 0,
-			avgCostPerBatch: completedBatches > 0 ? Number((totalCost / completedBatches).toFixed(2)) : (totalBatches > 0 ? Number((totalCost / totalBatches).toFixed(2)) : 0),
+			avgCostPerBatch:
+				completedBatches > 0
+					? Number((totalCost / completedBatches).toFixed(2))
+					: totalBatches > 0
+						? Number((totalCost / totalBatches).toFixed(2))
+						: 0,
 			avgEthanolRecovery: Number(Number(ethanol.avg_recovery).toFixed(1)),
 			totalEthanolIssued: Number(ethanol.total_issued),
 			totalEthanolRecovered: Number(ethanol.total_recovered),
@@ -1226,7 +1596,9 @@ export function getBatchAnomalies(runId: number): AnomalyFlag[] {
 	const db = getDb();
 
 	// Get per-batch metrics for this run
-	const rows = db.prepare(`
+	const rows = db
+		.prepare(
+			`
 		SELECT b.id as batch_id, b.batch_number,
 			s2.etoh_recovery_pct as recovery,
 			s4.overall_yield_pct as yield,
@@ -1238,20 +1610,29 @@ export function getBatchAnomalies(runId: number): AnomalyFlag[] {
 		LEFT JOIN (SELECT batch_id, SUM(total_cost) as total_cost FROM batch_costs GROUP BY batch_id) cost_agg ON cost_agg.batch_id = b.id
 		LEFT JOIN (SELECT batch_id, hplc_purity_pct FROM lab_results WHERE test_type = 'HPLC' AND status = 'Completed') lr ON lr.batch_id = b.id
 		WHERE b.production_run_id = ?
-	`).all(runId) as { batch_id: number; batch_number: string; recovery: number | null; yield: number | null; cost: number; purity: number | null }[];
+	`
+		)
+		.all(runId) as {
+		batch_id: number;
+		batch_number: string;
+		recovery: number | null;
+		yield: number | null;
+		cost: number;
+		purity: number | null;
+	}[];
 
 	if (rows.length < 3) return []; // need at least 3 batches for meaningful stats
 
 	const flags: AnomalyFlag[] = [];
-	const metrics: { key: string; extract: (r: typeof rows[0]) => number | null }[] = [
-		{ key: 'recovery', extract: r => r.recovery },
-		{ key: 'yield', extract: r => r.yield },
-		{ key: 'cost', extract: r => r.cost > 0 ? r.cost : null },
-		{ key: 'purity', extract: r => r.purity }
+	const metrics: { key: string; extract: (r: (typeof rows)[0]) => number | null }[] = [
+		{ key: 'recovery', extract: (r) => r.recovery },
+		{ key: 'yield', extract: (r) => r.yield },
+		{ key: 'cost', extract: (r) => (r.cost > 0 ? r.cost : null) },
+		{ key: 'purity', extract: (r) => r.purity }
 	];
 
 	for (const m of metrics) {
-		const values = rows.map(r => m.extract(r)).filter((v): v is number => v !== null);
+		const values = rows.map((r) => m.extract(r)).filter((v): v is number => v !== null);
 		if (values.length < 3) continue;
 
 		const mean = values.reduce((a, b) => a + b, 0) / values.length;
@@ -1288,7 +1669,9 @@ export function getBatchAnomalies(runId: number): AnomalyFlag[] {
 
 export function getQualityCorrelation(runId: number): QualityCorrelationPoint[] {
 	const db = getDb();
-	return db.prepare(`
+	return db
+		.prepare(
+			`
 		SELECT b.id as batchId, b.batch_number as batchNumber, b.supplier,
 			s4.overall_yield_pct as yieldPct,
 			lr.hplc_purity_pct as purityPct,
@@ -1302,5 +1685,7 @@ export function getQualityCorrelation(runId: number): QualityCorrelationPoint[] 
 		JOIN lab_results lr ON lr.batch_id = b.id AND lr.test_type = 'HPLC' AND lr.status = 'Completed'
 		WHERE b.production_run_id = ? AND s4.overall_yield_pct IS NOT NULL
 		ORDER BY b.batch_number
-	`).all(runId) as QualityCorrelationPoint[];
+	`
+		)
+		.all(runId) as QualityCorrelationPoint[];
 }

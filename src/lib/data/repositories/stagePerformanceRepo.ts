@@ -4,11 +4,16 @@ export type TimeFilter = 'all' | '3months' | '1month' | '1week' | 'today';
 
 function getDateFilter(filter: TimeFilter): string {
 	switch (filter) {
-		case '3months': return "AND bs.finalized_at >= datetime('now', '-3 months')";
-		case '1month': return "AND bs.finalized_at >= datetime('now', '-1 month')";
-		case '1week': return "AND bs.finalized_at >= datetime('now', '-7 days')";
-		case 'today': return "AND date(bs.finalized_at) = date('now')";
-		default: return '';
+		case '3months':
+			return "AND bs.finalized_at >= datetime('now', '-3 months')";
+		case '1month':
+			return "AND bs.finalized_at >= datetime('now', '-1 month')";
+		case '1week':
+			return "AND bs.finalized_at >= datetime('now', '-7 days')";
+		case 'today':
+			return "AND date(bs.finalized_at) = date('now')";
+		default:
+			return '';
 	}
 }
 
@@ -45,7 +50,9 @@ export function getStage1Performance(filter: TimeFilter): Stage1Performance {
 		avg_cycle: number | null;
 	}
 
-	const summary = db.prepare(`
+	const summary = db
+		.prepare(
+			`
 		SELECT
 			COUNT(*) as batch_count,
 			AVG(CASE WHEN s1.net_leaf_kg > 0 THEN (s1.powder_output_kg / s1.net_leaf_kg * 100) END) as avg_yield,
@@ -56,9 +63,13 @@ export function getStage1Performance(filter: TimeFilter): Stage1Performance {
 		FROM stage1_records s1
 		JOIN batch_stages bs ON bs.batch_id = s1.batch_id AND bs.stage_number = 1
 		WHERE bs.status = 'Finalized' ${dateClause}
-	`).get() as Stage1Summary;
+	`
+		)
+		.get() as Stage1Summary;
 
-	const batches = db.prepare(`
+	const batches = db
+		.prepare(
+			`
 		SELECT b.batch_number, b.id as batch_id, s1.powder_output_kg,
 			CASE WHEN s1.net_leaf_kg > 0 THEN (s1.powder_output_kg / s1.net_leaf_kg * 100) END as powder_yield_pct,
 			s1.mass_balance_err_pct, bs.finalized_at
@@ -67,7 +78,9 @@ export function getStage1Performance(filter: TimeFilter): Stage1Performance {
 		JOIN batches b ON b.id = s1.batch_id
 		WHERE bs.status = 'Finalized' ${dateClause}
 		ORDER BY bs.finalized_at DESC
-	`).all() as Stage1Performance['batches'];
+	`
+		)
+		.all() as Stage1Performance['batches'];
 
 	return {
 		batchCount: summary.batch_count ?? 0,
@@ -109,7 +122,9 @@ export function getStage2Performance(filter: TimeFilter): Stage2Performance {
 		avg_cycle: number | null;
 	}
 
-	const summary = db.prepare(`
+	const summary = db
+		.prepare(
+			`
 		SELECT
 			COUNT(*) as batch_count,
 			AVG(s2.etoh_recovery_pct) as avg_recovery,
@@ -120,9 +135,13 @@ export function getStage2Performance(filter: TimeFilter): Stage2Performance {
 		FROM stage2_records s2
 		JOIN batch_stages bs ON bs.batch_id = s2.batch_id AND bs.stage_number = 2
 		WHERE bs.status = 'Finalized' ${dateClause}
-	`).get() as Stage2Summary;
+	`
+		)
+		.get() as Stage2Summary;
 
-	const batches = db.prepare(`
+	const batches = db
+		.prepare(
+			`
 		SELECT b.batch_number, b.id as batch_id, s2.crude_extract_wt_kg, s2.etoh_recovery_pct,
 			s2.etoh_vol_L, bs.finalized_at
 		FROM stage2_records s2
@@ -130,7 +149,9 @@ export function getStage2Performance(filter: TimeFilter): Stage2Performance {
 		JOIN batches b ON b.id = s2.batch_id
 		WHERE bs.status = 'Finalized' ${dateClause}
 		ORDER BY bs.finalized_at DESC
-	`).all() as Stage2Performance['batches'];
+	`
+		)
+		.all() as Stage2Performance['batches'];
 
 	return {
 		batchCount: summary.batch_count ?? 0,
@@ -170,7 +191,9 @@ export function getStage3Performance(filter: TimeFilter): Stage3Performance {
 		avg_cycle: number | null;
 	}
 
-	const summary = db.prepare(`
+	const summary = db
+		.prepare(
+			`
 		SELECT
 			COUNT(*) as batch_count,
 			AVG(s3.dlimo_loss_pct) as avg_partition_yield,
@@ -179,9 +202,13 @@ export function getStage3Performance(filter: TimeFilter): Stage3Performance {
 		FROM stage3_records s3
 		JOIN batch_stages bs ON bs.batch_id = s3.batch_id AND bs.stage_number = 3
 		WHERE bs.status = 'Finalized' ${dateClause}
-	`).get() as Stage3Summary;
+	`
+		)
+		.get() as Stage3Summary;
 
-	const batches = db.prepare(`
+	const batches = db
+		.prepare(
+			`
 		SELECT b.batch_number, b.id as batch_id, s3.organic_phase_mL, s3.aqueous_waste_L,
 			s3.dlimo_vol_L, s3.dlimo_recovered_L, bs.finalized_at
 		FROM stage3_records s3
@@ -189,7 +216,9 @@ export function getStage3Performance(filter: TimeFilter): Stage3Performance {
 		JOIN batches b ON b.id = s3.batch_id
 		WHERE bs.status = 'Finalized' ${dateClause}
 		ORDER BY bs.finalized_at DESC
-	`).all() as Stage3Performance['batches'];
+	`
+		)
+		.all() as Stage3Performance['batches'];
 
 	return {
 		batchCount: summary.batch_count ?? 0,
@@ -225,7 +254,9 @@ export function getStage4Performance(filter: TimeFilter): Stage4Performance {
 		avg_cycle: number | null;
 	}
 
-	const summary = db.prepare(`
+	const summary = db
+		.prepare(
+			`
 		SELECT
 			COUNT(*) as batch_count,
 			AVG(s4.overall_yield_pct) as avg_yield,
@@ -234,9 +265,13 @@ export function getStage4Performance(filter: TimeFilter): Stage4Performance {
 		FROM stage4_records s4
 		JOIN batch_stages bs ON bs.batch_id = s4.batch_id AND bs.stage_number = 4
 		WHERE bs.status = 'Finalized' ${dateClause}
-	`).get() as Stage4Summary;
+	`
+		)
+		.get() as Stage4Summary;
 
-	const batches = db.prepare(`
+	const batches = db
+		.prepare(
+			`
 		SELECT b.batch_number, b.id as batch_id, s4.final_product_g,
 			s4.overall_yield_pct, bs.finalized_at
 		FROM stage4_records s4
@@ -244,7 +279,9 @@ export function getStage4Performance(filter: TimeFilter): Stage4Performance {
 		JOIN batches b ON b.id = s4.batch_id
 		WHERE bs.status = 'Finalized' ${dateClause}
 		ORDER BY bs.finalized_at DESC
-	`).all() as Stage4Performance['batches'];
+	`
+		)
+		.all() as Stage4Performance['batches'];
 
 	return {
 		batchCount: summary.batch_count ?? 0,

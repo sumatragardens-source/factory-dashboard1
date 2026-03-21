@@ -7,11 +7,7 @@ export function calculateSolventLoss(issuedL: number, recoveredL: number): numbe
 	return Number((issuedL - recoveredL).toFixed(2));
 }
 
-export function calculateNetSolventCost(
-	volumeL: number,
-	ratePerL: number,
-	recoveredL: number
-): number {
+export function calculateNetSolventCost(volumeL: number, ratePerL: number, recoveredL: number): number {
 	const netUsed = volumeL - recoveredL;
 	return Number((netUsed * ratePerL).toFixed(2));
 }

@@ -9,33 +9,37 @@ export const load: PageServerLoad = () => {
 		const db = getDb();
 
 		// Enrich with batch number
-		const enriched = db.prepare(`
+		const enriched = db
+			.prepare(
+				`
 			SELECT d.*, b.batch_number
 			FROM deviations d
 			JOIN batches b ON b.id = d.batch_id
 			ORDER BY
 				CASE d.severity WHEN 'Critical' THEN 1 WHEN 'High' THEN 2 WHEN 'Medium' THEN 3 WHEN 'Low' THEN 4 END,
 				d.created_at DESC
-		`).all() as DeviationRow[];
+		`
+			)
+			.all() as DeviationRow[];
 
 		// Summary counts
 		const bySeverity = {
-			Critical: enriched.filter(d => d.severity === 'Critical').length,
-			High: enriched.filter(d => d.severity === 'High').length,
-			Medium: enriched.filter(d => d.severity === 'Medium').length,
-			Low: enriched.filter(d => d.severity === 'Low').length
+			Critical: enriched.filter((d) => d.severity === 'Critical').length,
+			High: enriched.filter((d) => d.severity === 'High').length,
+			Medium: enriched.filter((d) => d.severity === 'Medium').length,
+			Low: enriched.filter((d) => d.severity === 'Low').length
 		};
 
 		const byStatus = {
-			Open: enriched.filter(d => d.status === 'Open').length,
-			'Under Review': enriched.filter(d => d.status === 'Under Review').length,
-			Resolved: enriched.filter(d => d.status === 'Resolved').length,
-			Closed: enriched.filter(d => d.status === 'Closed').length
+			Open: enriched.filter((d) => d.status === 'Open').length,
+			'Under Review': enriched.filter((d) => d.status === 'Under Review').length,
+			Resolved: enriched.filter((d) => d.status === 'Resolved').length,
+			Closed: enriched.filter((d) => d.status === 'Closed').length
 		};
 
 		return {
 			deviations: enriched,
-			openCount: enriched.filter(d => d.status === 'Open' || d.status === 'Under Review').length,
+			openCount: enriched.filter((d) => d.status === 'Open' || d.status === 'Under Review').length,
 			totalCount: enriched.length,
 			bySeverity,
 			byStatus

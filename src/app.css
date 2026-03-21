@@ -2,22 +2,22 @@
 
 @theme {
 	/* Stitch-12 palette */
-	--color-primary: #A3E635;
-	--color-primary-dark: #4ADE80;
+	--color-primary: #a3e635;
+	--color-primary-dark: #4ade80;
 	/* Dark backgrounds */
-	--color-bg-light: #E5E7EB;
+	--color-bg-light: #e5e7eb;
 	--color-bg-dark: #111827;
 	--color-bg-page: #111827;
-	--color-bg-card: #1F2937;
+	--color-bg-card: #1f2937;
 	--color-bg-card-hover: #374151;
 	--color-bg-input: #374151;
 	/* Borders */
 	--color-border-card: #374151;
-	--color-border-subtle: #1F2937;
+	--color-border-subtle: #1f2937;
 	/* Text */
-	--color-text-primary: #FFFFFF;
-	--color-text-secondary: #E5E7EB;
-	--color-text-muted: #6B7280;
+	--color-text-primary: #ffffff;
+	--color-text-secondary: #e5e7eb;
+	--color-text-muted: #6b7280;
 	--font-family-display: 'Inter', sans-serif;
 }
 
@@ -28,7 +28,11 @@ body {
 }
 
 .material-symbols-outlined {
-	font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+	font-variation-settings:
+		'FILL' 0,
+		'wght' 400,
+		'GRAD' 0,
+		'opsz' 24;
 }
 
 .no-scrollbar::-webkit-scrollbar {

@@ -15,14 +15,30 @@ export interface LotAgg {
 	batchCount: number;
 	bestBatchRecovery: string;
 	deviationCount: number;
-	costBySegment: { leaf: number; solvent: number; chemicals: number; labor: number; electricity: number; testing: number };
+	costBySegment: {
+		leaf: number;
+		solvent: number;
+		chemicals: number;
+		labor: number;
+		electricity: number;
+		testing: number;
+	};
 }
 
 function emptyAgg(): LotAgg {
 	return {
-		avgRecoveryPct: 0, totalEthIssued: 0, totalEthRecovered: 0, totalEthLost: 0,
-		totalCost: 0, avgCostPerKg: 0, totalYieldKg: 0, avgYieldPct: 0,
-		avgPurity: null, avgMitragynine: null, batchCount: 0, bestBatchRecovery: '—',
+		avgRecoveryPct: 0,
+		totalEthIssued: 0,
+		totalEthRecovered: 0,
+		totalEthLost: 0,
+		totalCost: 0,
+		avgCostPerKg: 0,
+		totalYieldKg: 0,
+		avgYieldPct: 0,
+		avgPurity: null,
+		avgMitragynine: null,
+		batchCount: 0,
+		bestBatchRecovery: '—',
 		deviationCount: 0,
 		costBySegment: { leaf: 0, solvent: 0, chemicals: 0, labor: 0, electricity: 0, testing: 0 }
 	};
@@ -87,26 +103,26 @@ export function computeLotSummaries(
 	for (const [lot, agg] of map) {
 		if (agg.totalEthIssued > 0) agg.avgRecoveryPct = (agg.totalEthRecovered / agg.totalEthIssued) * 100;
 
-		const yieldBatches = yieldBreakdown.filter(y => y.supplier_lot === lot && y.overall_yield_pct != null);
+		const yieldBatches = yieldBreakdown.filter((y) => y.supplier_lot === lot && y.overall_yield_pct != null);
 		if (yieldBatches.length > 0) {
 			agg.avgYieldPct = yieldBatches.reduce((s, y) => s + (y.overall_yield_pct ?? 0), 0) / yieldBatches.length;
 		}
 
-		const purityBatches = yieldBreakdown.filter(y => y.supplier_lot === lot && y.hplc_purity_pct != null);
+		const purityBatches = yieldBreakdown.filter((y) => y.supplier_lot === lot && y.hplc_purity_pct != null);
 		if (purityBatches.length > 0) {
 			agg.avgPurity = purityBatches.reduce((s, y) => s + (y.hplc_purity_pct ?? 0), 0) / purityBatches.length;
 		}
 
-		const mitBatches = yieldBreakdown.filter(y => y.supplier_lot === lot && y.mitragynine_pct != null);
+		const mitBatches = yieldBreakdown.filter((y) => y.supplier_lot === lot && y.mitragynine_pct != null);
 		if (mitBatches.length > 0) {
 			agg.avgMitragynine = mitBatches.reduce((s, y) => s + (y.mitragynine_pct ?? 0), 0) / mitBatches.length;
 		}
 
 		agg.avgCostPerKg = agg.totalYieldKg > 0 ? agg.totalCost / agg.totalYieldKg : 0;
 
-		const ethBatches = ethanolBreakdown.filter(e => e.supplier_lot === lot && e.recovery_pct != null);
+		const ethBatches = ethanolBreakdown.filter((e) => e.supplier_lot === lot && e.recovery_pct != null);
 		if (ethBatches.length > 0) {
-			const best = ethBatches.reduce((a, b) => (a.recovery_pct ?? 0) > (b.recovery_pct ?? 0) ? a : b);
+			const best = ethBatches.reduce((a, b) => ((a.recovery_pct ?? 0) > (b.recovery_pct ?? 0) ? a : b));
 			agg.bestBatchRecovery = best.batch_number.replace('SG-', '');
 		}
 	}
@@ -119,13 +135,27 @@ export function computeAllTimeLotAvg(
 	summaries: Map<string, LotAgg>
 ): { recoveryPct: number; costPerKg: number; yieldPct: number } {
 	if (lots.length === 0) return { recoveryPct: 0, costPerKg: 0, yieldPct: 0 };
-	let recSum = 0, costSum = 0, yieldSum = 0, recN = 0, costN = 0, yieldN = 0;
+	let recSum = 0,
+		costSum = 0,
+		yieldSum = 0,
+		recN = 0,
+		costN = 0,
+		yieldN = 0;
 	for (const lot of lots) {
 		const agg = summaries.get(lot);
 		if (!agg) continue;
-		if (agg.avgRecoveryPct > 0) { recSum += agg.avgRecoveryPct; recN++; }
-		if (agg.avgCostPerKg > 0) { costSum += agg.avgCostPerKg; costN++; }
-		if (agg.avgYieldPct > 0) { yieldSum += agg.avgYieldPct; yieldN++; }
+		if (agg.avgRecoveryPct > 0) {
+			recSum += agg.avgRecoveryPct;
+			recN++;
+		}
+		if (agg.avgCostPerKg > 0) {
+			costSum += agg.avgCostPerKg;
+			costN++;
+		}
+		if (agg.avgYieldPct > 0) {
+			yieldSum += agg.avgYieldPct;
+			yieldN++;
+		}
 	}
 	return {
 		recoveryPct: recN > 0 ? recSum / recN : 0,

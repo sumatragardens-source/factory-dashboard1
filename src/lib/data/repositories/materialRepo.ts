@@ -15,7 +15,5 @@ export function getMaterialMovements(materialId: number): MaterialMovement[] {
 
 export function getLowStockMaterials(): Material[] {
 	const db = getDb();
-	return db
-		.prepare('SELECT * FROM materials WHERE on_hand_qty <= reorder_threshold ORDER BY name')
-		.all() as Material[];
+	return db.prepare('SELECT * FROM materials WHERE on_hand_qty <= reorder_threshold ORDER BY name').all() as Material[];
 }

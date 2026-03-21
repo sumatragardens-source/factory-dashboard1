@@ -8,9 +8,7 @@ export function getAllUnitRates(): UnitRate[] {
 
 export function getBatchCosts(batchId: number): BatchCost[] {
 	const db = getDb();
-	return db
-		.prepare('SELECT * FROM batch_costs WHERE batch_id = ? ORDER BY cost_category')
-		.all(batchId) as BatchCost[];
+	return db.prepare('SELECT * FROM batch_costs WHERE batch_id = ? ORDER BY cost_category').all(batchId) as BatchCost[];
 }
 
 export function getBatchTotalCost(batchId: number): number {

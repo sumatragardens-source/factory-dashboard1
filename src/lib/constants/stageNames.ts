@@ -3,33 +3,33 @@
 // ============================================================
 
 export interface ProcessStage {
-	code: string;       // S1–S7
-	number: number;     // 1–7
-	name: string;       // Full process stage name
-	uiStage: number;    // Which UI stage (1–4) this maps to
+	code: string; // S1–S7
+	number: number; // 1–7
+	name: string; // Full process stage name
+	uiStage: number; // Which UI stage (1–4) this maps to
 }
 
 export interface UIStage {
-	number: number;     // 1–4
-	name: string;       // Pipeline label
-	processStages: number[];  // Which process stages fall under this
+	number: number; // 1–4
+	name: string; // Pipeline label
+	processStages: number[]; // Which process stages fall under this
 }
 
 export const PROCESS_STAGES: readonly ProcessStage[] = [
-	{ code: 'S1', number: 1, name: 'Raw Leaf & Grinding',                          uiStage: 1 },
-	{ code: 'S2', number: 2, name: 'Ethanol Extraction',                            uiStage: 2 },
-	{ code: 'S3', number: 3, name: 'Filtration & Washing',                          uiStage: 2 },
-	{ code: 'S4', number: 4, name: 'Ethanol Distillation/Recovery',                 uiStage: 2 },
-	{ code: 'S5', number: 5, name: 'Acid/Base Extraction and Partitioning',         uiStage: 3 },
-	{ code: 'S6', number: 6, name: 'Back-Extraction & Precipitation',               uiStage: 3 },
-	{ code: 'S7', number: 7, name: 'Drying & Final Product',                        uiStage: 4 },
+	{ code: 'S1', number: 1, name: 'Raw Leaf & Grinding', uiStage: 1 },
+	{ code: 'S2', number: 2, name: 'Ethanol Extraction', uiStage: 2 },
+	{ code: 'S3', number: 3, name: 'Filtration & Washing', uiStage: 2 },
+	{ code: 'S4', number: 4, name: 'Ethanol Distillation/Recovery', uiStage: 2 },
+	{ code: 'S5', number: 5, name: 'Acid/Base Extraction and Partitioning', uiStage: 3 },
+	{ code: 'S6', number: 6, name: 'Back-Extraction & Precipitation', uiStage: 3 },
+	{ code: 'S7', number: 7, name: 'Drying & Final Product', uiStage: 4 }
 ] as const;
 
 export const UI_STAGES: readonly UIStage[] = [
-	{ number: 1, name: 'Raw Leaf to Powder',                                         processStages: [1] },
-	{ number: 2, name: 'Ethanol Extraction',                                         processStages: [2, 3, 4] },
-	{ number: 3, name: 'Acid/Base Extraction and Partitioning',                      processStages: [5, 6] },
-	{ number: 4, name: 'Back Extraction, Precipitation, Drying, and Final Product',  processStages: [6, 7] },
+	{ number: 1, name: 'Raw Leaf to Powder', processStages: [1] },
+	{ number: 2, name: 'Ethanol Extraction', processStages: [2, 3, 4] },
+	{ number: 3, name: 'Acid/Base Extraction and Partitioning', processStages: [5, 6] },
+	{ number: 4, name: 'Back Extraction, Precipitation, Drying, and Final Product', processStages: [6, 7] }
 ] as const;
 
 export const TOTAL_PROCESS_STAGES = 7;
@@ -43,14 +43,14 @@ export type UIStageNumber = (typeof UI_STAGE_KEYS)[number];
 
 /** Get process stage name by number (1–7) */
 export function getProcessStageName(stageNumber: number): string {
-	const stage = PROCESS_STAGES.find(s => s.number === stageNumber);
+	const stage = PROCESS_STAGES.find((s) => s.number === stageNumber);
 	if (!stage) throw new Error(`Invalid process stage number: ${stageNumber}. Must be 1-${TOTAL_PROCESS_STAGES}.`);
 	return stage.name;
 }
 
 /** Get UI stage name by number (1–4) */
 export function getUIStageName(uiStageNumber: number): string {
-	const stage = UI_STAGES.find(s => s.number === uiStageNumber);
+	const stage = UI_STAGES.find((s) => s.number === uiStageNumber);
 	if (!stage) throw new Error(`Invalid UI stage number: ${uiStageNumber}. Must be 1-${TOTAL_UI_STAGES}.`);
 	return stage.name;
 }
@@ -58,7 +58,7 @@ export function getUIStageName(uiStageNumber: number): string {
 // ── Backward compatibility ──────────────────────────────────────────────────
 
 /** @deprecated Use UI_STAGES or PROCESS_STAGES directly */
-export const STAGE_NAMES = UI_STAGES.map(s => s.name);
+export const STAGE_NAMES = UI_STAGES.map((s) => s.name);
 
 /** @deprecated Use TOTAL_UI_STAGES */
 export const TOTAL_STAGES = TOTAL_UI_STAGES;

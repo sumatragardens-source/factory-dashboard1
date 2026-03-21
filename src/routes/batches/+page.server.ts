@@ -16,7 +16,7 @@ export const actions: Actions = {
 	create: async ({ request }) => {
 		const formData = await request.formData();
 		const supplier = formData.get('supplier') as string;
-		const supplier_lot = formData.get('supplier_lot') as string || null;
+		const supplier_lot = (formData.get('supplier_lot') as string) || null;
 		const leaf_input_kg = Number(formData.get('leaf_input_kg'));
 		const operator_name = formData.get('operator_name') as string;
 
