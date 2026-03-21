@@ -1320,6 +1320,7 @@
 
 				<!-- S2: Batch Cost Bar Chart — HERO -->
 				{@const lotBatchCosts = batchCostChart.lotBatchCosts}
+				{@const batchCostVals = batchCostChart.batchCostVals}
 				{@const batchCostMax = batchCostChart.batchCostMax}
 				{@const batchCostMin = batchCostChart.batchCostMin}
 				{@const batchCostAvg = batchCostChart.batchCostAvg}
